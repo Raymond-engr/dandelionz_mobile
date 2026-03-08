@@ -1,13 +1,14 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type {
   BaseQueryFn,
   FetchArgs,
   FetchBaseQueryError,
 } from "@reduxjs/toolkit/query";
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import * as SecureStore from "expo-secure-store";
 import { RootState } from "../store";
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://api.dandelionz.com.ng";
+  process.env.EXPO_PUBLIC_API_URL || "https://api.dandelionz.com.ng";
 
 // Base query with auth token injection
 const baseQuery = fetchBaseQuery({
@@ -15,7 +16,7 @@ const baseQuery = fetchBaseQuery({
   prepareHeaders: (headers, api) => {
     const args = (api as any).arg;
     const token = (api.getState() as RootState).auth.accessToken;
-    
+
     // Skip Authorization header for refresh token requests to avoid 401s from the refresh endpoint itself
     if (token && args?.url !== "/auth/token/refresh/") {
       headers.set("Authorization", `Bearer ${token}`);
@@ -84,8 +85,9 @@ const baseQueryWithReauth: BaseQueryFn<
           );
 
           if (refreshResult.data) {
-            const { access_token, refresh_token: new_refresh_token } = (refreshResult.data as any)
-              .data;
+            const { access_token, refresh_token: new_refresh_token } = (
+              refreshResult.data as any
+            ).data;
 
             // Update tokens in state
             api.dispatch({
@@ -98,7 +100,7 @@ const baseQueryWithReauth: BaseQueryFn<
 
             // Update cookies so middleware doesn't reject the next navigation
             // Set max-age to 1 day (86400 seconds) or match server response if possible
-            document.cookie = `access_token=${access_token}; path=/; max-age=86400; SameSite=Lax`;
+            await SecureStore.setItemAsync("access_token", access_token);
 
             // Retry the original query with the new token
             result = await baseQuery(args, api, extraOptions);

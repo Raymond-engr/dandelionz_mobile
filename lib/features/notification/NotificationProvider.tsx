@@ -1,110 +1,98 @@
-'use client';
-
-import React, { createContext, useContext, useEffect, useRef } from 'react';
-import { useAppDispatch, useAppSelector } from '@/lib/hooks';
-import { 
-  setUnreadCount, 
-  incrementUnreadCount, 
+import { customerApi } from "@/lib/api/customerApi";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import React, { createContext, useContext, useEffect, useRef } from "react";
+import { AppState } from "react-native";
+import {
+  addNotification,
   setConnected,
-  addNotification 
-} from './notificationSlice';
-import { toast } from 'react-hot-toast';
-import { customerApi } from '@/lib/api/customerApi';
+  setUnreadCount,
+} from "./notificationSlice";
 
 const NotificationContext = createContext<void | undefined>(undefined);
 
-export function NotificationProvider({ children }: { children: React.ReactNode }) {
+export function NotificationProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const dispatch = useAppDispatch();
-  const { isAuthenticated, accessToken, user } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, accessToken } = useAppSelector(
+    (state) => state.auth,
+  );
   const socketRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Use the unified stats endpoint (via customerApi as a proxy since they share the URL)
-  const [triggerGetStats] = customerApi.useLazyCustomerGetNotificationStatsQuery();
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const [triggerGetStats] =
+    customerApi.useLazyCustomerGetNotificationStatsQuery();
 
   const connectWebSocket = () => {
-    if (!accessToken || socketRef.current?.readyState === WebSocket.OPEN) return;
+    if (!accessToken || socketRef.current?.readyState === WebSocket.OPEN)
+      return;
+    if (socketRef.current) socketRef.current.close();
 
-    // Close existing connection if any
-    if (socketRef.current) {
-      socketRef.current.close();
-    }
-
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // Using the domain from your backend configuration
-    const wsUrl = `${wsProtocol}//dandelionz.net/ws/notifications/token=${accessToken}`;
-
+    const wsUrl = `wss://dandelionz.net/ws/notifications/?token=${accessToken}`;
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
     socket.onopen = () => {
-      console.log('Notification WebSocket connected');
       dispatch(setConnected(true));
-      // Hydrate initial stats on connection
-      triggerGetStats().unwrap().then((response) => {
-        if (response.success) {
-          dispatch(setUnreadCount(response.data.unread_count));
-        }
-      });
+      triggerGetStats()
+        .unwrap()
+        .then((response) => {
+          if (response.success)
+            dispatch(setUnreadCount(response.data.unread_count));
+        })
+        .catch(() => {});
     };
 
     socket.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
-        if (payload.type === 'notification') {
-          const notificationData = payload.data;
-          dispatch(addNotification(notificationData));
-          toast.success(notificationData.title || 'New notification', {
-            icon: '🔔',
-            duration: 4000,
-          });
+        if (payload.type === "notification") {
+          dispatch(addNotification(payload.data));
         }
-      } catch (error) {
-        console.error('Error parsing notification message:', error);
-      }
+      } catch {}
     };
 
     socket.onclose = (event) => {
-      console.log('Notification WebSocket closed:', event.reason);
       dispatch(setConnected(false));
       socketRef.current = null;
-
-      // Reconnect if still authenticated
       if (isAuthenticated && !event.wasClean) {
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connectWebSocket();
-        }, 5000);
+        reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
       }
     };
 
-    socket.onerror = (error) => {
-      console.error('Notification WebSocket error:', error);
-      socket.close();
-    };
+    socket.onerror = () => socket.close();
   };
 
   useEffect(() => {
     if (isAuthenticated && accessToken) {
       connectWebSocket();
     } else {
-      if (socketRef.current) {
-        socketRef.current.close();
-      }
-      if (reconnectTimeoutRef.current) {
+      socketRef.current?.close();
+      if (reconnectTimeoutRef.current)
         clearTimeout(reconnectTimeoutRef.current);
-      }
       dispatch(setConnected(false));
       dispatch(setUnreadCount(0));
     }
-
     return () => {
-      if (socketRef.current) {
-        socketRef.current.close();
-      }
-      if (reconnectTimeoutRef.current) {
+      socketRef.current?.close();
+      if (reconnectTimeoutRef.current)
         clearTimeout(reconnectTimeoutRef.current);
-      }
     };
+  }, [isAuthenticated, accessToken]);
+
+  // Handle app going to background (WebSocket dies on mobile)
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active" && isAuthenticated) connectWebSocket();
+      if (state === "background") {
+        socketRef.current?.close();
+        dispatch(setConnected(false));
+      }
+    });
+    return () => sub.remove();
   }, [isAuthenticated, accessToken]);
 
   return (

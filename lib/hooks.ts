@@ -1,10 +1,10 @@
-'use client';
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
-import type { RootState, AppDispatch } from "./store";
-import { logout as logoutAction } from "./features/auth/authSlice";
-import { useRouter } from "next/navigation";
 import { useLogoutMutation } from "./api/authApi";
+import { logout as logoutAction } from "./features/auth/authSlice";
+import type { AppDispatch, RootState } from "./store";
 
 export const useAppDispatch = () => useDispatch<AppDispatch>();
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
@@ -24,11 +24,9 @@ export const useLogout = () => {
       console.error("Logout API failed:", err);
     } finally {
       dispatch(logoutAction());
-      // Clear cookies by setting an expiry date in the past
-      document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-      document.cookie = 'user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-      // Redirect to login page after logout
-      router.replace('/login');
+      await AsyncStorage.removeItem("auth");
+      await SecureStore.deleteItemAsync("access_token");
+      router.replace("/(auth)/login");
     }
   };
 

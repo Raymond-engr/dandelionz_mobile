@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
+  presets: [require("nativewind/preset")],
   theme: {
     extend: {
       colors: {
@@ -12,7 +13,7 @@ module.exports = {
         "system-divider": "#F5F7FA",
       },
       borderRadius: {
-        dandelion: "10px", // --radius in design system
+        dandelion: "10px",
       },
     },
   },

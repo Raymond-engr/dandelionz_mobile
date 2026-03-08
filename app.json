@@ -1,13 +1,48 @@
 {
   "expo": {
-    "name": "my-mobile-app",
-    "slug": "my-mobile-app",
+    "name": "Dandelionz",
+    "slug": "Dandelionz",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mymobileapp",
+    "scheme": "dandelionz",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "linking": {
+      "prefixes": [
+        "dandelionz://",
+        "https://dandelionz.com.ng",
+        "https://*.dandelionz.com.ng"
+      ],
+      "config": {
+        "screens": {
+          "forgot-password-confirm": "reset/:uid/:token",
+          "verify-email": "verify/:uid/:token",
+          "(tabs)": {
+            "screens": {
+              "index": "shop",
+              "cart": "cart",
+              "orders": "orders",
+              "wishlist": "wishlist",
+              "account": "account"
+            }
+          },
+          "(auth)": {
+            "screens": {
+              "login": "login",
+              "register": "register",
+              "forgot-password": "forgot-password",
+              "registration-success": "registration-success",
+              "verify-notice": "verify-notice"
+            }
+          },
+          "category/[name]": "category/:name",
+          "contact": "contact",
+          "faqs": "faqs",
+          "terms": "terms"
+        }
+      }
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -38,7 +73,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1,24 +1,84 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { setCredentials } from "@/lib/features/auth/authSlice";
+import { NotificationProvider } from "@/lib/features/notification/NotificationProvider";
+import { store } from "@/lib/store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Provider } from "react-redux";
+import "../global.css";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+function AppWithProviders() {
+  const [hydrated, setHydrated] = useState(false);
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+  useEffect(() => {
+    // Restore auth on launch
+    const restore = async () => {
+      try {
+        const saved = await AsyncStorage.getItem("auth");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          store.dispatch(setCredentials(parsed));
+        }
+      } catch {}
+      // mark hydration complete regardless of result
+      setHydrated(true);
+    };
+    restore();
+
+    // Persist auth changes
+    const unsub = store.subscribe(async () => {
+      const { auth } = store.getState();
+      try {
+        if (auth.isAuthenticated) {
+          await AsyncStorage.setItem(
+            "auth",
+            JSON.stringify({
+              user: auth.user,
+              accessToken: auth.accessToken,
+              refreshToken: auth.refreshToken,
+            }),
+          );
+        } else {
+          await AsyncStorage.removeItem("auth");
+        }
+      } catch {}
+    });
+    return unsub;
+  }, []);
+
+  // Always render tabs first (public home page), auth handled inside screens
+  return (
+    <NotificationProvider>
+      <StatusBar style="auto" />
+      {!hydrated ? (
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
+          <ActivityIndicator size="large" color="#030482" />
+        </View>
+      ) : (
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="category/[name]" />
+          <Stack.Screen name="contact" />
+          <Stack.Screen name="faqs" />
+          <Stack.Screen name="terms" />
+        </Stack>
+      )}
+    </NotificationProvider>
+  );
+}
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Provider store={store}>
+        <AppWithProviders />
+      </Provider>
+    </GestureHandlerRootView>
   );
 }

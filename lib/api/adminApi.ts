@@ -17,12 +17,10 @@ interface AdminProfile {
   can_manage_payouts?: boolean;
   can_manage_inventory?: boolean;
 }
-
 interface Analytics {
   total_orders: number;
   total_revenue: string;
   pending_orders: number;
-  delivered_orders: number;
   total_vendors: number;
 }
 
@@ -31,13 +29,20 @@ interface DetailedAnalytics {
   total_vendors: number;
   total_orders: number;
   total_users: number;
-  sales_chart_data: { period: string; sales: number }[];
+  sales_chart_data: { period: string; sales: string }[];
   order_stats: {
     completed: number;
     pending: number;
     cancelled: number;
     returned: number;
   };
+}
+
+export interface AnalyticsQueryParams {
+  period?: "weekly" | "monthly" | "annual" | "custom";
+  start_date?: string;
+  end_date?: string;
+  sales_period?: string; // Legacy support
 }
 
 interface OrderSummary {
@@ -456,16 +461,22 @@ export const adminApi = baseApi.injectEndpoints({
     }),
 
     // Analytics
-    getAnalytics: builder.query<{ success: boolean; data: Analytics }, void>({
-      query: () => "/user/admin/analytics/",
+    getAnalytics: builder.query<{ success: boolean; data: Analytics }, AnalyticsQueryParams | void>({
+      query: (params) => ({
+        url: "/user/admin/analytics/",
+        params: params || undefined,
+      }),
       providesTags: ["Analytics"],
     }),
 
     getDetailedAnalytics: builder.query<
       { success: boolean; data: DetailedAnalytics },
-      void
+      AnalyticsQueryParams | void
     >({
-      query: () => "/user/admin/analytics/detailed/",
+      query: (params) => ({
+        url: "/user/admin/analytics/detailed/",
+        params: params || undefined,
+      }),
       providesTags: ["Analytics"],
     }),
 

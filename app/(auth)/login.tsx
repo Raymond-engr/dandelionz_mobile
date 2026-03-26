@@ -6,15 +6,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 export default function LoginScreen() {
@@ -64,7 +64,12 @@ export default function LoginScreen() {
           }
         }
 
-        router.replace("/(tabs)");
+        const destination =
+          result.user.role === "BUSINESS_ADMIN"
+            ? "/(admin)/(tabs)/"
+            : "/(tabs)/";
+
+        router.replace(destination);
       }
     } catch (err: any) {
       setError(err?.data?.message || "Login failed. Please try again.");

@@ -12,7 +12,7 @@ import { useAppSelector } from "@/lib/hooks";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 interface Props {
@@ -39,12 +39,16 @@ export function ProductCard({ product, hideAddToCart = false }: Props) {
 
   const cartItems = cartResponse?.data?.items || [];
   const wishlistItems = wishlistResponse || [];
+  
   const isInCart = cartItems.some(
     (i: any) => i.product_details?.slug === product.slug,
   );
   const isInWishlist = wishlistItems.some(
     (i: any) => i.product_details?.slug === product.slug,
   );
+
+  const hasVariants = product.variants && Object.keys(product.variants).length > 0;
+
   const discount = product.discount ?? 0;
   const price = parseFloat(product.price || "0");
   const displayPrice = discount > 0 ? price * (1 - discount / 100) : price;
@@ -58,7 +62,9 @@ export function ProductCard({ product, hideAddToCart = false }: Props) {
     try {
       if (isInWishlist) await removeFromWishlist(product.slug).unwrap();
       else await addToWishlist({ slug: product.slug }).unwrap();
-    } catch {}
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleCart = async () => {
@@ -67,10 +73,30 @@ export function ProductCard({ product, hideAddToCart = false }: Props) {
       return;
     }
     if (!product.slug) return;
+
+    if (hasVariants && !isInCart) {
+      router.push(`/product/${product.slug}`);
+      return;
+    }
+
     try {
-      if (isInCart) await removeFromCart(product.slug).unwrap();
-      else await addToCart({ slug: product.slug, quantity: 1 }).unwrap();
-    } catch {}
+      if (isInCart) {
+        // Find the item in cart to get its selected_variants
+        const cartItem = cartItems.find((i: any) => i.product_details?.slug === product.slug);
+        await removeFromCart({ 
+          slug: product.slug, 
+          selected_variants: cartItem?.selected_variants || {} 
+        }).unwrap();
+      } else {
+        await addToCart({ 
+          slug: product.slug, 
+          quantity: 1,
+          selected_variants: {} 
+        }).unwrap();
+      }
+    } catch (err: any) {
+      Alert.alert("Error", err?.data?.error || "Something went wrong");
+    }
   };
 
   return (
@@ -159,7 +185,7 @@ export function ProductCard({ product, hideAddToCart = false }: Props) {
                   ? "Removing..."
                   : isInCart
                     ? "Remove from Cart"
-                    : "Add to Cart"}
+                    : (hasVariants ? "Select Options" : "Add to Cart")}
             </Text>
           </Pressable>
         )}

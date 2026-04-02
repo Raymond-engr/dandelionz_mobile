@@ -1,183 +1,136 @@
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { logout } from "@/lib/features/auth/authSlice";
+import { Button } from "@/components/ui/button";
+import { Divider } from "@/components/ui/divider";
+import { useGetAdminProfileQuery } from "@/lib/api/adminApi";
+import { useAppSelector, useLogout } from "@/lib/hooks";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type MenuItemProps = {
+function MenuRow({
+  label,
+  onPress,
+  danger = false,
+  last = false,
+}: {
   label: string;
   onPress: () => void;
   danger?: boolean;
-};
-
-function MenuItem({ label, onPress, danger }: MenuItemProps) {
+  last?: boolean;
+}) {
   return (
-    <TouchableOpacity
-      style={styles.menuItem}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <Text style={[styles.menuLabel, danger && styles.menuLabelDanger]}>
-        {label}
-      </Text>
-      {!danger && <Text style={styles.chevron}>›</Text>}
-    </TouchableOpacity>
+    <View>
+      <Pressable
+        onPress={onPress}
+        className="flex-row justify-between items-center py-4 px-[21px] active:bg-gray-50"
+      >
+        <Text className={`text-[16px] font-medium ${danger ? "text-system-red" : "text-system-blue-dark"}`}>
+          {label}
+        </Text>
+        {!danger && <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" />}
+      </Pressable>
+      {!last && <View className="h-[1px] bg-[#F5F7FA] mx-[21px]" />}
+    </View>
   );
 }
 
-export default function AdminAccount() {
+export default function AdminAccountScreen() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
-  const user = useAppSelector((state) => state.auth.user);
+  const insets = useSafeAreaInsets();
+  const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
+  const logout = useLogout();
 
-  function handleLogout() {
-    Alert.alert("Sign out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign out",
-        style: "destructive",
-        onPress: () => {
-          dispatch(logout());
-          router.replace("/(auth)/login");
-        },
-      },
-    ]);
+  const { data: profileResponse, isLoading } = useGetAdminProfileQuery(undefined, {
+    skip: !isAuthenticated,
+  });
+  const profile = profileResponse?.data;
+
+  const initials = profile?.full_name ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : "AD";
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 bg-white items-center justify-center">
+        <ActivityIndicator size="large" color="#030482" />
+      </View>
+    );
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.title}>Account</Text>
+    <ScrollView
+      className="flex-1 bg-white"
+      style={{ paddingTop: insets.top }}
+      contentContainerStyle={{ paddingBottom: 100 }}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Header */}
+      <View className="p-4 border-b border-gray-100 items-center justify-center">
+        <Text className="text-[20px] font-bold text-system-blue-dark">Account</Text>
+      </View>
 
-        {/* Profile card */}
-        <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {(user?.firstName?.[0] ?? "A").toUpperCase()}
-              {(user?.lastName?.[0] ?? "").toUpperCase()}
-            </Text>
-          </View>
-          <View>
-            <Text style={styles.name}>
-              {user?.firstName} {user?.lastName}
-            </Text>
-            <Text style={styles.email}>{user?.email}</Text>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>Admin</Text>
-            </View>
-          </View>
+      {/* User Info */}
+      <View className="flex-row items-center p-[21px] border-b border-gray-100">
+        <View className="w-[64px] h-[64px] rounded-full bg-system-blue-light items-center justify-center overflow-hidden">
+          {profile?.profile_picture ? (
+            <Image 
+              source={{ uri: profile.profile_picture }} 
+              className="w-full h-full" 
+              resizeMode="cover"
+            />
+          ) : (
+            <Text className="text-white text-[22px] font-bold">{initials}</Text>
+          )}
         </View>
+        <View className="ml-4 flex-1">
+          <Text className="text-[18px] font-bold text-system-blue-dark" numberOfLines={1}>
+            {profile?.full_name || "Admin User"}
+          </Text>
+          <Text className="text-[14px] text-[#6B7280]" numberOfLines={1}>
+            {profile?.email}
+          </Text>
+        </View>
+      </View>
 
-        {/* Navigation */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Settings</Text>
-          <View style={styles.menuGroup}>
-            <MenuItem label="Edit Profile" onPress={() => {}} />
-            <MenuItem label="Change Password" onPress={() => {}} />
-            <MenuItem label="Notifications" onPress={() => {}} />
-          </View>
-        </View>
+      {/* Group 1: Profile, Notification, Payment Settings */}
+      <View>
+        <MenuRow label="My Profile" onPress={() => router.push("/(admin)/account/profile" as any)} />
+        <MenuRow label="Notification" onPress={() => router.push("/(admin)/account/notifications" as any)} />
+        <MenuRow label="Payment Settings" onPress={() => router.push("/(admin)/payment-settings" as any)} last />
+      </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Support</Text>
-          <View style={styles.menuGroup}>
-            <MenuItem label="Help Center" onPress={() => {}} />
-            <MenuItem label="Terms of Service" onPress={() => {}} />
-            <MenuItem label="Privacy Policy" onPress={() => {}} />
-          </View>
-        </View>
+      <Divider />
 
-        <View style={styles.section}>
-          <View style={styles.menuGroup}>
-            <MenuItem label="Sign Out" onPress={handleLogout} danger />
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      {/* Group 2: Analytics, Payments & Settlements, Withdrawal Management, Withdraw Earnings */}
+      <View>
+        <MenuRow label="Analytics" onPress={() => router.push("/(admin)/analytics" as any)} />
+        <MenuRow label="Payments & Settlements" onPress={() => router.push("/(admin)/settlements" as any)} />
+        <MenuRow label="Withdraw Earnings" onPress={() => router.push("/(admin)/withdraw-earnings" as any)} last />
+      </View>
+
+      <Divider />
+
+      {/* Group 3: FAQs, Terms and Conditions, Contact Support */}
+      <View>
+        <MenuRow label="FAQs" onPress={() => router.push("/(admin)/account/faqs" as any)} />
+        <MenuRow label="Terms and Conditions" onPress={() => router.push("/terms" as any)} />
+        <MenuRow label="Contact Support" onPress={() => router.push("/contact" as any)} last />
+      </View>
+
+      <Divider />
+
+      {/* Logout */}
+      <View className="px-[21px] mt-8">
+        <Button variant="outline" onPress={logout} className="border-system-red">
+          <Text className="text-system-red">Logout</Text>
+        </Button>
+      </View>
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#f9fafb" },
-  scroll: { padding: 16, paddingBottom: 40 },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 20,
-  },
-  profileCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    marginBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#dcfce7",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: { fontSize: 18, fontWeight: "700", color: "#16a34a" },
-  name: { fontSize: 17, fontWeight: "700", color: "#111827" },
-  email: { fontSize: 13, color: "#6b7280", marginTop: 2 },
-  roleBadge: {
-    marginTop: 6,
-    backgroundColor: "#dcfce7",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    alignSelf: "flex-start",
-  },
-  roleText: { fontSize: 11, fontWeight: "600", color: "#16a34a" },
-  section: { marginBottom: 20 },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#9ca3af",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  menuGroup: {
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  menuItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#f3f4f6",
-  },
-  menuLabel: { fontSize: 15, color: "#111827" },
-  menuLabelDanger: { color: "#dc2626" },
-  chevron: { fontSize: 20, color: "#d1d5db", lineHeight: 22 },
-});

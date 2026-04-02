@@ -1,6 +1,7 @@
 import {
     useGetCategoryQuery,
     useUpdateCategoryMutation,
+    useCreateCategoryMutation,
 } from "@/lib/api/adminApi";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -24,8 +25,15 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 export default function CategoryEdit() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { data: category, isLoading, isError } = useGetCategoryQuery(id!);
-  const [updateCategory, { isLoading: saving }] = useUpdateCategoryMutation();
+  
+  const isNew = id === "new";
+  
+  const { data: category, isLoading, isError } = useGetCategoryQuery(id!, {
+    skip: isNew,
+  });
+  
+  const [updateCategory, { isLoading: updating }] = useUpdateCategoryMutation();
+  const [createCategory, { isLoading: creating }] = useCreateCategoryMutation();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -33,12 +41,12 @@ export default function CategoryEdit() {
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (category) {
+    if (category && !isNew) {
       setName(category.name ?? "");
       setDescription(category.description ?? "");
       setExistingImageUrl(category.image ?? null);
     }
-  }, [category]);
+  }, [category, isNew]);
 
   async function pickImage() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -65,6 +73,12 @@ export default function CategoryEdit() {
       Alert.alert("Validation", "Category name is required.");
       return;
     }
+    
+    if (isNew && !imageUri) {
+      Alert.alert("Validation", "Category image is required for new categories.");
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append("name", name.trim());
@@ -79,16 +93,26 @@ export default function CategoryEdit() {
           type,
         } as any);
       }
-      await updateCategory({ slug: id!, data: formData }).unwrap();
-      Alert.alert("Success", "Category updated.", [
-        { text: "OK", onPress: () => router.back() },
-      ]);
-    } catch {
-      Alert.alert("Error", "Failed to update category.");
+
+      if (isNew) {
+        await createCategory(formData).unwrap();
+        Alert.alert("Success", "Category created successfully.", [
+          { text: "OK", onPress: () => router.back() },
+        ]);
+      } else {
+        await updateCategory({ slug: id!, data: formData }).unwrap();
+        Alert.alert("Success", "Category updated successfully.", [
+          { text: "OK", onPress: () => router.back() },
+        ]);
+      }
+    } catch (err: any) {
+      Alert.alert("Error", err?.data?.message || `Failed to ${isNew ? 'create' : 'update'} category.`);
     }
   }
 
-  if (isLoading) {
+  const saving = updating || creating;
+
+  if (isLoading && !isNew) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#030482" />
@@ -96,7 +120,7 @@ export default function CategoryEdit() {
     );
   }
 
-  if (isError) {
+  if (isError && !isNew) {
     return (
       <View style={styles.center}>
         <Text style={styles.error}>Category not found.</Text>
@@ -113,9 +137,9 @@ export default function CategoryEdit() {
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.headerCentered}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBack}>
-          <Ionicons name="chevron-back" size={24} color="#111827" />
+          <Feather name="chevron-left" size={32} color="#030482" />
         </TouchableOpacity>
-        <Text style={styles.titleCentered}>Edit Category</Text>
+        <Text style={styles.titleCentered}>{isNew ? 'Add New Category' : 'Edit Category'}</Text>
       </View>
 
       <KeyboardAvoidingView
@@ -140,7 +164,7 @@ export default function CategoryEdit() {
               </View>
             )}
             <View style={styles.imageOverlay}>
-              <Text style={styles.imageOverlayText}>Change Image</Text>
+              <Text style={styles.imageOverlayText}>{imageUri ? "Change Image" : "Upload Image"}</Text>
             </View>
           </TouchableOpacity>
 
@@ -160,7 +184,7 @@ export default function CategoryEdit() {
           <View style={styles.field}>
             <Text style={styles.label}>Description</Text>
             <TextInput
-              style={[styles.input, { minHeight: 80, textAlignVertical: "top" }]}
+              style={[styles.input, { minHeight: 120, textAlignVertical: "top" }]}
               value={description}
               onChangeText={setDescription}
               placeholder="Enter category description"
@@ -179,8 +203,16 @@ export default function CategoryEdit() {
             {saving ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.saveBtnText}>Save Changes</Text>
+              <Text style={styles.saveBtnText}>{isNew ? 'Add Category' : 'Save Changes'}</Text>
             )}
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.discardBtn}
+            onPress={() => router.back()}
+            disabled={saving}
+          >
+            <Text style={styles.discardBtnText}>Discard</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -205,13 +237,14 @@ const styles = StyleSheet.create({
   backBtnText: { color: "#fff", fontWeight: "600" },
   scroll: { padding: 16, paddingBottom: 40 },
   imagePicker: {
-    width: "100%",
-    height: 200,
-    borderRadius: 12,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     overflow: "hidden",
     marginBottom: 24,
     position: "relative",
     backgroundColor: "#f9fafb",
+    alignSelf: "center",
   },
   previewImage: { width: "100%", height: "100%" },
   imagePlaceholder: {
@@ -220,17 +253,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  imagePlaceholderText: { fontSize: 14, color: "#9ca3af", marginTop: 8 },
+  imagePlaceholderText: { fontSize: 10, color: "#9ca3af", marginTop: 4, textAlign: "center" },
   imageOverlay: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     backgroundColor: "rgba(0,0,0,0.45)",
-    paddingVertical: 8,
+    paddingVertical: 4,
     alignItems: "center",
   },
-  imageOverlayText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+  imageOverlayText: { color: "#fff", fontSize: 10, fontWeight: "600" },
   field: { marginBottom: 20 },
   label: {
     fontSize: 13,
@@ -257,5 +290,15 @@ const styles = StyleSheet.create({
   },
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  discardBtn: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 12,
+  },
+  discardBtnText: { color: "#374151", fontSize: 16, fontWeight: "600" },
   error: { color: "#ef4444" },
 });

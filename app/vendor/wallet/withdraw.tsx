@@ -1,37 +1,39 @@
+import { Button } from "@/components/ui/button";
+import { Divider } from "@/components/ui/divider";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import { Colors } from "@/constants/theme";
 import {
     useGetPaymentSettingsQuery,
     useGetWalletBalanceQuery,
 } from "@/lib/api/vendorApi";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
+    Alert,
     KeyboardAvoidingView,
     Platform,
     Pressable,
     ScrollView,
-    StyleSheet,
     Text,
     TextInput,
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { formatCurrency } from "@/lib/utils";
 
 export default function WithdrawScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { data: walletData, isLoading: walletLoading } =
-    useGetWalletBalanceQuery();
-  const { data: paymentData, isLoading: paymentLoading } =
-    useGetPaymentSettingsQuery();
+  const { data: walletData, isLoading: walletLoading } = useGetWalletBalanceQuery();
+  const { data: paymentData, isLoading: paymentLoading } = useGetPaymentSettingsQuery();
 
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (walletData?.data?.withdrawable_balance !== undefined) {
-      setAmount(walletData.data.withdrawable_balance.toFixed(2));
+      setAmount(walletData.data.withdrawable_balance.toString());
     }
   }, [walletData]);
 
@@ -53,216 +55,133 @@ export default function WithdrawScreen() {
       setError("Amount exceeds withdrawable balance.");
       return;
     }
+    
+    // Convert to query string for navigation
     const params = new URLSearchParams({
       amount,
       bankName: payment.bank_name ?? "",
       accountNumber: payment.account_number ?? "",
       accountName: payment.account_name ?? "",
     }).toString();
+    
     router.push(`/vendor/wallet/confirm-pin?${params}`);
   };
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/vendor/(tabs)/wallet");
+    }
+  };
+
+  const renderHeader = () => (
+    <View className="flex-row items-center justify-between px-4 py-4 bg-white">
+      <Pressable onPress={handleBack} className="w-10">
+        <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
+      </Pressable>
+      <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
+        Withdraw
+      </Text>
+      <View className="w-10" />
+    </View>
+  );
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 bg-white items-center justify-center">
+        <LoadingSpinner />
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => router.push("/vendor/(tabs)/wallet")}
-            hitSlop={8}
-            style={styles.backBtn}
-          >
-            <Text style={styles.backArrow}>←</Text>
-          </Pressable>
-          <Text style={styles.headerTitle}>Withdraw Earnings</Text>
-          <View style={{ width: 40 }} />
-        </View>
+      <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+        {renderHeader()}
+        <Divider />
 
-        {isLoading ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-          </View>
-        ) : (
-          <ScrollView
-            contentContainerStyle={styles.content}
-            keyboardShouldPersistTaps="handled"
-          >
-            {error ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
-
-            <Text style={styles.label}>Withdrawable Amount</Text>
-            <TextInput
-              style={styles.input}
-              value={`₦ ${amount}`}
-              onChangeText={(v) =>
-                setAmount(v.replace("₦ ", "").replace(/[^0-9.]/g, ""))
-              }
-              keyboardType="numeric"
-            />
-
-            <Text style={[styles.label, { marginTop: 24 }]}>
-              Payment Option
-            </Text>
-            <View style={styles.bankCard}>
-              <Text style={styles.bankCardTitle}>Bank Transfer</Text>
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Account Number</Text>
-                <View style={styles.readonlyInput}>
-                  <Text style={styles.readonlyText}>
-                    {payment?.account_number || "—"}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Bank Name</Text>
-                <View style={styles.readonlyInput}>
-                  <Text style={styles.readonlyText}>
-                    {payment?.bank_name || "—"}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Account Name</Text>
-                <View style={styles.readonlyInput}>
-                  <Text style={styles.readonlyText}>
-                    {payment?.account_name || "—"}
-                  </Text>
-                </View>
-              </View>
-              <Pressable
-                onPress={() => router.push("/vendor/account/payment-settings")}
-              >
-                <Text style={styles.editLink}>Edit Bank Details</Text>
-              </Pressable>
+        <ScrollView
+          className="flex-1 px-[21px]"
+          contentContainerStyle={{ paddingBottom: 100 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {error && (
+            <View className="bg-red-50 p-4 rounded-[12px] mb-6 border border-red-100 mt-4">
+              <Text className="text-red-600 text-[13px]">{error}</Text>
             </View>
+          )}
 
-            {!payment?.has_pin && (
-              <View style={styles.pinNotice}>
-                <Text style={styles.pinNoticeText}>
-                  Please set a payment PIN to proceed with withdrawal.
-                </Text>
-                <Pressable
-                  onPress={() =>
-                    router.push("/vendor/account/payment-settings/change-pin")
-                  }
-                  style={styles.setPinBtn}
-                >
-                  <Text style={styles.setPinText}>Set Payment PIN</Text>
+          <View className="bg-system-blue-light rounded-[16px] p-8 mt-6 mb-8 shadow-lg shadow-blue-900/20">
+            <Text className="text-white/80 text-[14px] font-medium mb-2 uppercase tracking-widest">Available Balance</Text>
+            <Text className="text-white text-[32px] font-bold">
+              {formatCurrency(walletData?.data?.withdrawable_balance)}
+            </Text>
+          </View>
+
+          <View className="mb-8">
+            <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">Amount to Withdraw</Text>
+            <View className="flex-row items-center border-b border-gray-200 py-2">
+              <Text className="text-[24px] font-bold text-system-blue-dark mr-2">₦</Text>
+              <TextInput
+                className="flex-1 text-[24px] font-bold text-system-blue-dark"
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="numeric"
+                placeholder="0.00"
+              />
+            </View>
+          </View>
+
+          <Text className="text-[14px] font-bold text-gray-400 uppercase tracking-widest mb-4">Destination Bank</Text>
+          <View className="bg-gray-50/50 rounded-[16px] p-6 border border-gray-100">
+            <View className="flex-row justify-between py-2 border-b border-gray-100">
+              <Text className="text-gray-500">Bank Name</Text>
+              <Text className="font-bold text-system-blue-dark">{payment?.bank_name || "—"}</Text>
+            </View>
+            <View className="flex-row justify-between py-2 border-b border-gray-100">
+              <Text className="text-gray-500">Account Number</Text>
+              <Text className="font-bold text-system-blue-dark">{payment?.account_number || "—"}</Text>
+            </View>
+            <View className="flex-row justify-between py-2">
+              <Text className="text-gray-500">Account Name</Text>
+              <Text className="font-bold text-system-blue-dark text-right flex-1 ml-4">{payment?.account_name || "—"}</Text>
+            </View>
+            
+            <Pressable
+              onPress={() => router.push("/vendor/account/payment-settings")}
+              className="mt-4 pt-4 border-t border-gray-100 flex-row items-center justify-center gap-2"
+            >
+              <MaterialIcons name="edit" size={16} color={Colors.primary} />
+              <Text className="text-system-blue-light font-bold">Edit Bank Details</Text>
+            </Pressable>
+          </View>
+
+          {!payment?.has_pin && (
+            <View className="mt-8 bg-yellow-50 p-4 rounded-[12px] border border-yellow-100 flex-row items-center gap-3">
+              <MaterialIcons name="warning" size={24} color="#ca8a04" />
+              <View className="flex-1">
+                <Text className="text-[13px] text-yellow-800 font-medium">Payment PIN Required</Text>
+                <Pressable onPress={() => router.push("/vendor/account/payment-settings")}>
+                  <Text className="text-[12px] text-system-blue-light font-bold mt-1">Setup PIN now →</Text>
                 </Pressable>
               </View>
-            )}
+            </View>
+          )}
 
-            <Pressable
+          <View className="mt-10">
+            <Button 
               onPress={handleProceed}
               disabled={!payment?.has_pin || parseFloat(amount) <= 0}
-              style={[
-                styles.proceedBtn,
-                (!payment?.has_pin || parseFloat(amount) <= 0) &&
-                  styles.proceedBtnDisabled,
-              ]}
             >
-              <Text style={styles.proceedBtnText}>Proceed</Text>
-            </Pressable>
-          </ScrollView>
-        )}
+              Proceed to Confirmation
+            </Button>
+          </View>
+        </ScrollView>
       </View>
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-  },
-  backBtn: { width: 40 },
-  backArrow: { fontSize: 24, color: Colors.primary },
-  headerTitle: { fontSize: 18, fontWeight: "600", color: Colors.primary },
-  content: { padding: 20, paddingBottom: 40 },
-  errorBox: {
-    backgroundColor: "#FEF2F2",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: { color: "#DC2626", fontSize: 13 },
-  label: { fontSize: 14, fontWeight: "600", color: "#111827", marginBottom: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: "#111827",
-  },
-  bankCard: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-  },
-  bankCardTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 4,
-  },
-  field: { gap: 6 },
-  fieldLabel: { fontSize: 12, color: "#6B7280" },
-  readonlyInput: {
-    backgroundColor: "#F9FAFB",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  readonlyText: { fontSize: 14, color: "#374151" },
-  editLink: {
-    fontSize: 14,
-    color: Colors.primary,
-    fontWeight: "600",
-    marginTop: 4,
-  },
-  pinNotice: {
-    marginTop: 20,
-    backgroundColor: "#EEF2FF",
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    gap: 10,
-  },
-  pinNoticeText: { fontSize: 14, color: Colors.primary, textAlign: "center" },
-  setPinBtn: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  setPinText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  proceedBtn: {
-    marginTop: 28,
-    backgroundColor: Colors.primary,
-    height: 55,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  proceedBtnDisabled: { opacity: 0.5 },
-  proceedBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-});

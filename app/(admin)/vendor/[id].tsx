@@ -3,13 +3,10 @@ import {
   View,
   Text,
   ScrollView,
-  StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
   Alert,
-  TextInput,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   useGetVendorDetailsQuery,
@@ -17,11 +14,16 @@ import {
   useVerifyVendorKYCMutation,
   useSuspendVendorMutation,
 } from "@/lib/api/adminApi";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons, Ionicons, Feather } from "@expo/vector-icons";
+import { Divider } from "@/components/ui/divider";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Colors } from "@/constants/theme";
 
 export default function VendorDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+
   const { data: vendorResponse, isLoading, error, refetch } = useGetVendorDetailsQuery(id!);
   const vendor = vendorResponse?.data;
 
@@ -54,9 +56,9 @@ export default function VendorDetail() {
       if (action === "Approve Vendor") {
         await approveVendor({ user_uuid: id!, approve: true }).unwrap();
         Alert.alert("Success", "Vendor approved successfully");
-      } else if (action === "Suspend Vendor" || action === "Reject Vendor") {
-        await approveVendor({ user_uuid: id!, approve: false }).unwrap();
-        Alert.alert("Success", `Vendor ${action === "Suspend Vendor" ? "suspended" : "rejected"} successfully`);
+      } else if (action === "Suspend Vendor") {
+        await suspendVendor({ uuid: id!, suspend: true }).unwrap();
+        Alert.alert("Success", "Vendor suspended successfully");
       } else if (action === "Verify KYC") {
         await verifyKYC({ user_uuid: id!, approve: true }).unwrap();
         Alert.alert("Success", "Vendor KYC verified successfully");
@@ -69,7 +71,7 @@ export default function VendorDetail() {
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
+      <View className="flex-1 bg-white items-center justify-center">
         <ActivityIndicator size="large" color="#030482" />
       </View>
     );
@@ -77,10 +79,13 @@ export default function VendorDetail() {
 
   if (error || !vendor) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.error}>Failed to load vendor details.</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>Go Back</Text>
+      <View className="flex-1 bg-white items-center justify-center p-4">
+        <Text className="text-red-500 mb-4">Failed to load vendor details.</Text>
+        <TouchableOpacity 
+          onPress={() => router.back()} 
+          className="bg-system-blue-light px-6 py-2 rounded-lg"
+        >
+          <Text className="text-white font-bold">Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -88,32 +93,47 @@ export default function VendorDetail() {
 
   const isProcessing = isApproving || isVerifying || isSuspending;
 
+  const InfoField = ({ label, value }: { label: string; value: string | undefined }) => (
+    <View className="mb-4">
+      <Text className="text-[14px] text-[#00001180] mb-1">{label}</Text>
+      <Text className="text-[16px] font-medium text-system-blue-dark">{value || "N/A"}</Text>
+    </View>
+  );
+
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <View style={styles.headerCentered}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerBack}>
-          <Ionicons name="chevron-back" size={24} color="#111827" />
+    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+      {/* Header */}
+      <View className="flex-row items-center px-4 py-4 border-b border-gray-100">
+        <TouchableOpacity onPress={() => router.back()} className="w-10">
+          <Feather name="chevron-left" size={32} color="#030482" />
         </TouchableOpacity>
-        <Text style={styles.titleCentered}>Vendor Details</Text>
+        <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
+          Vendor Details
+        </Text>
+        <View className="w-10" />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Vendor Header */}
-        <View style={styles.vendorHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{vendor.store_name.substring(0, 2).toUpperCase()}</Text>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
+        {/* Profile Info */}
+        <View className="flex-row items-center p-[21px]">
+          <View className="w-[91px] h-[91px] rounded-full bg-system-blue-light items-center justify-center">
+            <Text className="text-white text-[32px] font-bold">
+              {vendor.store_name.substring(0, 2).toUpperCase()}
+            </Text>
           </View>
-          <View style={styles.headerInfo}>
-            <Text style={styles.storeName}>{vendor.store_name}</Text>
-            <Text style={styles.email}>{vendor.email}</Text>
-            <View style={styles.badgeRow}>
-              <View style={[styles.badge, { backgroundColor: vendor.is_active ? "#dcfce7" : "#fee2e2" }]}>
-                <Text style={[styles.badgeText, { color: vendor.is_active ? "#16a34a" : "#dc2626" }]}>
+          <View className="ml-5 flex-1">
+            <Text className="text-[20px] font-bold text-system-blue-dark mb-1">
+              {vendor.store_name}
+            </Text>
+            <Text className="text-[14px] text-[#00001180] mb-3">{vendor.email}</Text>
+            <View className="flex-row gap-2">
+              <View className={`px-3 py-1 rounded-full ${vendor.is_active ? 'bg-[#dcfce7]' : 'bg-[#fee2e2]'}`}>
+                <Text className={`text-[12px] font-bold ${vendor.is_active ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
                   {vendor.is_active ? "Active" : "Suspended"}
                 </Text>
               </View>
-              <View style={[styles.badge, { backgroundColor: vendor.is_verified_vendor ? "#dbeafe" : "#fef9c3" }]}>
-                <Text style={[styles.badgeText, { color: vendor.is_verified_vendor ? "#1d4ed8" : "#a16207" }]}>
+              <View className={`px-3 py-1 rounded-full ${vendor.is_verified_vendor ? 'bg-[#dbeafe]' : 'bg-[#fef9c3]'}`}>
+                <Text className={`text-[12px] font-bold ${vendor.is_verified_vendor ? 'text-[#1d4ed8]' : 'text-[#a16207]'}`}>
                   {vendor.is_verified_vendor ? "Verified" : "Unverified"}
                 </Text>
               </View>
@@ -121,64 +141,49 @@ export default function VendorDetail() {
           </View>
         </View>
 
+        <Divider height={11} />
+
         {/* Business Information */}
-        <Text style={styles.sectionTitle}>Business Information</Text>
-        <View style={styles.infoCard}>
-          <View style={styles.infoGroup}>
-            <Text style={styles.label}>Full Name</Text>
-            <Text style={styles.value}>{vendor.full_name || "N/A"}</Text>
-          </View>
-          <View style={styles.infoGroup}>
-            <Text style={styles.label}>Phone Number</Text>
-            <Text style={styles.value}>{vendor.phone_number || "N/A"}</Text>
-          </View>
-          <View style={styles.infoGroup}>
-            <Text style={styles.label}>Reg. Number</Text>
-            <Text style={styles.value}>{vendor.business_registration_number || "N/A"}</Text>
-          </View>
-          <View style={styles.infoGroup}>
-            <Text style={styles.label}>Joined Date</Text>
-            <Text style={styles.value}>
-              {vendor.created_at ? new Date(vendor.created_at).toLocaleDateString() : "N/A"}
-            </Text>
-          </View>
-          <View style={styles.infoGroup}>
-            <Text style={styles.label}>Address</Text>
-            <Text style={styles.value}>{vendor.address || "N/A"}</Text>
-          </View>
+        <View className="p-[21px]">
+          <Text className="text-[18px] font-bold text-system-blue-dark mb-5">Business Information</Text>
+          <InfoField label="Full Name" value={vendor.full_name} />
+          <InfoField label="Phone Number" value={vendor.phone_number} />
+          <InfoField label="Reg. Number" value={vendor.business_registration_number} />
+          <InfoField label="Joined Date" value={vendor.created_at ? new Date(vendor.created_at).toLocaleDateString() : ""} />
+          <InfoField label="Address" value={vendor.address} />
         </View>
+
+        <Divider height={11} />
 
         {/* Payment Details */}
-        <Text style={styles.sectionTitle}>Payment Details</Text>
-        <View style={styles.infoCard}>
-          <View style={styles.infoGroup}>
-            <Text style={styles.label}>Bank Name</Text>
-            <Text style={styles.value}>{vendor.bank_name || "N/A"}</Text>
-          </View>
-          <View style={styles.infoGroup}>
-            <Text style={styles.label}>Account Number</Text>
-            <Text style={styles.value}>{vendor.account_number || "N/A"}</Text>
-          </View>
-          {vendor.recipient_code && (
-            <View style={styles.infoGroup}>
-              <Text style={styles.label}>Recipient Code</Text>
-              <Text style={styles.value}>{vendor.recipient_code}</Text>
-            </View>
-          )}
+        <View className="p-[21px]">
+          <Text className="text-[18px] font-bold text-system-blue-dark mb-5">Payment Details</Text>
+          <InfoField label="Bank Name" value={vendor.bank_name} />
+          <InfoField label="Account Number" value={vendor.account_number} />
+          {vendor.recipient_code && <InfoField label="Recipient Code" value={vendor.recipient_code} />}
         </View>
 
-        {/* Actions */}
-        {availableActions.length > 0 ? (
-          <View style={styles.actions}>
-            <Text style={styles.actionSectionTitle}>Choose Action</Text>
-            <View style={styles.pickerContainer}>
+        <Divider height={11} />
+
+        {/* Actions Section */}
+        {availableActions.length > 0 && (
+          <View className="p-[21px]">
+            <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+              Choose Action
+            </Text>
+
+            <View className="flex-row flex-wrap gap-2 mb-6">
               {availableActions.map((act) => (
                 <TouchableOpacity
                   key={act}
                   onPress={() => setAction(act)}
-                  style={[styles.actionTab, action === act && styles.actionTabActive]}
+                  className={`px-4 py-2.5 rounded-lg border ${
+                    action === act 
+                      ? "bg-white border-system-blue-light" 
+                      : "bg-[#F5F7FA] border-transparent"
+                  }`}
                 >
-                  <Text style={[styles.actionTabText, action === act && styles.actionTabTextActive]}>
+                  <Text className={`text-[13px] font-bold ${action === act ? "text-system-blue-light" : "text-[#00001180]"}`}>
                     {act}
                   </Text>
                 </TouchableOpacity>
@@ -188,66 +193,17 @@ export default function VendorDetail() {
             <TouchableOpacity
               onPress={handleConfirmAction}
               disabled={isProcessing}
-              style={[styles.confirmBtn, isProcessing && styles.disabledBtn]}
+              className={`h-[55px] rounded-[12px] items-center justify-center ${isProcessing ? "bg-gray-300" : "bg-system-blue-light"}`}
             >
               {isProcessing ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.confirmBtnText}>Confirm Action</Text>
+                <Text className="text-white text-[16px] font-bold">Confirm Action</Text>
               )}
             </TouchableOpacity>
           </View>
-        ) : (
-          <View style={styles.noActions}>
-            <Text style={styles.noActionsText}>No pending actions for this vendor.</Text>
-          </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#ffffff" },
-  headerCentered: {
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerBack: { position: "absolute", left: 16 },
-  titleCentered: { fontSize: 18, fontWeight: "600", color: "#030482" },
-  content: { padding: 16, paddingBottom: 40 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  error: { color: "#ef4444", marginBottom: 12 },
-  backBtn: { padding: 10, backgroundColor: "#030482", borderRadius: 8 },
-  backBtnText: { color: "#fff" },
-  vendorHeader: { flexDirection: "row", gap: 16, marginBottom: 24 },
-  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: "#2563eb", alignItems: "center", justifyContent: "center" },
-  avatarText: { color: "#fff", fontSize: 20, fontWeight: "600" },
-  headerInfo: { flex: 1 },
-  storeName: { fontSize: 18, fontWeight: "600", color: "#111827", marginBottom: 2 },
-  email: { fontSize: 14, color: "#6b7280", marginBottom: 8 },
-  badgeRow: { flexDirection: "row", gap: 8 },
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99 },
-  badgeText: { fontSize: 11, fontWeight: "500" },
-  sectionTitle: { fontSize: 14, fontWeight: "700", color: "#111827", marginBottom: 12, borderBottomWidth: 1, borderBottomColor: "#f3f4f6", paddingBottom: 4 },
-  infoCard: { marginBottom: 20 },
-  infoGroup: { marginBottom: 12 },
-  label: { fontSize: 12, color: "#6b7280", marginBottom: 2 },
-  value: { fontSize: 14, fontWeight: "500", color: "#111827" },
-  actions: { gap: 12, marginTop: 12 },
-  actionSectionTitle: { fontSize: 12, fontWeight: "600", color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5 },
-  pickerContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  actionTab: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: "#f3f4f6", borderWidth: 1, borderColor: "#e5e7eb" },
-  actionTabActive: { backgroundColor: "#fff", borderColor: "#030482" },
-  actionTabText: { fontSize: 12, color: "#6b7280" },
-  actionTabTextActive: { color: "#030482", fontWeight: "600" },
-  confirmBtn: { backgroundColor: "#030482", paddingVertical: 14, borderRadius: 8, alignItems: "center", marginTop: 8 },
-  confirmBtnText: { color: "#fff", fontSize: 14, fontWeight: "600" },
-  disabledBtn: { backgroundColor: "#9ca3af" },
-  noActions: { padding: 16, backgroundColor: "#f9fafb", borderRadius: 8, alignItems: "center" },
-  noActionsText: { fontSize: 14, color: "#6b7280" },
-});

@@ -1,3 +1,4 @@
+import React from "react";
 import { Tabs } from "expo-router";
 import { AdminTabBar } from "@/components/admin-tab-bar";
 
@@ -5,7 +6,7 @@ export default function AdminTabsLayout() {
   return (
     <Tabs
       screenOptions={{ headerShown: false }}
-      tabBar={(props) => <AdminTabBar />}
+      tabBar={(props) => <AdminTabBar {...props} />}
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="vendor" />

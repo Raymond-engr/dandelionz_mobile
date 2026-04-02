@@ -1,49 +1,48 @@
-import { Colors } from "@/constants/theme";
+import { Button } from "@/components/ui/button";
+import { Divider } from "@/components/ui/divider";
 import { useGetVendorProfileQuery } from "@/lib/api/vendorApi";
 import { useAppSelector, useLogout } from "@/lib/hooks";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
     ActivityIndicator,
+    Image,
     Pressable,
     ScrollView,
-    StyleSheet,
     Text,
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
-
-function ChevronRight() {
-  return (
-    <Svg width={8} height={14} viewBox="0 0 8 14" fill="none">
-      <Path
-        d="M1 1l6 6-6 6"
-        stroke="#9CA3AF"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
 
 function MenuRow({
   label,
   onPress,
   danger = false,
-  showChevron = true,
+  last = false,
 }: {
   label: string;
   onPress: () => void;
   danger?: boolean;
-  showChevron?: boolean;
+  last?: boolean;
 }) {
   return (
-    <Pressable onPress={onPress} style={styles.menuRow}>
-      <Text style={[styles.menuLabel, danger && styles.menuLabelDanger]}>{label}</Text>
-      {showChevron && !danger && <ChevronRight />}
-    </Pressable>
+    <View>
+      <Pressable
+        onPress={onPress}
+        className="flex-row justify-between items-center py-4 px-[21px] active:bg-gray-50"
+      >
+        <Text className={`text-[16px] font-medium ${danger ? "text-system-red" : "text-system-blue-dark"}`}>
+          {label}
+        </Text>
+        <MaterialIcons 
+          name="chevron-right" 
+          size={24} 
+          color={danger ? "#ef4444" : "#9CA3AF"} 
+        />
+      </Pressable>
+      {!last && <View className="h-[1px] bg-[#F5F7FA] mx-[21px]" />}
+    </View>
   );
 }
 
@@ -58,7 +57,7 @@ export default function VendorAccountScreen() {
   });
 
   const user = {
-    name: profileData?.data?.user?.full_name ?? "",
+    name: profileData?.data?.user?.full_name ?? "Vendor",
     email: profileData?.data?.user?.email ?? "",
     avatar: profileData?.data?.user?.profile_picture ?? null,
   };
@@ -72,102 +71,72 @@ export default function VendorAccountScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.center, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View className="flex-1 bg-white items-center justify-center">
+        <ActivityIndicator size="large" color="#030482" />
       </View>
     );
   }
 
   return (
     <ScrollView
-      style={[styles.container, { paddingTop: insets.top }]}
-      contentContainerStyle={styles.content}
+      className="flex-1 bg-white"
+      style={{ paddingTop: insets.top }}
+      contentContainerStyle={{ paddingBottom: 100 }}
+      showsVerticalScrollIndicator={false}
     >
       {/* Header */}
-      <View style={styles.headerCentered}>
-        <Text style={styles.titleCentered}>Account</Text>
+      <View className="p-4 border-b border-gray-100 items-center justify-center">
+        <Text className="text-[20px] font-bold text-system-blue-dark">Account</Text>
       </View>
 
-      {/* Divider */}
-      <View style={styles.divider} />
-
-      {/* User Info */}
-      <View style={styles.userSection}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
+      {/* User Section */}
+      <View className="flex-row items-center p-[21px] border-b border-gray-100">
+        <View className="w-[64px] h-[64px] rounded-full bg-system-blue-light items-center justify-center overflow-hidden">
+          {user.avatar ? (
+            <Image 
+              source={{ uri: user.avatar }} 
+              className="w-full h-full" 
+              resizeMode="cover"
+            />
+          ) : (
+            <Text className="text-white text-[22px] font-bold">{initials}</Text>
+          )}
         </View>
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{user.name}</Text>
-          <Text style={styles.userEmail}>{user.email}</Text>
+        <View className="ml-4 flex-1">
+          <Text className="text-[18px] font-bold text-system-blue-dark" numberOfLines={1}>
+            {user.name}
+          </Text>
+          <Text className="text-[14px] text-[#6B7280]" numberOfLines={1}>
+            {user.email}
+          </Text>
         </View>
       </View>
 
-      {/* Divider */}
-      <View style={styles.divider} />
+      {/* Group 1: Profile, Notification, Payment Settings */}
+      <View>
+        <MenuRow label="My Profile" onPress={() => router.push("/vendor/account/profile" as any)} />
+        <MenuRow label="Notification" onPress={() => router.push("/vendor/account/notifications" as any)} />
+        <MenuRow label="Payment Settings" onPress={() => router.push("/vendor/account/payment-settings" as any)} last />
+      </View>
 
-      {/* Account Links */}
-      <MenuRow label="My Profile" onPress={() => router.push("/vendor/account/profile")} />
-      <MenuRow label="Notification" onPress={() => router.push("/vendor/account/notifications")} />
-      <MenuRow label="Payment Settings" onPress={() => router.push("/vendor/account/payment-settings")} />
+      <Divider />
 
-      {/* Divider */}
-      <View style={styles.divider} />
+      {/* Group 2: Logout & Close Account */}
+      <View>
+        <MenuRow label="Logout" onPress={logout} danger />
+        <MenuRow label="Close Account" onPress={() => router.push("/vendor/account/delete" as any)} danger last />
+      </View>
 
-      {/* Danger Zone */}
-      <MenuRow label="Logout" onPress={logout} danger showChevron={false} />
-      <MenuRow label="Close Account" onPress={() => router.push("/vendor/account/delete")} danger />
+      <Divider />
 
-      {/* Divider */}
-      <View style={styles.divider} />
+      {/* Group 3: FAQs, Terms, Contact Us */}
+      <View>
+        <MenuRow label="FAQs" onPress={() => router.push("/vendor/account/faqs" as any)} />
+        <MenuRow label="Terms and Conditions" onPress={() => router.push("/vendor/account/terms" as any)} />
+        <MenuRow label="Contact Us" onPress={() => router.push("/contact" as any)} last />
+      </View>
 
-      {/* Other Links */}
-      <MenuRow label="FAQs" onPress={() => router.push("/vendor/account/faqs")} />
-      <MenuRow label="Terms and Conditions" onPress={() => router.push("/vendor/account/terms")} />
-      <MenuRow label="Contact Us" onPress={() => router.push("/contact")} />
+      <Divider />
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  content: { paddingBottom: 40 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  headerCentered: {
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
-    alignItems: "center",
-  },
-  titleCentered: { fontSize: 18, fontWeight: "600", color: "#111827" },
-  header: { paddingVertical: 16, alignItems: "center" },
-  title: { fontSize: 24, fontWeight: "600", color: Colors.dark },
-  divider: { height: 11, backgroundColor: "#F5F7FA", width: "100%" },
-  userSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 21,
-    paddingVertical: 20,
-    gap: 16,
-  },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: { fontSize: 22, fontWeight: "600", color: "#fff" },
-  userInfo: { flex: 1 },
-  userName: { fontSize: 18, fontWeight: "600", color: Colors.dark, marginBottom: 2 },
-  userEmail: { fontSize: 14, color: "#6B7280" },
-  menuRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 21,
-    paddingVertical: 16,
-  },
-  menuLabel: { fontSize: 16, color: Colors.dark },
-  menuLabelDanger: { color: Colors.red },
-});

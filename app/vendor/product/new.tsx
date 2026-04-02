@@ -1,26 +1,29 @@
+import { Button } from "@/components/ui/button";
+import { Divider } from "@/components/ui/divider";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import { Colors } from "@/constants/theme";
 import {
-    useCreateDraftMutation,
-    useUploadProductImageMutation,
+  useCreateDraftMutation,
+  useCreateStoreProductMutation,
 } from "@/lib/api/vendorApi";
+import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
+import { formatCurrency } from "@/lib/utils";
 
 const CATEGORIES = [
   "Fashion",
@@ -33,32 +36,25 @@ const CATEGORIES = [
 
 function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
-    <View style={styles.stepRow}>
+    <View className="flex-row items-center justify-center w-full px-10 mb-6">
       {Array.from({ length: total }, (_, i) => (
         <React.Fragment key={i}>
           <View
-            style={[
-              styles.stepDot,
-              i < current && styles.stepDotDone,
-              i === current - 1 && styles.stepDotActive,
-            ]}
+            className={`w-8 h-8 rounded-full items-center justify-center ${
+              i < current ? 'bg-system-blue-light' : 'bg-gray-200'
+            }`}
           >
-            {i < current - 1 && (
-              <Svg width={10} height={8} viewBox="0 0 10 8" fill="none">
-                <Path
-                  d="M1 4l3 3 5-6"
-                  stroke="#fff"
-                  strokeWidth={1.5}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
+            {i < current - 1 ? (
+              <MaterialIcons name="check" size={16} color="white" />
+            ) : (
+              <Text className={`text-[12px] font-bold ${i === current - 1 ? 'text-white' : 'text-gray-500'}`}>
+                {i + 1}
+              </Text>
             )}
-            {i === current - 1 && <View style={styles.stepDotInner} />}
           </View>
           {i < total - 1 && (
             <View
-              style={[styles.stepLine, i < current - 1 && styles.stepLineDone]}
+              className={`flex-1 h-[2px] ${i < current - 1 ? 'bg-system-blue-light' : 'bg-gray-200'}`}
             />
           )}
         </React.Fragment>
@@ -97,9 +93,9 @@ export default function NewProductScreen() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
   const [createDraft, { isLoading: drafting }] = useCreateDraftMutation();
-  const [uploadImage, { isLoading: uploading }] =
-    useUploadProductImageMutation();
+  const [createProduct, { isLoading: publishing }] = useCreateStoreProductMutation();
 
   const set = (key: keyof FormData, val: any) => {
     setForm((p) => ({ ...p, [key]: val }));
@@ -108,7 +104,7 @@ export default function NewProductScreen() {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: true,
       quality: 0.8,
     });
@@ -150,507 +146,264 @@ export default function NewProductScreen() {
     setStep((s) => s + 1);
   };
 
-  const handleSaveDraft = async () => {
+  const handleSave = async (isPublish: boolean) => {
     try {
-      await createDraft({
-        name: form.name,
-        description: form.description,
-        category: form.category,
-        tags: form.tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
-        price: parseFloat(form.price),
-        discount_price: form.discount_price
-          ? parseFloat(form.discount_price)
-          : undefined,
-        stock_quantity: parseInt(form.stock_quantity),
-        is_in_store: form.is_in_store,
-        images: form.images,
-      }).unwrap();
+      const payload = new FormData();
+      payload.append("name", form.name);
+      payload.append("description", form.description);
+      payload.append("category", form.category);
+      payload.append("price", form.price);
+      payload.append("stock", form.stock_quantity);
+      
+      if (form.discount_price) {
+        payload.append("discounted_price", form.discount_price);
+      }
+
+      form.images.forEach((uri) => {
+        const filename = uri.split("/").pop() || "product.jpg";
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : "image";
+        // @ts-ignore
+        payload.append("images", { uri, name: filename, type });
+      });
+
+      if (isPublish) {
+        await createProduct(payload).unwrap();
+      } else {
+        await createDraft(payload).unwrap();
+      }
+      
+      Alert.alert("Success", isPublish ? "Product published!" : "Draft saved!");
       router.replace("/vendor/(tabs)/products");
     } catch (err: any) {
-      setErrors({ submit: err?.data?.message ?? "Failed to save draft." });
+      setErrors({ submit: err?.data?.message ?? "Failed to save product." });
     }
   };
 
-  const isBusy = drafting || uploading;
+  const renderHeader = () => (
+    <View className="flex-row items-center justify-between px-4 py-4 bg-white">
+      <Pressable onPress={() => step === 1 ? router.back() : setStep(step - 1)} className="w-10">
+        <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
+      </Pressable>
+      <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
+        {step === 1 ? "Add Product" : step === 2 ? "Pricing" : "Preview"}
+      </Text>
+      <View className="w-10" />
+    </View>
+  );
+
+  const isBusy = drafting || publishing;
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => (step === 1 ? router.back() : setStep(step - 1))}
-            hitSlop={8}
-            style={styles.backBtn}
-          >
-            <Text style={styles.backArrow}>←</Text>
-          </Pressable>
-          <Text style={styles.headerTitle}>
-            {step === 1
-              ? "Add New Product"
-              : step === 2
-                ? "Inventory & Pricing"
-                : "Preview"}
-          </Text>
-          <View style={{ width: 40 }} />
-        </View>
-
-        {/* Step Indicator */}
-        <View style={styles.stepContainer}>
-          <StepIndicator current={step} total={3} />
-          <Text style={styles.stepLabel}>Step {step} of 3</Text>
-        </View>
+      <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+        {renderHeader()}
+        <Divider />
 
         <ScrollView
-          contentContainerStyle={styles.content}
+          className="flex-1"
+          contentContainerStyle={{ paddingBottom: 100 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {errors.submit ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{errors.submit}</Text>
-            </View>
-          ) : null}
+          <View className="pt-6">
+            <StepIndicator current={step} total={3} />
+          </View>
 
-          {/* ─── STEP 1 ─── */}
-          {step === 1 && (
-            <>
-              <Text style={styles.fieldLabel}>Product Name *</Text>
-              <TextInput
-                style={[styles.input, errors.name && styles.inputError]}
-                value={form.name}
-                onChangeText={(v) => set("name", v)}
-                placeholder="Enter product name"
-              />
-              {errors.name ? (
-                <Text style={styles.fieldError}>{errors.name}</Text>
-              ) : null}
-
-              <Text style={styles.fieldLabel}>Description *</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.textarea,
-                  errors.description && styles.inputError,
-                ]}
-                value={form.description}
-                onChangeText={(v) => set("description", v)}
-                placeholder="Describe your product"
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
-              {errors.description ? (
-                <Text style={styles.fieldError}>{errors.description}</Text>
-              ) : null}
-
-              <Text style={styles.fieldLabel}>Category *</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.categoryScroll}
-                contentContainerStyle={styles.categoryRow}
-              >
-                {CATEGORIES.map((cat) => (
-                  <Pressable
-                    key={cat}
-                    onPress={() => set("category", cat)}
-                    style={[
-                      styles.categoryChip,
-                      form.category === cat && styles.categoryChipActive,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.categoryChipText,
-                        form.category === cat && styles.categoryChipTextActive,
-                      ]}
-                    >
-                      {cat}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-              {errors.category ? (
-                <Text style={styles.fieldError}>{errors.category}</Text>
-              ) : null}
-
-              <Text style={styles.fieldLabel}>Tags (comma separated)</Text>
-              <TextInput
-                style={styles.input}
-                value={form.tags}
-                onChangeText={(v) => set("tags", v)}
-                placeholder="e.g. summer, casual, new"
-              />
-
-              <Text style={styles.fieldLabel}>Product Images * (up to 5)</Text>
-              <View style={styles.imageRow}>
-                {form.images.map((uri, i) => (
-                  <View key={i} style={styles.imageThumbWrapper}>
-                    <Image source={{ uri }} style={styles.imageThumb} />
-                    <Pressable
-                      onPress={() => removeImage(i)}
-                      style={styles.removeImg}
-                    >
-                      <Text style={styles.removeImgText}>✕</Text>
-                    </Pressable>
-                  </View>
-                ))}
-                {form.images.length < 5 && (
-                  <Pressable onPress={pickImage} style={styles.imagePicker}>
-                    <Text style={styles.imagePickerPlus}>+</Text>
-                    <Text style={styles.imagePickerText}>Add Photo</Text>
-                  </Pressable>
-                )}
+          <View className="px-[21px]">
+            {errors.submit && (
+              <View className="bg-red-50 p-4 rounded-[12px] mb-6 border border-red-100">
+                <Text className="text-red-600 text-[13px]">{errors.submit}</Text>
               </View>
-              {errors.images ? (
-                <Text style={styles.fieldError}>{errors.images}</Text>
-              ) : null}
-            </>
-          )}
-
-          {/* ─── STEP 2 ─── */}
-          {step === 2 && (
-            <>
-              <Text style={styles.fieldLabel}>Price (₦) *</Text>
-              <TextInput
-                style={[styles.input, errors.price && styles.inputError]}
-                value={form.price}
-                onChangeText={(v) => set("price", v)}
-                placeholder="0.00"
-                keyboardType="numeric"
-              />
-              {errors.price ? (
-                <Text style={styles.fieldError}>{errors.price}</Text>
-              ) : null}
-
-              <Text style={styles.fieldLabel}>Discount Price (₦)</Text>
-              <TextInput
-                style={styles.input}
-                value={form.discount_price}
-                onChangeText={(v) => set("discount_price", v)}
-                placeholder="Optional — leave blank for no discount"
-                keyboardType="numeric"
-              />
-
-              <Text style={styles.fieldLabel}>Stock Quantity *</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  errors.stock_quantity && styles.inputError,
-                ]}
-                value={form.stock_quantity}
-                onChangeText={(v) => set("stock_quantity", v)}
-                placeholder="e.g. 50"
-                keyboardType="numeric"
-              />
-              {errors.stock_quantity ? (
-                <Text style={styles.fieldError}>{errors.stock_quantity}</Text>
-              ) : null}
-
-              <View style={styles.switchRow}>
-                <View>
-                  <Text style={styles.fieldLabel}>Add to Store</Text>
-                  <Text style={styles.switchSubtitle}>
-                    Make this product visible in your store immediately
-                  </Text>
-                </View>
-                <Switch
-                  value={form.is_in_store}
-                  onValueChange={(v) => set("is_in_store", v)}
-                  trackColor={{ false: "#D1D5DB", true: Colors.primary }}
-                  thumbColor="#fff"
-                />
-              </View>
-            </>
-          )}
-
-          {/* ─── STEP 3: PREVIEW ─── */}
-          {step === 3 && (
-            <>
-              <View style={styles.previewCard}>
-                {form.images[0] ? (
-                  <Image
-                    source={{ uri: form.images[0] }}
-                    style={styles.previewImage}
-                  />
-                ) : (
-                  <View style={styles.previewImagePlaceholder}>
-                    <Text style={{ color: "#9CA3AF" }}>No image</Text>
-                  </View>
-                )}
-                <View style={styles.previewInfo}>
-                  <Text style={styles.previewName}>{form.name}</Text>
-                  <Text style={styles.previewCategory}>{form.category}</Text>
-                  <Text style={styles.previewPrice}>
-                    ₦{parseFloat(form.price || "0").toLocaleString("en-NG")}
-                    {form.discount_price ? (
-                      <Text style={styles.previewDiscount}>
-                        {"  "}₦
-                        {parseFloat(form.discount_price).toLocaleString(
-                          "en-NG",
-                        )}
-                      </Text>
-                    ) : null}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.previewDetail}>
-                <Text style={styles.previewDetailTitle}>Description</Text>
-                <Text style={styles.previewDetailText}>{form.description}</Text>
-              </View>
-              <View style={styles.previewDetail}>
-                <Text style={styles.previewDetailTitle}>Stock</Text>
-                <Text style={styles.previewDetailText}>
-                  {form.stock_quantity} units
-                </Text>
-              </View>
-              <View style={styles.previewDetail}>
-                <Text style={styles.previewDetailTitle}>Visibility</Text>
-                <Text style={styles.previewDetailText}>
-                  {form.is_in_store ? "Visible in store" : "Saved as draft"}
-                </Text>
-              </View>
-            </>
-          )}
-
-          {/* Footer Buttons */}
-          <View style={styles.btnRow}>
-            {step < 3 && (
-              <Pressable onPress={handleNext} style={styles.primaryBtn}>
-                <Text style={styles.primaryBtnText}>Next</Text>
-              </Pressable>
             )}
-            {step === 3 && (
+
+            {/* STEP 1: Basic Info */}
+            {step === 1 && (
               <>
-                <Pressable
-                  onPress={handleSaveDraft}
-                  disabled={isBusy}
-                  style={[styles.secondaryBtn, isBusy && styles.btnDisabled]}
-                >
-                  {isBusy ? (
-                    <ActivityIndicator color={Colors.primary} />
-                  ) : (
-                    <Text style={styles.secondaryBtnText}>Save as Draft</Text>
-                  )}
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    set("is_in_store", true);
-                    handleSaveDraft();
-                  }}
-                  disabled={isBusy}
-                  style={[
-                    styles.primaryBtn,
-                    { flex: 1 },
-                    isBusy && styles.btnDisabled,
-                  ]}
-                >
-                  {isBusy ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.primaryBtnText}>Publish to Store</Text>
-                  )}
-                </Pressable>
+                <View className="mb-6">
+                  <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">Product Name *</Text>
+                  <TextInput
+                    className={`border-b border-gray-200 py-3 text-[16px] text-system-blue-dark ${errors.name ? 'border-red-500' : ''}`}
+                    value={form.name}
+                    onChangeText={(v) => set("name", v)}
+                    placeholder="e.g. Summer Floral Dress"
+                  />
+                </View>
+
+                <View className="mb-6">
+                  <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">Description *</Text>
+                  <TextInput
+                    className={`border border-gray-200 rounded-[12px] p-4 text-[16px] text-system-blue-dark h-32 ${errors.description ? 'border-red-500' : ''}`}
+                    value={form.description}
+                    onChangeText={(v) => set("description", v)}
+                    placeholder="Describe your product in detail..."
+                    multiline
+                    textAlignVertical="top"
+                  />
+                </View>
+
+                <View className="mb-6">
+                  <Text className="text-[12px] font-bold text-gray-400 uppercase mb-3">Category *</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+                    {CATEGORIES.map((cat) => (
+                      <Pressable
+                        key={cat}
+                        onPress={() => set("category", cat)}
+                        className={`px-4 py-2 rounded-full mr-2 border ${
+                          form.category === cat ? 'bg-system-blue-light border-system-blue-light' : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        <Text className={`text-[13px] ${form.category === cat ? 'text-white font-bold' : 'text-gray-600'}`}>
+                          {cat}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                <View className="mb-6">
+                  <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">Images * (Max 5)</Text>
+                  <View className="flex-row flex-wrap gap-3 mt-2">
+                    {form.images.map((uri, i) => (
+                      <View key={i} className="relative">
+                        <Image source={{ uri }} className="w-20 h-20 rounded-[12px] bg-gray-100" />
+                        <Pressable
+                          onPress={() => removeImage(i)}
+                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 items-center justify-center border-2 border-white"
+                        >
+                          <MaterialIcons name="close" size={14} color="white" />
+                        </Pressable>
+                      </View>
+                    ))}
+                    {form.images.length < 5 && (
+                      <Pressable 
+                        onPress={pickImage}
+                        className="w-20 h-20 rounded-[12px] border-2 border-dashed border-gray-200 bg-gray-50 items-center justify-center"
+                      >
+                        <MaterialIcons name="add-a-photo" size={24} color="#9CA3AF" />
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
               </>
             )}
+
+            {/* STEP 2: Inventory */}
+            {step === 2 && (
+              <>
+                <View className="mb-6">
+                  <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">Base Price (₦) *</Text>
+                  <TextInput
+                    className={`border-b border-gray-200 py-3 text-[24px] font-bold text-system-blue-dark ${errors.price ? 'border-red-500' : ''}`}
+                    value={form.price}
+                    onChangeText={(v) => set("price", v)}
+                    placeholder="0.00"
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View className="mb-6">
+                  <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">Discount Price (Optional)</Text>
+                  <TextInput
+                    className="border-b border-gray-200 py-3 text-[18px] text-gray-500"
+                    value={form.discount_price}
+                    onChangeText={(v) => set("discount_price", v)}
+                    placeholder="₦ 0.00"
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View className="mb-10">
+                  <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">Stock Quantity *</Text>
+                  <TextInput
+                    className={`border-b border-gray-200 py-3 text-[18px] text-system-blue-dark ${errors.stock_quantity ? 'border-red-500' : ''}`}
+                    value={form.stock_quantity}
+                    onChangeText={(v) => set("stock_quantity", v)}
+                    placeholder="e.g. 100"
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View className="flex-row items-center justify-between bg-blue-50/30 p-4 rounded-[16px] border border-blue-100">
+                  <View className="flex-1 pr-4">
+                    <Text className="text-[16px] font-bold text-system-blue-dark">Visible in Store</Text>
+                    <Text className="text-[12px] text-gray-500 mt-1">Add this product to your live store immediately</Text>
+                  </View>
+                  <Switch
+                    value={form.is_in_store}
+                    onValueChange={(v) => set("is_in_store", v)}
+                    trackColor={{ false: "#D1D5DB", true: Colors.primary }}
+                    thumbColor="#fff"
+                  />
+                </View>
+              </>
+            )}
+
+            {/* STEP 3: Preview */}
+            {step === 3 && (
+              <View className="bg-gray-50/50 rounded-[20px] overflow-hidden border border-gray-100">
+                {form.images[0] ? (
+                  <Image source={{ uri: form.images[0] }} className="w-full h-64 bg-gray-200" />
+                ) : (
+                  <View className="w-full h-64 bg-gray-200 items-center justify-center">
+                    <MaterialIcons name="image" size={48} color="#9CA3AF" />
+                  </View>
+                )}
+                
+                <View className="p-6">
+                  <Text className="text-[22px] font-bold text-system-blue-dark mb-1">{form.name}</Text>
+                  <Text className="text-[14px] text-gray-500 mb-4">{form.category}</Text>
+                  
+                  <View className="flex-row items-baseline gap-2 mb-6">
+                    <Text className="text-[24px] font-bold text-system-blue-light">
+                      {formatCurrency(form.price)}
+                    </Text>
+                    {form.discount_price && (
+                      <Text className="text-[16px] text-gray-400 line-through">
+                        {formatCurrency(form.discount_price)}
+                      </Text>
+                    )}
+                  </View>
+
+                  <Text className="text-[14px] font-bold text-gray-400 uppercase mb-2">Description</Text>
+                  <Text className="text-[14px] text-gray-600 leading-5 mb-6">{form.description}</Text>
+
+                  <View className="flex-row justify-between py-3 border-t border-gray-100">
+                    <Text className="text-gray-500">Inventory Status</Text>
+                    <Text className="font-bold text-system-blue-dark">{form.stock_quantity} units</Text>
+                  </View>
+                  <View className="flex-row justify-between py-3 border-t border-gray-100">
+                    <Text className="text-gray-500">Initial Visibility</Text>
+                    <Text className="font-bold text-system-blue-dark">
+                      {form.is_in_store ? "Live in Store" : "Saved as Draft"}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            <View className="mt-10 gap-4">
+              {step < 3 ? (
+                <Button onPress={handleNext}>
+                  Next Step
+                </Button>
+              ) : (
+                <>
+                  <Button onPress={() => handleSave(true)} isLoading={publishing}>
+                    Publish to Store
+                  </Button>
+                  <Button variant="outline" onPress={() => handleSave(false)} isLoading={drafting}>
+                    Save as Draft
+                  </Button>
+                </>
+              )}
+            </View>
           </View>
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-  },
-  backBtn: { width: 40 },
-  backArrow: { fontSize: 24, color: Colors.primary },
-  headerTitle: { fontSize: 18, fontWeight: "600", color: Colors.primary },
-  stepContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 4,
-    alignItems: "center",
-    gap: 6,
-  },
-  stepRow: { flexDirection: "row", alignItems: "center", width: "70%" },
-  stepDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#E5E7EB",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stepDotActive: { backgroundColor: Colors.primary },
-  stepDotDone: { backgroundColor: Colors.primary },
-  stepDotInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#fff",
-  },
-  stepLine: { flex: 1, height: 2, backgroundColor: "#E5E7EB" },
-  stepLineDone: { backgroundColor: Colors.primary },
-  stepLabel: { fontSize: 12, color: "#6B7280" },
-  content: { padding: 20, paddingBottom: 40 },
-  errorBox: {
-    backgroundColor: "#FEF2F2",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: { color: "#DC2626", fontSize: 13 },
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 6,
-    marginTop: 16,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: "#111827",
-    backgroundColor: "#FAFAFA",
-  },
-  inputError: { borderColor: "#DC2626" },
-  textarea: { height: 100, paddingTop: 12 },
-  fieldError: { color: "#DC2626", fontSize: 12, marginTop: 4 },
-  categoryScroll: { marginTop: 0 },
-  categoryRow: { gap: 8, paddingVertical: 4 },
-  categoryChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 50,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    backgroundColor: "#F9FAFB",
-  },
-  categoryChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  categoryChipText: { fontSize: 13, color: "#374151" },
-  categoryChipTextActive: { color: "#fff" },
-  imageRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 4 },
-  imageThumbWrapper: { position: "relative" },
-  imageThumb: { width: 80, height: 80, borderRadius: 8 },
-  removeImg: {
-    position: "absolute",
-    top: -6,
-    right: -6,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#EF4444",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  removeImgText: { color: "#fff", fontSize: 10, fontWeight: "700" },
-  imagePicker: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: "#D1D5DB",
-    borderStyle: "dashed",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F9FAFB",
-    gap: 2,
-  },
-  imagePickerPlus: { fontSize: 22, color: "#9CA3AF" },
-  imagePickerText: { fontSize: 10, color: "#9CA3AF" },
-  switchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-  },
-  switchSubtitle: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginTop: 2,
-    maxWidth: "85%",
-  },
-  previewCard: {
-    flexDirection: "row",
-    gap: 14,
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-  },
-  previewImage: { width: 100, height: 100, borderRadius: 8 },
-  previewImagePlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    backgroundColor: "#E5E7EB",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  previewInfo: { flex: 1, justifyContent: "center", gap: 4 },
-  previewName: { fontSize: 16, fontWeight: "700", color: "#111827" },
-  previewCategory: { fontSize: 12, color: "#6B7280" },
-  previewPrice: { fontSize: 18, fontWeight: "700", color: Colors.primary },
-  previewDiscount: {
-    fontSize: 13,
-    color: "#9CA3AF",
-    textDecorationLine: "line-through",
-  },
-  previewDetail: { marginBottom: 14 },
-  previewDetailTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 4,
-  },
-  previewDetailText: { fontSize: 14, color: "#6B7280", lineHeight: 20 },
-  btnRow: { flexDirection: "row", gap: 12, marginTop: 28 },
-  primaryBtn: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    height: 55,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  secondaryBtn: {
-    flex: 1,
-    backgroundColor: "#F3F4F6",
-    height: 55,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  secondaryBtnText: { color: Colors.primary, fontSize: 15, fontWeight: "600" },
-  btnDisabled: { opacity: 0.5 },
-});

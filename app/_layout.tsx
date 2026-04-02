@@ -1,10 +1,10 @@
+import React, { useEffect, useState } from "react";
 import { setCredentials } from "@/lib/features/auth/authSlice";
 import { NotificationProvider } from "@/lib/features/notification/NotificationProvider";
 import { store } from "@/lib/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Provider } from "react-redux";
@@ -66,6 +66,11 @@ function AppWithProviders() {
           <Stack.Screen name="vendor" options={{ headerShown: false }} />
           <Stack.Screen name="(admin)" options={{ headerShown: false }} />
           <Stack.Screen name="category/[name]" />
+          <Stack.Screen name="checkout/success" />
+          <Stack.Screen name="checkout/webview" options={{ presentation: "modal" }} />
+          <Stack.Screen name="order-tracking" />
+          <Stack.Screen name="order-receipt" />
+          
           <Stack.Screen name="contact" />
           <Stack.Screen name="faqs" />
           <Stack.Screen name="terms" />

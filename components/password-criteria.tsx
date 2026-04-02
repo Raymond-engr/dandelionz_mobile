@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 export const validatePassword = (password: string) => ({
   length: password.length >= 8,
@@ -10,9 +10,9 @@ export const validatePassword = (password: string) => ({
 
 function CriteriaItem({ label, isValid }: { label: string; isValid: boolean }) {
   return (
-    <View style={styles.item}>
-      <View style={[styles.dot, isValid && styles.dotValid]} />
-      <Text style={[styles.label, isValid && styles.labelValid]}>{label}</Text>
+    <View className="flex-row items-center gap-1.5 w-[48%] mb-2">
+      <View className={`w-1.5 h-1.5 rounded-full ${isValid ? "bg-green-500" : "bg-gray-300"}`} />
+      <Text className={`text-[12px] ${isValid ? "text-green-600" : "text-[#6B7280]"}`}>{label}</Text>
     </View>
   );
 }
@@ -20,7 +20,7 @@ function CriteriaItem({ label, isValid }: { label: string; isValid: boolean }) {
 export function PasswordCriteria({ password }: { password: string }) {
   const c = validatePassword(password);
   return (
-    <View style={styles.grid}>
+    <View className="flex-row flex-wrap mt-2">
       <CriteriaItem label="At least 8 characters" isValid={c.length} />
       <CriteriaItem label="One uppercase letter" isValid={c.uppercase} />
       <CriteriaItem label="One lowercase letter" isValid={c.lowercase} />
@@ -28,12 +28,3 @@ export function PasswordCriteria({ password }: { password: string }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
-  item: { flexDirection: "row", alignItems: "center", gap: 6, width: "48%" },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#D1D5DB" },
-  dotValid: { backgroundColor: "#22C55E" },
-  label: { fontSize: 12, color: "#6B7280" },
-  labelValid: { color: "#16A34A" },
-});

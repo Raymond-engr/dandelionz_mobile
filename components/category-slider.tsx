@@ -3,21 +3,23 @@ import { useGetCategoriesQuery } from "@/lib/api/publicApi";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { CategorySliderSkeleton } from "./CategorySliderSkeleton";
 
 export function CategorySlider() {
   const router = useRouter();
   const { data: categories = [], isLoading } = useGetCategoriesQuery();
 
-  if (isLoading || categories.length === 0) return null;
+  if (isLoading) return <CategorySliderSkeleton />;
+  if (categories.length === 0) return null;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Categories</Text>
+    <View className="mb-6">
+      <Text className="text-[20px] font-bold text-system-blue-dark mb-4 px-4">Categories</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
       >
         {categories.map((cat: any) => (
           <Pressable
@@ -28,20 +30,22 @@ export function CategorySlider() {
               )
             }
           >
-            <View style={styles.card}>
-              <View style={styles.imgWrap}>
+            <View className="w-28 h-32 rounded-[12px] overflow-hidden border border-gray-100 bg-white shadow-sm">
+              <View className="h-[70%] bg-white">
                 {cat.image ? (
                   <Image
                     source={{ uri: cat.image }}
-                    style={styles.img}
+                    className="w-full h-full"
                     contentFit="cover"
                   />
                 ) : (
-                  <View style={[styles.img, styles.imgPlaceholder]} />
+                  <View className="w-full h-full bg-gray-50 items-center justify-center">
+                     <Text className="text-[10px] text-gray-300">No Image</Text>
+                  </View>
                 )}
               </View>
-              <View style={styles.labelWrap}>
-                <Text style={styles.label} numberOfLines={2}>
+              <View className="h-[30%] bg-system-blue-light items-center justify-center px-1">
+                <Text className="text-[11px] font-bold text-white text-center" numberOfLines={2}>
                   {cat.name}
                 </Text>
               </View>
@@ -52,39 +56,3 @@ export function CategorySlider() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { marginBottom: 24 },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  scroll: { paddingHorizontal: 4, gap: 12 },
-  card: {
-    width: 112,
-    height: 128,
-    borderRadius: 12,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
-  },
-  imgWrap: { height: "70%", backgroundColor: "#fff" },
-  img: { width: "100%", height: "100%" },
-  imgPlaceholder: { backgroundColor: "#F9FAFB" },
-  labelWrap: {
-    height: "30%",
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 4,
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: "#fff",
-    textAlign: "center",
-  },
-});

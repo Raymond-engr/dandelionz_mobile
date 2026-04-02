@@ -1,42 +1,45 @@
+import { Divider } from "@/components/ui/divider";
+import { LoadingSpinner } from "@/components/loading-spinner";
+import { Colors } from "@/constants/theme";
 import {
   useGetVendorOrdersSummaryQuery,
   useGetVendorOrdersListQuery,
 } from "@/lib/api/vendorApi";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { formatCurrency } from "@/lib/utils";
 
 type OrderStatProps = {
   label: string;
   value: number;
-  bgColor: string;
-  isLoading?: boolean;
+  bg: string;
 };
 
-function OrderStat({ label, value, bgColor, isLoading }: OrderStatProps) {
+function OrderStat({ label, value, bg }: OrderStatProps) {
   return (
-    <View className={`${bgColor} rounded-[12px] p-4 w-[48%] mb-3`}>
-      <Text className="text-[12px] font-normal text-gray-600 mb-1">{label}</Text>
-      {isLoading ? (
-        <View className="h-7 w-12 bg-gray-200/50 rounded animate-pulse" />
-      ) : (
-        <Text className="text-[24px] font-bold text-gray-900">{value}</Text>
-      )}
+    <View className={`w-[48%] rounded-[12px] p-4 mb-3 h-[90px] justify-end ${bg}`}>
+      <Text className="text-[12px] text-gray-500 mb-1 uppercase font-bold tracking-tighter">
+        {label}
+      </Text>
+      <Text className="text-[22px] font-bold text-system-blue-dark">
+        {value}
+      </Text>
     </View>
   );
 }
 
 export default function VendorOrdersScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const {
     data: summaryResponse,
     isLoading: isLoadingSummary,
@@ -66,131 +69,107 @@ export default function VendorOrdersScreen() {
     (stats?.delivered || 0) +
     (stats?.canceled || 0);
 
-  return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
-      <View className="flex-1">
-        {/* Header */}
-        <View className="p-4 border-b border-gray-100 items-center">
-          <Text className="text-lg font-semibold text-gray-900">Order</Text>
-        </View>
+  const renderHeader = () => (
+    <View 
+      className="px-4 py-4 bg-white"
+      style={{ paddingTop: insets.top }}
+    >
+      <Text className="text-[24px] font-semibold text-system-blue-dark text-center">
+        Orders
+      </Text>
+    </View>
+  );
 
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#030482"
-            />
-          }
-        >
-          <Text className="text-sm text-gray-500 mb-6">
-            Manage and track your customers order
+  return (
+    <View className="flex-1 bg-white">
+      {renderHeader()}
+      
+      <Divider />
+
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+        }
+      >
+        <View className="px-[21px] py-6">
+          <Text className="text-[14px] text-gray-500 mb-6 text-center">
+            Manage and track your customer orders in real-time
           </Text>
 
           {/* Stats Grid */}
-          <View className="flex-row flex-wrap justify-between mb-6">
-            <OrderStat
-              label="Total Orders"
-              value={totalOrders}
-              bgColor="bg-purple-50"
-              isLoading={isLoadingSummary}
-            />
-            <OrderStat
-              label="Pending"
-              value={stats?.pending || 0}
-              bgColor="bg-yellow-50"
-              isLoading={isLoadingSummary}
-            />
-            <OrderStat
-              label="Delivered"
-              value={stats?.delivered || 0}
-              bgColor="bg-green-50"
-              isLoading={isLoadingSummary}
-            />
-            <OrderStat
-              label="Paid"
-              value={stats?.paid || 0}
-              bgColor="bg-blue-50"
-              isLoading={isLoadingSummary}
-            />
+          <View className="flex-row flex-wrap justify-between mb-4">
+            <OrderStat label="Total Orders" value={totalOrders} bg="bg-purple-50" />
+            <OrderStat label="Pending" value={stats?.pending || 0} bg="bg-yellow-50" />
+            <OrderStat label="Delivered" value={stats?.delivered || 0} bg="bg-green-50" />
+            <OrderStat label="Paid" value={stats?.paid || 0} bg="bg-blue-50" />
           </View>
+        </View>
 
-          <Text className="text-[16px] font-semibold text-system-blue-dark mb-4">
-            All Orders
+        <Divider height={11} className="mb-6" />
+
+        <View className="px-[21px]">
+          <Text className="text-[18px] font-bold text-system-blue-dark mb-4">
+            Order History
           </Text>
 
           {isLoadingList && !refreshing ? (
-            <ActivityIndicator size="large" color="#030482" className="mt-10" />
+            <View className="py-10">
+              <LoadingSpinner />
+            </View>
           ) : orders.length === 0 ? (
             <View className="items-center justify-center py-20">
-              <Text className="text-gray-500">No orders found</Text>
+              <MaterialIcons name="shopping-bag" size={64} color="#D1D5DB" />
+              <Text className="text-gray-400 mt-4">No orders received yet.</Text>
             </View>
           ) : (
-            <View className="gap-3">
+            <View className="gap-4">
               {orders.map((order: any) => (
                 <TouchableOpacity
                   key={order.uuid}
                   onPress={() => router.push(`/vendor/order/${order.uuid}`)}
-                  className="bg-gray-50 rounded-[12px] p-4"
+                  className="bg-white border border-gray-100 rounded-[16px] p-4 shadow-sm"
                 >
-                  <View className="flex-row gap-3">
-                    <View className="w-10 h-10 bg-system-blue-light rounded-full items-center justify-center">
-                      <Text className="text-white font-semibold">
-                        {order.customer.full_name.charAt(0).toUpperCase()}
+                  <View className="flex-row items-center mb-3">
+                    <View className="w-10 h-10 bg-system-blue-light/10 rounded-full items-center justify-center mr-3">
+                      <MaterialIcons name="person-outline" size={20} color={Colors.primary} />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-[15px] font-bold text-system-blue-dark" numberOfLines={1}>
+                        {order.customer.full_name}
+                      </Text>
+                      <Text className="text-[12px] text-gray-400">{order.order_id}</Text>
+                    </View>
+                    <View className={`px-2 py-1 rounded-full ${
+                      order.status === 'PAID' ? 'bg-green-100' : 'bg-yellow-100'
+                    }`}>
+                      <Text className={`text-[10px] font-bold ${
+                        order.status === 'PAID' ? 'text-green-700' : 'text-yellow-700'
+                      }`}>
+                        {order.status}
                       </Text>
                     </View>
+                  </View>
 
-                    <View className="flex-1">
-                      <View className="flex-row justify-between items-start mb-1">
-                        <View className="flex-1">
-                          <Text
-                            className="text-sm font-semibold text-gray-900"
-                            numberOfLines={1}
-                          >
-                            {order.customer.full_name}
-                          </Text>
-                          <Text
-                            className="text-[10px] text-gray-500"
-                            numberOfLines={1}
-                          >
-                            {order.customer.email}
-                          </Text>
-                        </View>
-                        <View className="bg-gray-200 px-3 py-1 rounded-full ml-2">
-                          <Text className="text-[10px] font-medium capitalize text-gray-700">
-                            {order.status}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View className="flex-row justify-between items-center mt-2">
-                        <View>
-                          <Text className="text-[10px] text-gray-500">
-                            Order ID
-                          </Text>
-                          <Text className="text-xs font-medium text-gray-900">
-                            {order.order_id}
-                          </Text>
-                        </View>
-                        <View className="items-end">
-                          <Text className="text-sm font-bold text-gray-900">
-                            ₦{parseFloat(order.total_amount).toLocaleString()}
-                          </Text>
-                          <Text className="text-[10px] text-gray-500">
-                            {new Date(order.created_at).toLocaleDateString()}
-                          </Text>
-                        </View>
-                      </View>
+                  <View className="flex-row justify-between items-end pt-3 border-t border-gray-50">
+                    <View>
+                      <Text className="text-[11px] text-gray-400 uppercase font-bold">Total Amount</Text>
+                      <Text className="text-[16px] font-bold text-system-blue-light">
+                        {formatCurrency(order.total_amount)}
+                      </Text>
                     </View>
+                    <Text className="text-[11px] text-gray-400">
+                      {new Date(order.created_at).toLocaleDateString()}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               ))}
             </View>
           )}
-        </ScrollView>
-      </View>
-    </SafeAreaView>
+        </View>
+      </ScrollView>
+    </View>
   );
 }

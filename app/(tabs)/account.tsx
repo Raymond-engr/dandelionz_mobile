@@ -1,23 +1,31 @@
-import { Colors } from "@/constants/theme";
+import { Button } from "@/components/ui/button";
+import { Divider } from "@/components/ui/divider";
 import { useGetCustomerProfileQuery } from "@/lib/api/customerApi";
 import { useAppSelector, useLogout } from "@/lib/hooks";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
     ActivityIndicator,
+    Image,
     Pressable,
     ScrollView,
-    StyleSheet,
     Text,
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-function AccountRow({ label, value }: { label: string; value?: string }) {
+function AccountLink({ label, route, last = false }: { label: string; route: string; last?: boolean }) {
+  const router = useRouter();
   return (
-    <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>{value ?? "—"}</Text>
+    <View>
+      <Pressable
+        onPress={() => router.push(route as any)}
+        className="flex-row justify-between items-center py-4 px-[21px]"
+      >
+        <Text className="text-[16px] text-system-blue-dark font-medium">{label}</Text>
+        <Text className="text-[20px] text-[#9CA3AF]">›</Text>
+      </Pressable>
+      {!last && <View className="h-[1px] bg-[#F5F7FA] mx-[21px]" />}
     </View>
   );
 }
@@ -27,246 +35,89 @@ export default function AccountScreen() {
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const authUser = useAppSelector((s) => s.auth.user);
-  const { unreadCount } = useAppSelector((s) => s.notification);
   const logout = useLogout();
 
   const { data: profileResponse, isLoading } = useGetCustomerProfileQuery(
     undefined,
     { skip: !isAuthenticated },
   );
-  const profile = profileResponse?.data ?? authUser;
+  
+  // profileResponse is CustomerProfile which has a 'user' property
+  const profileUser = profileResponse?.user ?? authUser;
 
   if (!isAuthenticated) {
     return (
-      <View style={styles.emptyState}>
-        <Text style={styles.emptyTitle}>You're not logged in</Text>
-        <Pressable
-          onPress={() => router.push("/(auth)/login")}
-          style={styles.primaryBtn}
-        >
-          <Text style={styles.primaryBtnText}>Login</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => router.push("/(auth)/register")}
-          style={styles.secondaryBtn}
-        >
-          <Text style={styles.secondaryBtnText}>Create Account</Text>
-        </Pressable>
+      <View className="flex-1 bg-white items-center justify-center px-8 gap-4">
+        <Text className="text-[20px] font-bold text-system-blue-dark mb-4">You&apos;re not logged in</Text>
+        <Button onPress={() => router.push("/(auth)/login")}>Login</Button>
+        <Button variant="outline" onPress={() => router.push("/(auth)/register")}>Create Account</Button>
       </View>
     );
   }
 
   if (isLoading) {
     return (
-      <View style={styles.emptyState}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View className="flex-1 bg-white items-center justify-center">
+        <ActivityIndicator size="large" color="#030482" />
       </View>
     );
   }
 
-  const initials =
-    [profile?.first_name?.[0], profile?.last_name?.[0]]
-      .filter(Boolean)
-      .join("")
-      .toUpperCase() || "?";
+  const initials = profileUser?.full_name 
+    ? profileUser.full_name.split(' ').map(n => n[0]).join('').toUpperCase() 
+    : "?";
 
   return (
     <ScrollView
-      style={[styles.container, { paddingTop: insets.top }]}
-      contentContainerStyle={styles.content}
+      className="flex-1 bg-white"
+      style={{ paddingTop: insets.top }}
+      contentContainerStyle={{ paddingBottom: 100 }}
     >
-      {/* Avatar */}
-      <View style={styles.avatarSection}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </Text>
-            </View>
+      {/* Profile Header */}
+      <View className="flex-row items-center p-[21px]">
+        <View className="w-[60px] h-[60px] rounded-full bg-system-blue-light items-center justify-center overflow-hidden">
+          {profileUser?.profile_picture ? (
+            <Image 
+              source={{ uri: profileUser.profile_picture }} 
+              className="w-full h-full" 
+              resizeMode="cover"
+            />
+          ) : (
+            <Text className="text-white text-[20px] font-bold">{initials}</Text>
           )}
         </View>
-        <Text style={styles.fullName}>
-          {profile?.first_name} {profile?.last_name}
-        </Text>
-        <Text style={styles.email}>{profile?.email}</Text>
-        {profile?.role && (
-          <View style={styles.rolePill}>
-            <Text style={styles.roleText}>
-              {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
-            </Text>
-          </View>
-        )}
+        <View className="ml-4 flex-1">
+          <Text className="text-[18px] font-bold text-system-blue-dark" numberOfLines={1}>
+            {profileUser?.full_name}
+          </Text>
+          <Text className="text-[14px] text-[#6B7280]" numberOfLines={1}>{profileUser?.email}</Text>
+        </View>
       </View>
 
-      {/* Profile Info */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Profile Information</Text>
-        <AccountRow label="First Name" value={profile?.first_name} />
-        <AccountRow label="Last Name" value={profile?.last_name} />
-        <AccountRow label="Email" value={profile?.email} />
-        <AccountRow label="Phone" value={profile?.phone_number} />
+      <Divider />
+
+      {/* Activity Links */}
+      <View>
+        <AccountLink label="My Orders" route="/(tabs)/orders" />
+        <AccountLink label="My Wishlist" route="/(tabs)/wishlist" />
+        <AccountLink label="Delivery Address" route="/account/address" />
+        <AccountLink label="Contact Us" route="/contact" />
+        <AccountLink label="FAQs" route="/faqs" />
+        <AccountLink label="Terms & Conditions" route="/terms" last />
       </View>
 
-      {/* Links */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>My Activity</Text>
-        {[
-          { label: "My Orders", route: "/(tabs)/orders" },
-          { label: "My Wishlist", route: "/(tabs)/wishlist" },
-          { label: "Contact Us", route: "/contact" },
-          { label: "FAQs", route: "/faqs" },
-          { label: "Terms & Conditions", route: "/terms" },
-        ].map(({ label, route }) => (
-          <Pressable
-            key={label}
-            onPress={() => router.push(route as any)}
-            style={styles.linkRow}
-          >
-            <Text style={styles.linkLabel}>{label}</Text>
-            <Text style={styles.linkArrow}>›</Text>
-          </Pressable>
-        ))}
-      </View>
+      <Divider />
 
       {/* Logout */}
-      <Pressable onPress={logout} style={styles.logoutBtn}>
-        <Text style={styles.logoutText}>Log Out</Text>
-      </Pressable>
+      <View className="px-[21px] mt-8">
+        <Button
+          variant="outline"
+          onPress={logout}
+          className="border-system-red"
+        >
+          <Text className="text-system-red">Log Out</Text>
+        </Button>
+      </View>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
-  content: { paddingBottom: 40 },
-  avatarSection: {
-    alignItems: "center",
-    paddingVertical: 32,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-    position: "relative",
-  },
-  avatarText: { fontSize: 28, fontWeight: "700", color: "#fff" },
-  badge: {
-    position: "absolute",
-    top: -4,
-    right: -4,
-    backgroundColor: Colors.red,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 4,
-  },
-  badgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
-  fullName: { fontSize: 20, fontWeight: "700", color: "#111827" },
-  email: { fontSize: 14, color: "#6B7280", marginTop: 4 },
-  rolePill: {
-    marginTop: 8,
-    backgroundColor: "#EEF2FF",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  roleText: { fontSize: 12, fontWeight: "600", color: Colors.primary },
-  card: {
-    margin: 16,
-    marginBottom: 0,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#6B7280",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 12,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F9FAFB",
-  },
-  rowLabel: { fontSize: 14, color: "#6B7280" },
-  rowValue: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#111827",
-    maxWidth: "60%",
-    textAlign: "right",
-  },
-  linkRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F9FAFB",
-  },
-  linkLabel: { fontSize: 15, color: "#374151" },
-  linkArrow: { fontSize: 20, color: "#9CA3AF" },
-  logoutBtn: {
-    margin: 16,
-    marginTop: 24,
-    borderWidth: 1,
-    borderColor: "#FCA5A5",
-    borderRadius: 12,
-    height: 55,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoutText: { fontSize: 16, fontWeight: "600", color: "#DC2626" },
-  emptyState: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 32,
-    gap: 12,
-    backgroundColor: "#F9FAFB",
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 8,
-  },
-  primaryBtn: {
-    backgroundColor: Colors.primary,
-    height: 55,
-    borderRadius: 12,
-    paddingHorizontal: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-  },
-  primaryBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  secondaryBtn: {
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    height: 55,
-    borderRadius: 12,
-    paddingHorizontal: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-  },
-  secondaryBtnText: { color: Colors.primary, fontSize: 16, fontWeight: "600" },
-});

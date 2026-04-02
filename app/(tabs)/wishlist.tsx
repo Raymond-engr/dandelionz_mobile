@@ -1,4 +1,5 @@
-import { Colors } from "@/constants/theme";
+import { Button } from "@/components/ui/button";
+import { Divider } from "@/components/ui/divider";
 import {
     useAddToCartMutation,
     useGetWishlistQuery,
@@ -12,9 +13,9 @@ import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     Pressable,
-    StyleSheet,
     Text,
     View,
 } from "react-native";
@@ -33,12 +34,11 @@ export default function WishlistScreen() {
   const [removeFromWishlist] = useRemoveFromWishlistMutation();
   const [addToCart] = useAddToCartMutation();
 
-  // Redirect to login if not authenticated
   const redirected = React.useRef(false);
 
   useEffect(() => {
     if (isFocused) {
-      redirected.current = false; // reset flag when screen is focused
+      redirected.current = false;
     }
     if (!isAuthenticated && isFocused && !redirected.current) {
       redirected.current = true;
@@ -48,51 +48,55 @@ export default function WishlistScreen() {
     }
   }, [isAuthenticated, isFocused, router]);
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  if (!isAuthenticated) return null;
 
   if (isLoading) {
     return (
-      <View style={styles.emptyState}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View className="flex-1 bg-white items-center justify-center">
+        <ActivityIndicator size="large" color="#030482" />
       </View>
     );
   }
 
-  if (!wishlistItems || wishlistItems.length === 0) {
-    return (
-      <View style={styles.emptyState}>
-        <Text style={styles.emptyEmoji}>♡</Text>
-        <Text style={styles.emptyTitle}>Your wishlist is empty</Text>
-        <Text style={styles.emptySubtitle}>
-          Save products you love to your wishlist
-        </Text>
-        <Pressable
-          onPress={() => router.push("/(tabs)")}
-          style={styles.primaryBtn}
-        >
-          <Text style={styles.primaryBtnText}>Browse Products</Text>
-        </Pressable>
-      </View>
-    );
-  }
+  const renderEmpty = () => (
+    <View className="flex-1 items-center justify-center px-8 pt-20">
+      <Text className="text-[64px] mb-5 text-system-blue-light">♡</Text>
+      <Text className="text-[20px] font-bold text-system-blue-dark mb-2">Your wishlist is empty</Text>
+      <Text className="text-[14px] text-[#6B7280] text-center mb-8">
+        Save products you love to your wishlist
+      </Text>
+      <Button onPress={() => router.push("/(tabs)")} className="px-8">
+        Browse Products
+      </Button>
+    </View>
+  );
+
+  const handleAddToCart = async (product: any) => {
+    if (product.variants && Object.keys(product.variants).length > 0) {
+      router.push(`/product/${product.slug}`);
+      return;
+    }
+    try {
+      await addToCart({ 
+        slug: product.slug, 
+        quantity: 1,
+        selected_variants: {} 
+      }).unwrap();
+      Alert.alert("Success", "Added to cart");
+    } catch (err: any) {
+      Alert.alert("Error", err?.data?.error || "Failed to add to cart");
+    }
+  };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Wishlist</Text>
-        <Text style={styles.headerCount}>
-          {wishlistItems.length} item{wishlistItems.length !== 1 ? "s" : ""}
-        </Text>
-      </View>
-
+    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
       <FlatList
         data={wishlistItems as any[]}
         keyExtractor={(item: any) => String(item.id)}
         numColumns={2}
-        columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.list}
+        columnWrapperStyle={{ paddingHorizontal: 16, gap: 12 }}
+        contentContainerStyle={{ paddingVertical: 16, gap: 12 }}
+        ListEmptyComponent={renderEmpty}
         renderItem={({ item }: { item: any }) => {
           const product = item.product_details ?? {};
           const price = parseFloat(product.price ?? "0");
@@ -101,48 +105,39 @@ export default function WishlistScreen() {
             discount > 0 ? price * (1 - discount / 100) : price;
 
           return (
-            <View style={styles.card}>
-              <View style={styles.imageWrap}>
+            <View className="flex-1 bg-white rounded-xl overflow-hidden border border-[#F3F4F6]">
+              <View className="relative aspect-square bg-[#F3F4F6]">
                 {product.image ? (
                   <Image
                     source={{ uri: product.image }}
-                    style={styles.image}
+                    className="w-full h-full"
                     contentFit="cover"
                   />
                 ) : (
-                  <View style={[styles.image, styles.imagePlaceholder]} />
+                  <View className="w-full h-full items-center justify-center">
+                    <Text className="text-[#9CA3AF] text-[10px]">No Image</Text>
+                  </View>
                 )}
                 <Pressable
-                  onPress={() =>
-                    removeFromWishlist(product.slug)
-                      .unwrap()
-                      .catch(() => {})
-                  }
-                  style={styles.removeBtn}
+                  onPress={() => removeFromWishlist(product.slug).unwrap()}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white items-center justify-center shadow-sm"
                 >
-                  <Text style={styles.removeBtnText}>♥</Text>
+                  <Text className="text-[16px] text-system-red">♥</Text>
                 </Pressable>
               </View>
 
-              <View style={styles.cardInfo}>
-                <Text style={styles.productName} numberOfLines={1}>
+              <View className="p-3 gap-1">
+                <Text className="text-[13px] font-medium text-system-blue-dark" numberOfLines={1}>
                   {product.name}
                 </Text>
-                <Text style={styles.productPrice}>
-                  ₦
-                  {displayPrice.toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })}
+                <Text className="text-[15px] font-bold text-system-blue-light">
+                  ₦{displayPrice.toLocaleString()}
                 </Text>
                 <Pressable
-                  onPress={() =>
-                    addToCart({ slug: product.slug, quantity: 1 })
-                      .unwrap()
-                      .catch(() => {})
-                  }
-                  style={styles.addToCartBtn}
+                  onPress={() => handleAddToCart(product)}
+                  className="bg-[#F5F7FA] py-2 rounded-lg items-center mt-1"
                 >
-                  <Text style={styles.addToCartText}>Add to Cart</Text>
+                  <Text className="text-[12px] font-semibold text-system-blue-light">Add to Cart</Text>
                 </Pressable>
               </View>
             </View>
@@ -152,86 +147,3 @@ export default function WishlistScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-  },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "#111827" },
-  headerCount: { fontSize: 14, color: "#6B7280" },
-  list: { padding: 16, gap: 12 },
-  row: { gap: 12 },
-  card: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  imageWrap: {
-    position: "relative",
-    aspectRatio: 1,
-    backgroundColor: "#F3F4F6",
-  },
-  image: { width: "100%", height: "100%" },
-  imagePlaceholder: { backgroundColor: "#E5E7EB" },
-  removeBtn: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  removeBtnText: { fontSize: 16, color: "#EF4444" },
-  cardInfo: { padding: 10, gap: 4 },
-  productName: { fontSize: 13, fontWeight: "500", color: "#111827" },
-  productPrice: { fontSize: 15, fontWeight: "700", color: Colors.primary },
-  addToCartBtn: {
-    backgroundColor: "#F3F4F6",
-    paddingVertical: 6,
-    borderRadius: 6,
-    alignItems: "center",
-    marginTop: 4,
-  },
-  addToCartText: { fontSize: 12, fontWeight: "600", color: Colors.primary },
-  emptyState: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 32,
-    backgroundColor: "#F9FAFB",
-  },
-  emptyEmoji: { fontSize: 64, marginBottom: 20, color: Colors.primary },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
-    marginBottom: 32,
-  },
-  primaryBtn: {
-    backgroundColor: Colors.primary,
-    height: 55,
-    borderRadius: 12,
-    paddingHorizontal: 32,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-});

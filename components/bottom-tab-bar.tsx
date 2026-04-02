@@ -32,10 +32,11 @@ export function BottomTabBar({
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       {state.routes.map((route, index) => {
-        const tab = TABS[index];
+        const tab = TABS.find(t => t.name === route.name);
         if (!tab) return null;
+        
         const isFocused = state.index === index;
-        const color = isFocused ? Colors.white : Colors.dark;
+        const color = isFocused ? Colors.white : Colors.dark_main;
         const isAccount = tab.name === "account";
 
         const onPress = () => {
@@ -60,7 +61,11 @@ export function BottomTabBar({
               <tab.Icon active={isFocused} color={color} size={24} />
               {isAccount && unreadCount > 0 && <View style={styles.badge} />}
             </View>
-            {isFocused && <Text style={styles.activeLabel}>{tab.label}</Text>}
+            {isFocused && (
+              <Text style={styles.activeLabel} numberOfLines={1}>
+                {tab.label}
+              </Text>
+            )}
           </Pressable>
         );
       })}
@@ -92,16 +97,17 @@ const styles = StyleSheet.create({
     height: 40,
   },
   activeTab: {
+    flex: 2,
     flexDirection: "row",
     backgroundColor: Colors.primary,
     borderRadius: 50,
     paddingHorizontal: 12,
     gap: 6,
-    margin: 4,
+    marginHorizontal: 4,
   },
   activeLabel: {
     color: Colors.white,
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: "600",
   },
   iconContainer: {

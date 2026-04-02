@@ -1,23 +1,28 @@
+import { Button } from "@/components/ui/button";
+import { Divider } from "@/components/ui/divider";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import { Colors } from "@/constants/theme";
 import {
-    useGetProductDetailsQuery,
-    useUpdateProductMutation,
+  useGetStoreProductDetailsQuery,
+  useUpdateStoreProductMutation,
+  useGetDraftDetailsQuery,
+  useUpdateDraftMutation,
 } from "@/lib/api/vendorApi";
+import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -37,19 +42,32 @@ type FormData = {
   tags: string;
   images: string[];
   price: string;
-  discount_price: string;
-  stock_quantity: string;
+  discounted_price: string;
+  stock: string;
   is_in_store: boolean;
 };
 
 export default function EditProductScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, type } = useLocalSearchParams<{ id: string; type?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { data: response, isLoading: fetching } = useGetProductDetailsQuery(
-    id ?? "",
+  const isDraft = type === "draft";
+  
+  // Queries for either store or draft
+  const { data: storeResponse, isLoading: fetchingStore } = useGetStoreProductDetailsQuery(
+    id ?? "", { skip: isDraft }
   );
-  const [updateProduct, { isLoading: saving }] = useUpdateProductMutation();
+  const { data: draftResponse, isLoading: fetchingDraft } = useGetDraftDetailsQuery(
+    id ?? "", { skip: !isDraft }
+  );
+
+  // Mutations for either store or draft
+  const [updateStoreProduct, { isLoading: savingStore }] = useUpdateStoreProductMutation();
+  const [updateDraftProduct, { isLoading: savingDraft }] = useUpdateDraftMutation();
+
+  const response = isDraft ? draftResponse : storeResponse;
+  const fetching = isDraft ? fetchingDraft : fetchingStore;
+  const saving = isDraft ? savingDraft : savingStore;
 
   const [form, setForm] = useState<FormData>({
     name: "",
@@ -58,8 +76,8 @@ export default function EditProductScreen() {
     tags: "",
     images: [],
     price: "",
-    discount_price: "",
-    stock_quantity: "",
+    discounted_price: "",
+    stock: "",
     is_in_store: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -74,9 +92,9 @@ export default function EditProductScreen() {
         tags: Array.isArray(p.tags) ? p.tags.join(", ") : (p.tags ?? ""),
         images: p.images?.map((img: any) => img.image_url ?? img) ?? [],
         price: p.price?.toString() ?? "",
-        discount_price: p.discount_price?.toString() ?? "",
-        stock_quantity: p.stock_quantity?.toString() ?? "",
-        is_in_store: p.is_in_store ?? false,
+        discounted_price: p.discounted_price?.toString() ?? "",
+        stock: p.stock?.toString() ?? "",
+        is_in_store: p.publish_status === "PUBLISHED",
       });
     }
   }, [response]);
@@ -88,7 +106,7 @@ export default function EditProductScreen() {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: true,
       quality: 0.8,
     });
@@ -103,43 +121,75 @@ export default function EditProductScreen() {
     if (!form.name.trim()) e.name = "Product name is required.";
     if (!form.price || isNaN(parseFloat(form.price)))
       e.price = "Enter a valid price.";
-    if (!form.stock_quantity || isNaN(parseInt(form.stock_quantity)))
-      e.stock_quantity = "Enter a valid stock quantity.";
+    if (!form.stock || isNaN(parseInt(form.stock)))
+      e.stock = "Enter a valid stock quantity.";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const handleSave = async () => {
     if (!validate()) return;
-    setErrors({});
     try {
-      await updateProduct({
-        id: id!,
-        name: form.name,
-        description: form.description,
-        category: form.category,
-        tags: form.tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
-        price: parseFloat(form.price),
-        discount_price: form.discount_price
-          ? parseFloat(form.discount_price)
-          : undefined,
-        stock_quantity: parseInt(form.stock_quantity),
-        is_in_store: form.is_in_store,
-        images: form.images,
-      }).unwrap();
+      const payload = new FormData();
+      payload.append("name", form.name);
+      payload.append("description", form.description);
+      payload.append("category", form.category);
+      payload.append("price", form.price);
+      payload.append("stock", form.stock);
+      
+      if (form.discounted_price) {
+        payload.append("discounted_price", form.discounted_price);
+      }
+      
+      payload.append("publish_status", form.is_in_store ? "PUBLISHED" : "DRAFT");
+
+      form.images.forEach((uri) => {
+        if (uri.startsWith('http')) {
+           payload.append("existing_images", uri);
+        } else {
+          const filename = uri.split("/").pop() || "product.jpg";
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : "image";
+          // @ts-ignore
+          payload.append("images", { uri, name: filename, type });
+        }
+      });
+
+      if (isDraft) {
+        await updateDraftProduct({
+          slug: id!,
+          data: payload as any,
+        }).unwrap();
+      } else {
+        await updateStoreProduct({
+          slug: id!,
+          data: payload as any,
+        }).unwrap();
+      }
+      
+      Alert.alert("Success", "Product updated successfully!");
       router.back();
     } catch (err: any) {
       setErrors({ submit: err?.data?.message ?? "Failed to save product." });
     }
   };
 
+  const renderHeader = () => (
+    <View className="flex-row items-center justify-between px-4 py-4 bg-white">
+      <Pressable onPress={() => router.back()} className="w-10">
+        <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
+      </Pressable>
+      <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
+        {isDraft ? 'Edit Draft' : 'Edit Product'}
+      </Text>
+      <View className="w-10" />
+    </View>
+  );
+
   if (fetching) {
     return (
-      <View style={[styles.center, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View className="flex-1 bg-white items-center justify-center">
+        <LoadingSpinner />
       </View>
     );
   }
@@ -149,158 +199,115 @@ export default function EditProductScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={8}
-            style={styles.backBtn}
-          >
-            <Text style={styles.backArrow}>←</Text>
-          </Pressable>
-          <Text style={styles.headerTitle}>Edit Product</Text>
-          <Pressable onPress={handleSave} disabled={saving} hitSlop={8}>
-            {saving ? (
-              <ActivityIndicator size="small" color={Colors.primary} />
-            ) : (
-              <Text style={styles.saveLink}>Save</Text>
-            )}
-          </Pressable>
-        </View>
+      <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+        {renderHeader()}
+        <Divider />
 
         <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
+          className="flex-1 px-[21px]"
+          contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
         >
-          {errors.submit ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{errors.submit}</Text>
+          {errors.submit && (
+            <View className="bg-red-50 p-4 rounded-[12px] mb-6 border border-red-100 mt-4">
+              <Text className="text-red-600 text-[13px]">{errors.submit}</Text>
             </View>
-          ) : null}
+          )}
 
-          <Text style={styles.fieldLabel}>Product Name *</Text>
-          <TextInput
-            style={[styles.input, errors.name && styles.inputError]}
-            value={form.name}
-            onChangeText={(v) => set("name", v)}
-            placeholder="Product name"
-          />
-          {errors.name ? (
-            <Text style={styles.fieldError}>{errors.name}</Text>
-          ) : null}
-
-          <Text style={styles.fieldLabel}>Description</Text>
-          <TextInput
-            style={[styles.input, styles.textarea]}
-            value={form.description}
-            onChangeText={(v) => set("description", v)}
-            placeholder="Product description"
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
-
-          <Text style={styles.fieldLabel}>Category</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryRow}
-          >
-            {CATEGORIES.map((cat) => (
-              <Pressable
-                key={cat}
-                onPress={() => set("category", cat)}
-                style={[
-                  styles.categoryChip,
-                  form.category === cat && styles.categoryChipActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.categoryChipText,
-                    form.category === cat && styles.categoryChipTextActive,
-                  ]}
-                >
-                  {cat}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-
-          <Text style={styles.fieldLabel}>Tags</Text>
-          <TextInput
-            style={styles.input}
-            value={form.tags}
-            onChangeText={(v) => set("tags", v)}
-            placeholder="comma, separated, tags"
-          />
-
-          <Text style={styles.fieldLabel}>Images (up to 5)</Text>
-          <View style={styles.imageRow}>
-            {form.images.map((uri, i) => (
-              <View key={i} style={styles.imageThumbWrapper}>
-                <Image source={{ uri }} style={styles.imageThumb} />
-                <Pressable
-                  onPress={() =>
-                    set(
-                      "images",
-                      form.images.filter((_, idx) => idx !== i),
-                    )
-                  }
-                  style={styles.removeImg}
-                >
-                  <Text style={styles.removeImgText}>✕</Text>
-                </Pressable>
-              </View>
-            ))}
-            {form.images.length < 5 && (
-              <Pressable onPress={pickImage} style={styles.imagePicker}>
-                <Text style={styles.imagePickerPlus}>+</Text>
-              </Pressable>
-            )}
+          <View className="mt-6">
+            <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">Product Name *</Text>
+            <TextInput
+              className={`border-b border-gray-200 py-3 text-[16px] text-system-blue-dark ${errors.name ? 'border-red-500' : ''}`}
+              value={form.name}
+              onChangeText={(v) => set("name", v)}
+              placeholder="e.g. Premium Cotton T-Shirt"
+            />
+            {errors.name && <Text className="text-red-500 text-[11px] mt-1">{errors.name}</Text>}
           </View>
 
-          <Text style={styles.fieldLabel}>Price (₦) *</Text>
-          <TextInput
-            style={[styles.input, errors.price && styles.inputError]}
-            value={form.price}
-            onChangeText={(v) => set("price", v)}
-            placeholder="0.00"
-            keyboardType="numeric"
-          />
-          {errors.price ? (
-            <Text style={styles.fieldError}>{errors.price}</Text>
-          ) : null}
+          <View className="mt-6">
+            <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">Description</Text>
+            <TextInput
+              className="border border-gray-200 rounded-[12px] p-4 text-[16px] text-system-blue-dark h-32"
+              value={form.description}
+              onChangeText={(v) => set("description", v)}
+              placeholder="Tell customers about your product..."
+              multiline
+              textAlignVertical="top"
+            />
+          </View>
 
-          <Text style={styles.fieldLabel}>Discount Price (₦)</Text>
-          <TextInput
-            style={styles.input}
-            value={form.discount_price}
-            onChangeText={(v) => set("discount_price", v)}
-            placeholder="Optional"
-            keyboardType="numeric"
-          />
+          <View className="mt-6">
+            <Text className="text-[12px] font-bold text-gray-400 uppercase mb-3">Category</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+              {CATEGORIES.map((cat) => (
+                <Pressable
+                  key={cat}
+                  onPress={() => set("category", cat)}
+                  className={`px-4 py-2 rounded-full mr-2 border ${
+                    form.category === cat ? 'bg-system-blue-light border-system-blue-light' : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
+                  <Text className={`text-[13px] ${form.category === cat ? 'text-white font-bold' : 'text-gray-600'}`}>
+                    {cat}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
 
-          <Text style={styles.fieldLabel}>Stock Quantity *</Text>
-          <TextInput
-            style={[styles.input, errors.stock_quantity && styles.inputError]}
-            value={form.stock_quantity}
-            onChangeText={(v) => set("stock_quantity", v)}
-            placeholder="0"
-            keyboardType="numeric"
-          />
-          {errors.stock_quantity ? (
-            <Text style={styles.fieldError}>{errors.stock_quantity}</Text>
-          ) : null}
+          <View className="mt-6">
+            <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">Images (Max 5)</Text>
+            <View className="flex-row flex-wrap gap-3 mt-2">
+              {form.images.map((uri, i) => (
+                <View key={i} className="relative">
+                  <Image source={{ uri }} className="w-20 h-20 rounded-[12px] bg-gray-100" />
+                  <Pressable
+                    onPress={() => set("images", form.images.filter((_, idx) => idx !== i))}
+                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 items-center justify-center border-2 border-white"
+                  >
+                    <MaterialIcons name="close" size={14} color="white" />
+                  </Pressable>
+                </View>
+              ))}
+              {form.images.length < 5 && (
+                <Pressable 
+                  onPress={pickImage}
+                  className="w-20 h-20 rounded-[12px] border-2 border-dashed border-gray-200 bg-gray-50 items-center justify-center"
+                >
+                  <MaterialIcons name="add-a-photo" size={24} color="#9CA3AF" />
+                </Pressable>
+              )}
+            </View>
+          </View>
 
-          <View style={styles.switchRow}>
-            <View>
-              <Text style={styles.fieldLabel}>Visible in Store</Text>
-              <Text style={styles.switchSubtitle}>
-                Toggle off to hide from your store
-              </Text>
+          <View className="flex-row gap-4 mt-6">
+            <View className="flex-1">
+              <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">Price (₦) *</Text>
+              <TextInput
+                className={`border-b border-gray-200 py-3 text-[16px] font-bold text-system-blue-dark ${errors.price ? 'border-red-500' : ''}`}
+                value={form.price}
+                onChangeText={(v) => set("price", v)}
+                keyboardType="numeric"
+                placeholder="0.00"
+              />
+            </View>
+            <View className="flex-1">
+              <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">Stock *</Text>
+              <TextInput
+                className={`border-b border-gray-200 py-3 text-[16px] font-bold text-system-blue-dark ${errors.stock ? 'border-red-500' : ''}`}
+                value={form.stock}
+                onChangeText={(v) => set("stock", v)}
+                keyboardType="numeric"
+                placeholder="0"
+              />
+            </View>
+          </View>
+
+          <View className="mt-8 flex-row items-center justify-between bg-blue-50/30 p-4 rounded-[16px] border border-blue-100">
+            <View className="flex-1 pr-4">
+              <Text className="text-[16px] font-bold text-system-blue-dark">Visible in Store</Text>
+              <Text className="text-[12px] text-gray-500 mt-1">Publish this product to your live store immediately</Text>
             </View>
             <Switch
               value={form.is_in_store}
@@ -310,129 +317,13 @@ export default function EditProductScreen() {
             />
           </View>
 
-          <Pressable
-            onPress={handleSave}
-            disabled={saving}
-            style={[styles.saveBtn, saving && styles.btnDisabled]}
-          >
-            {saving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.saveBtnText}>Save Changes</Text>
-            )}
-          </Pressable>
+          <View className="mt-10">
+            <Button onPress={handleSave} isLoading={saving}>
+              Save Changes
+            </Button>
+          </View>
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-  },
-  backBtn: { width: 40 },
-  backArrow: { fontSize: 24, color: Colors.primary },
-  headerTitle: { fontSize: 18, fontWeight: "600", color: Colors.primary },
-  saveLink: { color: Colors.primary, fontWeight: "700", fontSize: 15 },
-  content: { padding: 20, paddingBottom: 60 },
-  errorBox: {
-    backgroundColor: "#FEF2F2",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: { color: "#DC2626", fontSize: 13 },
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 6,
-    marginTop: 16,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: "#111827",
-    backgroundColor: "#FAFAFA",
-  },
-  inputError: { borderColor: "#DC2626" },
-  textarea: { height: 100, paddingTop: 12 },
-  fieldError: { color: "#DC2626", fontSize: 12, marginTop: 4 },
-  categoryRow: { gap: 8, paddingVertical: 4 },
-  categoryChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 50,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    backgroundColor: "#F9FAFB",
-  },
-  categoryChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  categoryChipText: { fontSize: 13, color: "#374151" },
-  categoryChipTextActive: { color: "#fff" },
-  imageRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 4 },
-  imageThumbWrapper: { position: "relative" },
-  imageThumb: { width: 80, height: 80, borderRadius: 8 },
-  removeImg: {
-    position: "absolute",
-    top: -6,
-    right: -6,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#EF4444",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  removeImgText: { color: "#fff", fontSize: 10, fontWeight: "700" },
-  imagePicker: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: "#D1D5DB",
-    borderStyle: "dashed",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F9FAFB",
-  },
-  imagePickerPlus: { fontSize: 28, color: "#9CA3AF" },
-  switchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-  },
-  switchSubtitle: { fontSize: 12, color: "#6B7280", marginTop: 2 },
-  saveBtn: {
-    marginTop: 28,
-    backgroundColor: Colors.primary,
-    height: 55,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  btnDisabled: { opacity: 0.5 },
-  saveBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-});

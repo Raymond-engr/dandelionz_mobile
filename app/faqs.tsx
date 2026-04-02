@@ -1,4 +1,5 @@
 import { Colors } from "@/constants/theme";
+import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -70,8 +71,8 @@ export default function FAQsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.backBtn}>←</Text>
+        <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backBtn}>
+          <Feather name="chevron-left" size={32} color={Colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>FAQs</Text>
         <View style={{ width: 32 }} />
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
   },
-  backBtn: { fontSize: 24, color: Colors.primary, width: 32 },
+  backBtn: { width: 32 },
   headerTitle: { fontSize: 18, fontWeight: "700", color: Colors.primary },
   content: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40 },
   pageTitle: {

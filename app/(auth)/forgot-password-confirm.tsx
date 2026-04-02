@@ -1,25 +1,23 @@
 import {
-    PasswordCriteria,
-    validatePassword,
+  PasswordCriteria,
+  validatePassword,
 } from "@/components/password-criteria";
-import { Colors } from "@/constants/theme";
-import { useResetPasswordMutation } from "@/lib/api/authApi";
+import { Button } from "@/components/ui/button";
+import { useConfirmPasswordResetMutation } from "@/lib/api/authApi";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 export default function ForgotPasswordConfirmScreen() {
   const router = useRouter();
   const { uid, token } = useLocalSearchParams<{ uid: string; token: string }>();
-  const [resetPassword, { isLoading }] = useResetPasswordMutation();
+  const [confirmReset, { isLoading }] = useConfirmPasswordResetMutation();
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -43,11 +41,10 @@ export default function ForgotPasswordConfirmScreen() {
       return;
     }
     try {
-      const res = await resetPassword({
+      const res = await confirmReset({
         uid,
         token,
         new_password: password,
-        confirm_password: confirmPassword,
       }).unwrap();
       if (res.success) router.replace("/(auth)/login");
     } catch (err: any) {
@@ -60,19 +57,28 @@ export default function ForgotPasswordConfirmScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={styles.container}
+      className="flex-1 bg-white"
+      contentContainerStyle={{ flexGrow: 1 }}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.inner}>
-        <Text style={styles.title}>Reset Password</Text>
-        <Text style={styles.subtitle}>Enter your new password below.</Text>
+      <View className="flex-1 px-[24px] pt-[80px] pb-[40px]">
+        <Text className="text-[24px] font-bold text-system-blue-dark text-center mb-[12px]">
+          Reset Password
+        </Text>
+        <Text className="text-[14px] text-[#6B7280] text-center mb-[32px]">
+          Enter your new password below.
+        </Text>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <View className="bg-red-50 p-3 rounded-lg mb-4">
+            <Text className="text-red-600 text-[13px]">{error}</Text>
+          </View>
+        ) : null}
 
-        <View style={styles.field}>
-          <View style={styles.passwordWrap}>
+        <View className="mb-[24px]">
+          <View className="flex-row items-center">
             <TextInput
-              style={[styles.input, { flex: 1, borderBottomWidth: 0 }]}
+              className="flex-1 text-[16px] text-system-blue-dark py-2"
               placeholder="New Password"
               placeholderTextColor="#9CA3AF"
               value={password}
@@ -83,17 +89,17 @@ export default function ForgotPasswordConfirmScreen() {
               onPress={() => setShowPassword(!showPassword)}
               hitSlop={8}
             >
-              <Text style={styles.eyeBtn}>{showPassword ? "🙈" : "👁"}</Text>
+              <Text className="text-[18px] px-1">{showPassword ? "🙈" : "👁"}</Text>
             </Pressable>
           </View>
-          <View style={styles.underline} />
+          <View className="h-[1px] bg-gray-300 w-full" />
           {password.length > 0 && <PasswordCriteria password={password} />}
         </View>
 
-        <View style={styles.field}>
-          <View style={styles.passwordWrap}>
+        <View className="mb-[32px]">
+          <View className="flex-row items-center">
             <TextInput
-              style={[styles.input, { flex: 1, borderBottomWidth: 0 }]}
+              className="flex-1 text-[16px] text-system-blue-dark py-2"
               placeholder="Confirm New Password"
               placeholderTextColor="#9CA3AF"
               value={confirmPassword}
@@ -101,65 +107,19 @@ export default function ForgotPasswordConfirmScreen() {
               secureTextEntry={!showConfirm}
             />
             <Pressable onPress={() => setShowConfirm(!showConfirm)} hitSlop={8}>
-              <Text style={styles.eyeBtn}>{showConfirm ? "🙈" : "👁"}</Text>
+              <Text className="text-[18px] px-1">{showConfirm ? "🙈" : "👁"}</Text>
             </Pressable>
           </View>
-          <View style={styles.underline} />
+          <View className="h-[1px] bg-gray-300 w-full" />
         </View>
 
-        <Pressable
+        <Button
           onPress={handleSubmit}
-          style={[styles.button, isLoading && styles.buttonDisabled]}
-          disabled={isLoading}
+          isLoading={isLoading}
         >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Reset Password</Text>
-          )}
-        </Pressable>
+          Reset Password
+        </Button>
       </View>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: "#fff" },
-  inner: { paddingHorizontal: 24, paddingTop: 80, paddingBottom: 40 },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
-    marginBottom: 32,
-  },
-  error: {
-    backgroundColor: "#FEF2F2",
-    color: "#DC2626",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    fontSize: 13,
-  },
-  field: { marginBottom: 24 },
-  input: { fontSize: 16, color: "#111827", paddingVertical: 10 },
-  passwordWrap: { flexDirection: "row", alignItems: "center" },
-  underline: { borderBottomWidth: 1, borderBottomColor: "#D1D5DB" },
-  eyeBtn: { fontSize: 18, paddingHorizontal: 4 },
-  button: {
-    backgroundColor: Colors.primary,
-    height: 55,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 8,
-  },
-  buttonDisabled: { opacity: 0.7 },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-});

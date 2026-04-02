@@ -1,12 +1,13 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import { Animated, StyleProp, StyleSheet, ViewStyle } from "react-native";
 
 interface SkeletonProps {
   style?: StyleProp<ViewStyle>;
   borderRadius?: number;
+  className?: string;
 }
 
-export function Skeleton({ style, borderRadius = 6 }: SkeletonProps) {
+export function Skeleton({ style, borderRadius = 6, className }: SkeletonProps) {
   const opacity = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export function Skeleton({ style, borderRadius = 6 }: SkeletonProps) {
 
   return (
     <Animated.View
+      className={className}
       style={[
         styles.base,
         { borderRadius, opacity },

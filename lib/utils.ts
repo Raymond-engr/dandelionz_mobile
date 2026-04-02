@@ -5,6 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function formatCurrency(amount: string | number | undefined | null): string {
+  const value = parseFloat(String(amount || "0"));
+  return `₦${value.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 export function resolveNotificationUrl(url: string | null | undefined, role: string): string {
   if (!url) return '#';
 

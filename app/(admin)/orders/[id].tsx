@@ -16,11 +16,14 @@ import {
   useCancelOrderWithReasonMutation, 
   useUpdateOrderStatusMutation 
 } from "@/lib/api/adminApi";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, Feather } from "@expo/vector-icons";
+import { formatCurrency } from "@/lib/utils";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function OrderDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [action, setAction] = useState<"cancel" | "process" | "complete">("cancel");
   const [reason, setReason] = useState("");
 
@@ -35,7 +38,7 @@ export default function OrderDetails() {
 
     try {
       if (action === "cancel") {
-        if (!reason) {
+        if (!reason.trim()) {
           Alert.alert("Error", "Please provide a reason for cancellation.");
           return;
         }
@@ -82,12 +85,16 @@ export default function OrderDetails() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <View style={styles.headerCentered}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerBack}>
-          <Ionicons name="chevron-back" size={24} color="#111827" />
+    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+      {/* Header */}
+      <View className="flex-row items-center px-4 py-4 border-b border-gray-100">
+        <TouchableOpacity onPress={() => router.back()} className="w-10">
+          <Feather name="chevron-left" size={32} color="#030482" />
         </TouchableOpacity>
-        <Text style={styles.titleCentered}>Order Details</Text>
+        <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
+          Order Details
+        </Text>
+        <View className="w-10" />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -128,18 +135,18 @@ export default function OrderDetails() {
               </View>
               <View style={styles.itemDetail}>
                 <Text style={styles.itemLabel}>Subtotal:</Text>
-                <Text style={styles.itemValue}>₦{Number(item.item_subtotal).toLocaleString()}</Text>
+                <Text style={styles.itemValue}>{formatCurrency(item.item_subtotal)}</Text>
               </View>
             </View>
           ))}
           <View style={styles.summaryFooter}>
             <View style={styles.footerDetail}>
               <Text style={styles.footerLabel}>Delivery Fee:</Text>
-              <Text style={styles.footerValue}>₦{Number(order.delivery_fee || 0).toLocaleString()}</Text>
+              <Text style={styles.footerValue}>{formatCurrency(order.delivery_fee)}</Text>
             </View>
             <View style={[styles.footerDetail, styles.totalRow]}>
               <Text style={styles.totalLabel}>Total Amount:</Text>
-              <Text style={styles.totalValue}>₦{Number(order.total_price || 0).toLocaleString()}</Text>
+              <Text style={styles.totalValue}>{formatCurrency(order.total_price)}</Text>
             </View>
           </View>
         </View>
@@ -188,8 +195,8 @@ export default function OrderDetails() {
 
           <TouchableOpacity
             onPress={handleAction}
-            disabled={isCancelling || isUpdating || (action === "cancel" && !reason)}
-            style={[styles.confirmBtn, (isCancelling || isUpdating) && styles.disabledBtn]}
+            disabled={isCancelling || isUpdating || (action === "cancel" && !reason.trim())}
+            style={[styles.confirmBtn, (isCancelling || isUpdating || (action === "cancel" && !reason.trim())) && styles.disabledBtn]}
           >
             {isCancelling || isUpdating ? (
               <ActivityIndicator color="#fff" />
@@ -203,7 +210,7 @@ export default function OrderDetails() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

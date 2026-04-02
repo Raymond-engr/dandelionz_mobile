@@ -1,74 +1,49 @@
-import { Colors } from "@/constants/theme";
+import { Button } from "@/components/ui/button";
+import { Divider } from "@/components/ui/divider";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import Svg, { Circle, Path } from "react-native-svg";
+import { Text, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 
 export default function RegistrationSuccessScreen() {
   const router = useRouter();
 
   return (
-    <View style={styles.container}>
-      <View style={styles.iconWrap}>
-        <Svg width={80} height={80} viewBox="0 0 80 80">
-          <Circle cx={40} cy={40} r={40} fill="#F0FDF4" />
-          <Path
-            d="M24 40l12 12 20-24"
-            stroke="#22C55E"
-            strokeWidth={4}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-        </Svg>
+    <View className="flex-1 bg-white items-center justify-between py-10">
+      <View className="w-full items-center px-6">
+        <Text className="text-[24px] font-semibold text-system-blue-light text-center mb-12">
+          Confirmation
+        </Text>
+
+        <View className="w-[197px] h-[197px] rounded-full bg-system-blue-light items-center justify-center mb-10">
+          <Svg width={126} height={126} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M20 6L9 17L4 12"
+              stroke="white"
+              strokeWidth={3}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+        </View>
+
+        <Text className="text-[24px] font-semibold text-system-blue-light text-center px-4">
+          Registration Successful!
+        </Text>
+        
+        <Text className="text-[16px] text-[#6B7280] text-center mt-4 px-6 leading-6">
+          Your account has been created successfully. Please check your email to verify your account.
+        </Text>
       </View>
 
-      <Text style={styles.heading}>Registration Successful!</Text>
-      <Text style={styles.subtitle}>
-        Your account has been created successfully. Please check your email to
-        verify your account before logging in.
-      </Text>
-
-      <Pressable
-        onPress={() => router.replace("/(auth)/login")}
-        style={styles.button}
-      >
-        <Text style={styles.buttonText}>Continue to Login</Text>
-      </Pressable>
+      <View className="w-full items-center">
+        <Divider className="mb-6" />
+        <View className="w-full px-6">
+          <Button onPress={() => router.replace("/(auth)/login")}>
+            Continue to Login
+          </Button>
+        </View>
+      </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 32,
-  },
-  iconWrap: { marginBottom: 32 },
-  heading: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#6B7280",
-    textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 40,
-  },
-  button: {
-    backgroundColor: Colors.primary,
-    height: 55,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-  },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-});

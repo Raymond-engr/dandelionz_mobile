@@ -1,3 +1,6 @@
+import { Divider } from "@/components/ui/divider";
+import { LoadingSpinner } from "@/components/loading-spinner";
+import { Colors } from "@/constants/theme";
 import {
   useGetStoreProductsQuery,
   useGetDraftsQuery,
@@ -5,24 +8,28 @@ import {
   useDeleteDraftMutation,
   useSubmitDraftMutation,
 } from "@/lib/api/vendorApi";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
+  FlatList,
   RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { formatCurrency } from "@/lib/utils";
 
 type ProductType = "store" | "draft";
 
 export default function VendorProductsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [activeTab, setActiveTab] = useState<ProductType>("store");
+
   const {
     data: storeProductsData,
     isLoading: isLoadingStore,
@@ -43,8 +50,6 @@ export default function VendorProductsScreen() {
   const draftProducts = draftProductsData?.data || [];
 
   const isLoading = isLoadingStore || isLoadingDrafts;
-  const isDeleting = isDeletingStore || isDeletingDraft;
-
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
@@ -89,179 +94,142 @@ export default function VendorProductsScreen() {
     }
   };
 
+  const products = activeTab === "store" ? publishedProducts : draftProducts;
+
+  const renderHeader = () => (
+    <View 
+      className="px-4 py-4 bg-white"
+      style={{ paddingTop: insets.top }}
+    >
+      <Text className="text-[24px] font-semibold text-system-blue-dark text-center">
+        Products
+      </Text>
+    </View>
+  );
+
+  const renderEmpty = () => (
+    <View className="flex-1 items-center justify-center pt-20 px-[21px]">
+      <MaterialIcons name="inventory-2" size={64} color="#D1D5DB" />
+      <Text className="text-[20px] font-bold text-system-blue-dark mt-4 text-center">
+        No {activeTab} products
+      </Text>
+      <Text className="text-[14px] text-[#6B7280] text-center mt-2 px-6">
+        {activeTab === "store" 
+          ? "You haven't published any products yet." 
+          : "You don't have any products in draft."}
+      </Text>
+    </View>
+  );
+
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
-      <View className="flex-1">
-        {/* Header */}
-        <View className="p-4 border-b border-gray-100 items-center">
-          <Text className="text-lg font-semibold text-gray-900">Products</Text>
-        </View>
-
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#030482"
-            />
-          }
+    <View className="flex-1 bg-white">
+      {renderHeader()}
+      
+      {/* Tabs */}
+      <View className="flex-row px-[21px] py-4 gap-4">
+        <TouchableOpacity
+          onPress={() => setActiveTab("store")}
+          className={`flex-1 py-3 rounded-full items-center ${activeTab === "store" ? "bg-system-blue-light" : "bg-[#F5F7FA]"}`}
         >
-          <Text className="text-sm text-gray-500 mb-4 text-center">
-            Manage your product inventory and listings
+          <Text className={`text-[14px] font-semibold ${activeTab === "store" ? "text-white" : "text-[#6B7280]"}`}>
+            Published
           </Text>
-
-          <TouchableOpacity
-            onPress={() => router.push("/vendor/product/new")}
-            className="bg-system-blue-light py-3 rounded-[12px] flex-row items-center justify-center mb-6"
-          >
-            <View className="w-6 h-6 bg-white rounded-full items-center justify-center mr-2">
-              <Ionicons name="add" size={18} color="#030482" />
-            </View>
-            <Text className="text-white font-semibold">Add New Product</Text>
-          </TouchableOpacity>
-          {isLoading && !refreshing ? (
-            <ActivityIndicator size="large" color="#030482" className="mt-10" />
-          ) : publishedProducts.length === 0 && draftProducts.length === 0 ? (
-            <View className="items-center justify-center py-20">
-              <View className="w-24 h-24 bg-gray-100 rounded-full items-center justify-center mb-4">
-                <Feather name="box" size={40} color="#9ca3af" />
-              </View>
-              <Text className="text-lg font-semibold text-gray-900 mb-2">
-                No Products Yet
-              </Text>
-              <Text className="text-sm text-gray-500 text-center px-10">
-                Start building your store by adding your first product
-              </Text>
-            </View>
-          ) : (
-            <View>
-              {/* Store Products */}
-              {publishedProducts.length > 0 && (
-                <View className="mb-6">
-                  <Text className="text-[16px] font-semibold text-system-blue-dark mb-3">
-                    Store Products
-                  </Text>
-                  <View className="gap-3">
-                    {publishedProducts.map((product: any) => (
-                      <View
-                        key={product.slug}
-                        className="bg-gray-50 rounded-[12px] p-4"
-                      >
-                        <View className="flex-row justify-between items-start">
-                          <View className="flex-1">
-                            <View className="flex-row items-center flex-wrap gap-2 mb-1">
-                              <Text className="text-sm font-semibold text-gray-900">
-                                {product.name}
-                              </Text>
-                              <View className="bg-blue-100 px-2 py-0.5 rounded">
-                                <Text className="text-[10px] font-medium text-blue-700 capitalize">
-                                  {product.approval_status}
-                                </Text>
-                              </View>
-                              {product.stock === 0 && (
-                                <View className="bg-red-100 px-2 py-0.5 rounded">
-                                  <Text className="text-[10px] font-medium text-red-600">
-                                    Out of Stock
-                                  </Text>
-                                </View>
-                              )}
-                            </View>
-                            <Text className="text-[10px] text-gray-500 mb-1">
-                              Stock: {product.stock} units
-                            </Text>
-                            <Text className="text-[10px] text-gray-500 mb-2">
-                              {product.category}
-                            </Text>
-                            <Text className="text-lg font-bold text-gray-900">
-                              ₦{parseFloat(product.price).toLocaleString()}
-                            </Text>
-                          </View>
-                          <View className="flex-row items-center gap-2">
-                            <TouchableOpacity
-                              onPress={() =>
-                                router.push(`/vendor/product/${product.slug}/edit`)
-                              }
-                              className="p-2 bg-white rounded-lg border border-gray-100 shadow-sm"
-                            >
-                              <Feather name="edit-3" size={18} color="#030482" />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() => confirmDelete(product.slug, "store")}
-                              className="p-2 bg-white rounded-lg border border-gray-100 shadow-sm"
-                            >
-                              <Feather name="trash-2" size={18} color="#ef4444" />
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Draft Products */}
-              {draftProducts.length > 0 && (
-                <View>
-                  <Text className="text-[16px] font-semibold text-system-blue-dark mb-3">
-                    Draft Products
-                  </Text>
-                  <View className="gap-3">
-                    {draftProducts.map((product: any) => (
-                      <View
-                        key={product.slug}
-                        className="bg-gray-50 rounded-[12px] p-4"
-                      >
-                        <View className="flex-row justify-between items-start">
-                          <View className="flex-1">
-                            <Text className="text-sm font-semibold text-gray-900 mb-1">
-                              {product.name}
-                            </Text>
-                            <Text className="text-[10px] text-gray-500 mb-1">
-                              Stock: {product.stock} units
-                            </Text>
-                            <Text className="text-[10px] text-gray-500 mb-2">
-                              {product.category}
-                            </Text>
-                            <Text className="text-lg font-bold text-gray-900">
-                              ₦{parseFloat(product.price).toLocaleString()}
-                            </Text>
-                          </View>
-                          <View className="flex-row items-center gap-2">
-                            <TouchableOpacity
-                              onPress={() =>
-                                router.push(
-                                  `/vendor/product/${product.slug}/edit?type=draft`
-                                )
-                              }
-                              className="p-2 bg-white rounded-lg border border-gray-100 shadow-sm"
-                            >
-                              <Feather name="edit-3" size={18} color="#030482" />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() => handleSubmitDraft(product.slug)}
-                              className="p-2 bg-white rounded-lg border border-gray-100 shadow-sm"
-                            >
-                              <Feather name="upload" size={18} color="#16a34a" />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() => confirmDelete(product.slug, "draft")}
-                              className="p-2 bg-white rounded-lg border border-gray-100 shadow-sm"
-                            >
-                              <Feather name="trash-2" size={18} color="#ef4444" />
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-            </View>
-          )}
-        </ScrollView>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setActiveTab("draft")}
+          className={`flex-1 py-3 rounded-full items-center ${activeTab === "draft" ? "bg-system-blue-light" : "bg-[#F5F7FA]"}`}
+        >
+          <Text className={`text-[14px] font-semibold ${activeTab === "draft" ? "text-white" : "text-[#6B7280]"}`}>
+            Drafts
+          </Text>
+        </TouchableOpacity>
       </View>
-    </SafeAreaView>
+
+      <Divider />
+
+      <FlatList
+        data={products}
+        keyExtractor={(item) => item.slug}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        ListEmptyComponent={renderEmpty}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+        }
+        renderItem={({ item }) => (
+          <View>
+            <View className="p-[21px] flex-row items-center">
+              {/* Product Info */}
+              <View className="flex-1">
+                <View className="flex-row items-center flex-wrap gap-2 mb-1">
+                  <Text className="text-[16px] font-bold text-system-blue-dark" numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  {activeTab === "store" && (
+                    <View className={`px-2 py-0.5 rounded-full ${
+                      item.approval_status === 'APPROVED' ? 'bg-green-100' : 'bg-yellow-100'
+                    }`}>
+                      <Text className={`text-[10px] font-bold ${
+                        item.approval_status === 'APPROVED' ? 'text-green-700' : 'text-yellow-700'
+                      }`}>
+                        {item.approval_status}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                
+                <Text className="text-[13px] text-gray-500 mb-1">
+                  {item.category} • Stock: {item.stock}
+                </Text>
+                
+                <Text className="text-[18px] font-bold text-system-blue-light">
+                  {formatCurrency(item.price)}
+                </Text>
+              </View>
+
+              {/* Actions */}
+              <View className="flex-row items-center gap-3">
+                <TouchableOpacity
+                  onPress={() => router.push(`/vendor/product/${item.slug}/edit${activeTab === 'draft' ? '?type=draft' : ''}`)}
+                  className="w-10 h-10 rounded-full bg-blue-50 items-center justify-center"
+                >
+                  <MaterialIcons name="edit" size={20} color={Colors.primary} />
+                </TouchableOpacity>
+                
+                {activeTab === 'draft' && (
+                  <TouchableOpacity
+                    onPress={() => handleSubmitDraft(item.slug)}
+                    className="w-10 h-10 rounded-full bg-green-50 items-center justify-center"
+                  >
+                    <MaterialIcons name="publish" size={20} color="#16a34a" />
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  onPress={() => confirmDelete(item.slug, activeTab)}
+                  className="w-10 h-10 rounded-full bg-red-50 items-center justify-center"
+                >
+                  <MaterialIcons name="delete-outline" size={20} color="#ef4444" />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <Divider height={1} className="opacity-50" />
+          </View>
+        )}
+      />
+
+      {/* Floating Add Button */}
+      <TouchableOpacity
+        onPress={() => router.push("/vendor/product/new")}
+        className="absolute bottom-24 right-6 w-14 h-14 rounded-full bg-system-blue-light items-center justify-center shadow-lg shadow-blue-900/30"
+      >
+        <MaterialIcons name="add" size={32} color="white" />
+      </TouchableOpacity>
+      
+      {isLoading && !refreshing && (
+        <View className="absolute inset-0 bg-white/50 items-center justify-center">
+          <LoadingSpinner />
+        </View>
+      )}
+    </View>
   );
 }

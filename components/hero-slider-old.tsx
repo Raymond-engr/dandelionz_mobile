@@ -21,7 +21,7 @@ const slides = [
 export function HeroSlider() {
   const [current, setCurrent] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
-  const autoPlayRef = useRef<ReturnType<typeof setInterval>>();
+  const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     autoPlayRef.current = setInterval(() => {
@@ -31,13 +31,15 @@ export function HeroSlider() {
         return next;
       });
     }, 3000);
-    return () => clearInterval(autoPlayRef.current);
+    return () => {
+      if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+    };
   }, []);
 
   const goTo = (index: number) => {
     setCurrent(index);
     scrollRef.current?.scrollTo({ x: index * SLIDE_WIDTH, animated: true });
-    clearInterval(autoPlayRef.current);
+    if (autoPlayRef.current) clearInterval(autoPlayRef.current);
   };
 
   return (

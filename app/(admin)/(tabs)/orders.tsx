@@ -1,33 +1,35 @@
+import { Divider } from "@/components/ui/divider";
+import { OrderListItemSkeleton } from "@/components/OrderListItemSkeleton";
 import { useGetAllOrdersQuery } from "@/lib/api/adminApi";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-    ScrollView,
+  FlatList,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Feather, Ionicons } from "@expo/vector-icons";
+import { formatCurrency } from "@/lib/utils";
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "#d97706",
-  PROCESSING: "#0284c7",
-  SHIPPED: "#7c3aed",
-  DELIVERED: "#16a34a",
-  CANCELLED: "#dc2626",
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  pending: { bg: "#FEF3C7", text: "#D97706" },
+  paid: { bg: "#DBEAFE", text: "#2563EB" },
+  processing: { bg: "#DBEAFE", text: "#2563EB" },
+  shipped: { bg: "#EDE9FE", text: "#7C3AED" },
+  delivered: { bg: "#D1FAE5", text: "#059669" },
+  cancelled: { bg: "#FEE2E2", text: "#DC2626" },
 };
 
 export default function AdminOrders() {
   const router = useRouter();
-  const [search, setSearch] = useState("");
-  const { data: ordersResponse, isLoading, isError, refetch } = useGetAllOrdersQuery();
+  const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
+  const [status, setStatus] = useState<string | undefined>(undefined);
+
+  const { data: orders = [], isLoading, refetch } = useGetAllOrdersQuery({ status });
 
   async function onRefresh() {
     setRefreshing(true);
@@ -35,165 +37,103 @@ export default function AdminOrders() {
     setRefreshing(false);
   }
 
-  const orders = ordersResponse?.data || [];
-  const totalOrders = orders.length;
-
-  const filtered = orders.filter(
-    (o: any) =>
-      String(o.order_id).includes(search) ||
-      o.customer?.full_name?.toLowerCase().includes(search.toLowerCase()),
+  const renderEmpty = () => (
+    <View className="flex-1 items-center justify-center pt-20">
+      <Ionicons name="receipt-outline" size={64} color="#D1D5DB" />
+      <Text className="text-[18px] font-bold text-system-blue-dark mt-4">No orders found</Text>
+      <Text className="text-[14px] text-[#6B7280] text-center px-10 mt-2">
+        There are no orders matching your current filter.
+      </Text>
+    </View>
   );
-
-  function statusColor(status: string) {
-    return STATUS_COLORS[status?.toUpperCase()] ?? "#6b7280";
-  }
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <View style={styles.headerCentered}>
-        <Text style={styles.titleCentered}>Orders</Text>
+    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+      {/* Header */}
+      <View className="px-[21px] py-4">
+        <Text className="text-[24px] font-semibold text-system-blue-dark text-center">All Orders</Text>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 40 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#030482"
-          />
-        }
-      >
-        <View style={{ padding: 16 }}>
-          <Text className="text-sm text-gray-600 mb-4">
-            Manage your orders, update statuses, and view customer details
-          </Text>
+      <Divider />
 
-          {/* Total Orders Card */}
-          <View className="bg-system-blue-light rounded-lg p-4 mb-4 flex-row items-center justify-between">
-            <View>
-              <Text className="text-sm text-white/90 mb-1">Total Orders</Text>
-              <Text className="text-3xl font-bold text-white">{totalOrders}</Text>
-            </View>
-            <Feather name="shopping-cart" size={48} color="white" style={{ opacity: 0.8 }} />
-          </View>
-
-          <View className="mb-3 flex-row items-center justify-between">
-            <Text className="text-base font-semibold text-gray-900">All Orders</Text>
-            <TouchableOpacity>
-              <Feather name="filter" size={20} color="#4b5563" />
+      {/* Filter Chips */}
+      <View className="py-4">
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={[
+            { label: "All", value: undefined },
+            { label: "Pending", value: "pending" },
+            { label: "Paid", value: "paid" },
+            { label: "Shipped", value: "shipped" },
+            { label: "Delivered", value: "delivered" },
+            { label: "Cancelled", value: "cancelled" },
+          ]}
+          contentContainerStyle={{ paddingHorizontal: 21, gap: 10 }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              onPress={() => setStatus(item.value)}
+              className={`px-4 py-2 rounded-full border ${status === item.value ? "bg-system-blue-light border-system-blue-light" : "bg-white border-gray-200"}`}
+            >
+              <Text className={`text-[12px] font-semibold ${status === item.value ? "text-white" : "text-[#6B7280]"}`}>
+                {item.label}
+              </Text>
             </TouchableOpacity>
-          </View>
-
-          {isLoading ? (
-            <ActivityIndicator size="large" color="#030482" style={{ marginTop: 20 }} />
-          ) : isError ? (
-            <Text style={styles.error}>Failed to load orders.</Text>
-          ) : (
-            <View>
-              {filtered.map((item: any) => (
-                <TouchableOpacity
-                  key={item.uuid}
-                  style={styles.row}
-                  onPress={() => router.push(`/(admin)/orders/${item.uuid}`)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.rowTop}>
-                    <Text style={styles.orderId}>Order #{item.order_id}</Text>
-                    <View
-                      style={[
-                        styles.badge,
-                        { backgroundColor: statusColor(item.status) + "1a" },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.badgeText,
-                          { color: statusColor(item.status) },
-                        ]}
-                      >
-                        {item.status}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.rowBottom}>
-                    <Text style={styles.customer}>
-                      {item.customer?.full_name}
-                    </Text>
-                    <Text style={styles.amount}>
-                      ₦{Number(item.total_amount ?? 0).toLocaleString()}
-                    </Text>
-                  </View>
-                  <Text style={styles.date}>{new Date(item.created_at).toLocaleDateString()}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
           )}
+        />
+      </View>
+
+      <Divider />
+
+      {isLoading && !refreshing ? (
+        <View className="pt-4 px-[21px]">
+          <OrderListItemSkeleton />
+          <OrderListItemSkeleton />
+          <OrderListItemSkeleton />
+          <OrderListItemSkeleton />
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      ) : (
+        <FlatList
+          data={orders}
+          keyExtractor={(item) => item.order_id}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          ListEmptyComponent={renderEmpty}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#030482" />
+          }
+          renderItem={({ item }) => {
+            const s = item.status?.toLowerCase() || "pending";
+            const color = STATUS_COLORS[s] || STATUS_COLORS.pending;
+            
+            return (
+              <View>
+                <TouchableOpacity
+                  onPress={() => router.push(`/(admin)/orders/${item.order_id}` as any)}
+                  className="p-[21px] flex-row justify-between items-center"
+                >
+                  <View className="flex-1">
+                    <View className="flex-row items-center gap-2 mb-1">
+                      <Text className="text-[16px] font-bold text-system-blue-dark">#{item.order_id.slice(0, 8)}</Text>
+                      <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: color.bg }}>
+                        <Text className="text-[10px] font-bold uppercase" style={{ color: color.text }}>{item.status}</Text>
+                      </View>
+                    </View>
+                    <Text className="text-[14px] text-[#6B7280]" numberOfLines={1}>{item.customer.full_name}</Text>
+                    <Text className="text-[12px] text-[#9CA3AF] mt-1">
+                      {new Date(item.ordered_at).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <View className="items-end gap-2">
+                    <Text className="text-[16px] font-bold text-system-blue-light">{formatCurrency(item.total_price)}</Text>
+                    <Feather name="chevron-right" size={20} color="#9CA3AF" />
+                  </View>
+                </TouchableOpacity>
+                <Divider height={1} className="opacity-50" />
+              </View>
+            );
+          }}
+        />
+      )}
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#ffffff" },
-  headerCentered: {
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
-    alignItems: "center",
-  },
-  titleCentered: { fontSize: 18, fontWeight: "600", color: "#111827" },
-  header: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  title: { fontSize: 22, fontWeight: "700", color: "#111827" },
-  count: { fontSize: 13, color: "#6b7280" },
-  searchWrap: { paddingHorizontal: 16, paddingBottom: 12 },
-  search: {
-    backgroundColor: "#ffffff",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: "#111827",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  list: { paddingHorizontal: 16, paddingBottom: 32 },
-  row: {
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  rowTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  orderId: { fontSize: 15, fontWeight: "600", color: "#111827" },
-  rowBottom: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  customer: { fontSize: 13, color: "#6b7280" },
-  amount: { fontSize: 14, fontWeight: "700", color: "#111827" },
-  date: { fontSize: 11, color: "#9ca3af", marginTop: 4 },
-  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  badgeText: { fontSize: 11, fontWeight: "600", textTransform: "uppercase" },
-  error: { textAlign: "center", color: "#ef4444", marginTop: 40 },
-  empty: { textAlign: "center", color: "#6b7280", marginTop: 40 },
-});

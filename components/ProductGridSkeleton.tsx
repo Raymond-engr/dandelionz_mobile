@@ -1,14 +1,14 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
-import { Skeleton } from "./skeleton";
+import { View } from "react-native";
+import { Skeleton } from "./ui/skeleton";
 
 function ProductCardSkeleton() {
   return (
-    <View style={styles.card}>
-      <Skeleton style={styles.image} borderRadius={8} />
-      <Skeleton style={styles.title} />
-      <Skeleton style={styles.price} />
-      <Skeleton style={styles.badge} />
+    <View className="bg-[#F9FAFB] rounded-[12px] p-3 gap-2">
+      <Skeleton className="w-full h-[140px] rounded-[8px]" />
+      <Skeleton className="h-4 w-4/5" />
+      <Skeleton className="h-5 w-1/2" />
+      <Skeleton className="h-6 w-[60px] rounded-full" />
     </View>
   );
 }
@@ -23,34 +23,12 @@ export function ProductGridSkeleton({
   count = 6,
 }: ProductGridSkeletonProps) {
   return (
-    <View style={[styles.grid, columns === 1 && styles.gridSingle]}>
+    <View className={`flex-row flex-wrap px-4 gap-3`}>
       {Array.from({ length: count }).map((_, i) => (
-        <View key={i} style={[styles.col, columns === 1 && styles.colFull]}>
+        <View key={i} className={columns === 1 ? "w-full" : "w-[47%]"}>
           <ProductCardSkeleton />
         </View>
       ))}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    paddingHorizontal: 16,
-  },
-  gridSingle: { flexDirection: "column" },
-  col: { width: "47%" },
-  colFull: { width: "100%" },
-  card: {
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    padding: 12,
-    gap: 8,
-  },
-  image: { width: "100%", height: 140 },
-  title: { height: 14, width: "80%" },
-  price: { height: 18, width: "50%" },
-  badge: { height: 22, width: 60, borderRadius: 50 },
-});

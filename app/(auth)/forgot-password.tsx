@@ -1,12 +1,10 @@
-import { Colors } from "@/constants/theme";
+import { Button } from "@/components/ui/button";
 import { useForgotPasswordMutation } from "@/lib/api/authApi";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
     Pressable,
     ScrollView,
-    StyleSheet,
     Text,
     TextInput,
     View,
@@ -35,19 +33,18 @@ export default function ForgotPasswordScreen() {
 
   if (success) {
     return (
-      <View style={styles.container}>
-        <View style={styles.inner}>
-          <Text style={styles.title}>Check your email</Text>
-          <Text style={styles.subtitle}>
-            We've sent password reset instructions to {email}. Please check your
+      <View className="flex-1 bg-white">
+        <View className="flex-1 px-[24px] pt-[100px]">
+          <Text className="text-[24px] font-bold text-system-blue-dark text-center mb-[12px]">
+            Check your email
+          </Text>
+          <Text className="text-[14px] text-[#6B7280] text-center leading-[20px] mb-[32px]">
+            We&apos;ve sent password reset instructions to {email}. Please check your
             inbox.
           </Text>
-          <Pressable
-            onPress={() => router.replace("/(auth)/login")}
-            style={styles.button}
-          >
-            <Text style={styles.buttonText}>Back to Login</Text>
-          </Pressable>
+          <Button onPress={() => router.replace("/(auth)/login")}>
+            Back to Login
+          </Button>
         </View>
       </View>
     );
@@ -55,25 +52,32 @@ export default function ForgotPasswordScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={styles.container}
+      className="flex-1 bg-white"
+      contentContainerStyle={{ flexGrow: 1 }}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.inner}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>← Back</Text>
+      <View className="flex-1 px-[24px] pt-[60px] pb-[40px]">
+        <Pressable onPress={() => router.back()} className="mb-[32px]">
+          <Text className="text-[16px] text-system-blue-light">← Back</Text>
         </Pressable>
 
-        <Text style={styles.title}>Forgot Password</Text>
-        <Text style={styles.subtitle}>
-          Enter your email address and we'll send you instructions to reset your
+        <Text className="text-[24px] font-bold text-system-blue-dark text-center mb-[12px]">
+          Forgot Password
+        </Text>
+        <Text className="text-[14px] text-[#6B7280] text-center leading-[20px] mb-[32px]">
+          Enter your email address and we&apos;ll send you instructions to reset your
           password.
         </Text>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <View className="bg-red-50 p-3 rounded-lg mb-4">
+            <Text className="text-red-600 text-[13px]">{error}</Text>
+          </View>
+        ) : null}
 
-        <View style={styles.field}>
+        <View className="mb-[32px]">
           <TextInput
-            style={styles.input}
+            className="text-[16px] text-system-blue-dark py-2 border-b border-gray-300"
             placeholder="Email Address"
             placeholderTextColor="#9CA3AF"
             value={email}
@@ -83,64 +87,13 @@ export default function ForgotPasswordScreen() {
           />
         </View>
 
-        <Pressable
+        <Button
           onPress={handleSubmit}
-          style={[styles.button, isLoading && styles.buttonDisabled]}
-          disabled={isLoading}
+          isLoading={isLoading}
         >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Send Reset Link</Text>
-          )}
-        </Pressable>
+          Send Reset Link
+        </Button>
       </View>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: "#fff" },
-  inner: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 },
-  backBtn: { marginBottom: 32 },
-  backText: { fontSize: 16, color: Colors.primary },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
-    lineHeight: 20,
-    marginBottom: 32,
-  },
-  error: {
-    backgroundColor: "#FEF2F2",
-    color: "#DC2626",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    fontSize: 13,
-  },
-  field: { marginBottom: 32 },
-  input: {
-    fontSize: 16,
-    color: "#111827",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#D1D5DB",
-  },
-  button: {
-    backgroundColor: Colors.primary,
-    height: 55,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonDisabled: { opacity: 0.7 },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-});

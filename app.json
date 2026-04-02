@@ -37,6 +37,23 @@
             }
           },
           "category/[name]": "category/:name",
+          "checkout/success": "checkout/success",
+          "checkout/webview": "checkout/pay",
+          "order-tracking": "track",
+          "order-receipt": "receipt/:id",
+          "(admin)/payment-settings/forgot-pin": "admin/forgot-pin",
+          "vendor": {
+            "screens": {
+              "wallet/history": "vendor/wallet/history",
+              "wallet/receipt": "vendor/wallet/receipt/:id",
+              "account/profile": "vendor/profile",
+              "account/payment-settings": "vendor/payment-settings",
+              "account/forgot-pin": "vendor/forgot-pin",
+              "account/notifications": "vendor/notifications",
+              "account/change-password": "vendor/change-password",
+              "account/delete": "vendor/delete-account"
+            }
+          },
           "contact": "contact",
           "faqs": "faqs",
           "terms": "terms"
@@ -54,7 +71,9 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.dandelionz",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -74,11 +93,27 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraMavenRepos": [
+              "https://maven.google.com"
+            ]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "95497ecd-0fd2-43d5-9078-c1a54f1f3aa4"
+      }
     }
   }
 }

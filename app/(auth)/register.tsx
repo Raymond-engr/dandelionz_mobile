@@ -1,87 +1,89 @@
-import {
-    PasswordCriteria,
-    validatePassword,
-} from "@/components/password-criteria";
-import { Colors } from "@/constants/theme";
+import { Button } from "@/components/ui/button";
 import { useRegisterMutation } from "@/lib/api/authApi";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-
-const ROLES = [
-  { value: "customer", label: "Customer" },
-  { value: "vendor", label: "Vendor" },
-];
+import { Ionicons } from "@expo/vector-icons";
+import { PasswordCriteria, validatePassword } from "@/components/password-criteria";
 
 export default function RegisterScreen() {
   const router = useRouter();
   const [register, { isLoading }] = useRegisterMutation();
 
-  const [form, setForm] = useState({
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone_number: "",
-    password: "",
-    confirm_password: "",
-    referral_code: "",
-  });
-  const [role, setRole] = useState("customer");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [referralCode, setReferralCode] = useState("");
+  const [role, setRole] = useState<"CUSTOMER" | "VENDOR">("CUSTOMER");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [rememberPassword, setRememberPassword] = useState(false);
   const [error, setError] = useState("");
-
-  const set = (key: string) => (val: string) =>
-    setForm((f) => ({ ...f, [key]: val }));
 
   const handleRegister = async () => {
     setError("");
-    const {
-      first_name,
-      last_name,
-      email,
-      phone_number,
-      password,
-      confirm_password,
-      referral_code,
-    } = form;
-    if (!first_name || !last_name || !email || !password || !confirm_password) {
+    
+    if (!firstName || !lastName || !email || !phone || !password || !confirmPassword) {
       setError("Please fill in all required fields");
       return;
     }
-    if (password !== confirm_password) {
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    // Phone validation
+    const phoneRegex = /^\+?[\d\s-]{10,15}$/;
+    if (!phoneRegex.test(phone)) {
+      setError("Please enter a valid phone number (10-15 digits)");
+      return;
+    }
+
+    // Password matching
+    if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
-    const v = validatePassword(password);
-    if (!v.length || !v.uppercase || !v.lowercase || !v.special) {
-      setError("Password does not meet all requirements");
+
+    // Password strength
+    const criteria = validatePassword(password);
+    if (!criteria.length || !criteria.uppercase || !criteria.lowercase || !criteria.special) {
+      setError("Password does not meet all security requirements");
       return;
     }
+
     try {
       const res = await register({
-        first_name,
-        last_name,
-        email,
-        phone_number,
+        full_name: `${firstName.trim()} ${lastName.trim()}`,
+        email: email.trim(),
+        phone_number: phone.trim(),
         password,
-        confirm_password,
-        role: role.toUpperCase(),
-        ...(referral_code ? { referral_code } : {}),
+        role,
+        ...(role === "CUSTOMER" && referralCode ? { referral_code: referralCode.toUpperCase() } : {}),
       }).unwrap();
-      if (res.success) router.replace("/(auth)/verify-notice");
+
+      if (res.success) {
+        router.replace({
+          pathname: "/(auth)/registration-success",
+          params: { email },
+        });
+      }
     } catch (err: any) {
-      setError(err?.data?.message || "Registration failed. Please try again.");
+      setError(err?.data?.error || err?.data?.message || "Registration failed. Please try again.");
     }
   };
 
@@ -91,212 +93,175 @@ export default function RegisterScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
-        contentContainerStyle={styles.container}
+        className="flex-1 bg-white"
+        contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.inner}>
-          <Text style={styles.title}>Create Account</Text>
+        <View className="flex-1 px-[24px] pt-[60px] pb-[40px]">
+          <Text className="text-[24px] font-bold text-system-blue-dark text-center mb-[32px]">
+            Create Account
+          </Text>
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? (
+            <View className="bg-red-50 p-3 rounded-lg mb-4">
+              <Text className="text-red-600 text-[13px]">{error}</Text>
+            </View>
+          ) : null}
 
-          {/* Role selector */}
-          <View style={styles.roleRow}>
-            {ROLES.map((r) => (
-              <Pressable
-                key={r.value}
-                onPress={() => setRole(r.value)}
-                style={[
-                  styles.roleBtn,
-                  role === r.value && styles.roleBtnActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.roleText,
-                    role === r.value && styles.roleTextActive,
-                  ]}
-                >
-                  {r.label}
-                </Text>
-              </Pressable>
-            ))}
+          {/* Role Selector */}
+          <View className="flex-row mb-[28px] bg-gray-100 p-1 rounded-xl">
+            <TouchableOpacity
+              onPress={() => setRole("CUSTOMER")}
+              className={`flex-1 py-2 rounded-lg items-center ${role === "CUSTOMER" ? "bg-white shadow-sm" : ""}`}
+            >
+              <Text className={`font-medium ${role === "CUSTOMER" ? "text-system-blue-dark" : "text-gray-500"}`}>
+                Customer
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setRole("VENDOR")}
+              className={`flex-1 py-2 rounded-lg items-center ${role === "VENDOR" ? "bg-white shadow-sm" : ""}`}
+            >
+              <Text className={`font-medium ${role === "VENDOR" ? "text-system-blue-dark" : "text-gray-500"}`}>
+                Vendor
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Fields */}
-          {[
-            { key: "first_name", placeholder: "First Name" },
-            { key: "last_name", placeholder: "Last Name" },
-            {
-              key: "email",
-              placeholder: "Email Address",
-              type: "email-address" as const,
-            },
-            {
-              key: "phone_number",
-              placeholder: "Phone Number (optional)",
-              type: "phone-pad" as const,
-            },
-          ].map(({ key, placeholder, type }) => (
-            <View key={key} style={styles.field}>
+          <View className="flex-row gap-4 mb-[28px]">
+            <View className="flex-1">
               <TextInput
-                style={styles.input}
-                placeholder={placeholder}
+                className="text-[16px] text-system-blue-dark py-2 border-b border-gray-300"
+                placeholder="First Name"
                 placeholderTextColor="#9CA3AF"
-                value={(form as any)[key]}
-                onChangeText={set(key)}
-                keyboardType={type}
-                autoCapitalize={key === "email" ? "none" : "words"}
+                value={firstName}
+                onChangeText={setFirstName}
               />
             </View>
-          ))}
-
-          <View style={styles.field}>
-            <View style={styles.passwordWrap}>
+            <View className="flex-1">
               <TextInput
-                style={[styles.input, { flex: 1, borderBottomWidth: 0 }]}
+                className="text-[16px] text-system-blue-dark py-2 border-b border-gray-300"
+                placeholder="Last Name"
+                placeholderTextColor="#9CA3AF"
+                value={lastName}
+                onChangeText={setLastName}
+              />
+            </View>
+          </View>
+
+          <View className="mb-[28px]">
+            <TextInput
+              className="text-[16px] text-system-blue-dark py-2 border-b border-gray-300"
+              placeholder="Email Address"
+              placeholderTextColor="#9CA3AF"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </View>
+
+          <View className="mb-[28px]">
+            <TextInput
+              className="text-[16px] text-system-blue-dark py-2 border-b border-gray-300"
+              placeholder="Phone Number"
+              placeholderTextColor="#9CA3AF"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          <View className="mb-[28px]">
+            <View className="relative">
+              <TextInput
+                className="text-[16px] text-system-blue-dark py-2 border-b border-gray-300 pr-10"
                 placeholder="Password"
                 placeholderTextColor="#9CA3AF"
-                value={form.password}
-                onChangeText={set("password")}
+                value={password}
+                onChangeText={setPassword}
                 secureTextEntry={!showPassword}
               />
-              <Pressable
+              <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
-                hitSlop={8}
+                className="absolute right-0 top-1/2 -translate-y-1/2 p-2"
               >
-                <Text style={styles.eyeBtn}>{showPassword ? "🙈" : "👁"}</Text>
-              </Pressable>
+                <Ionicons 
+                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                  size={20} 
+                  color="#9CA3AF" 
+                />
+              </TouchableOpacity>
             </View>
-            <View style={styles.underline} />
-            {form.password.length > 0 && (
-              <PasswordCriteria password={form.password} />
-            )}
+            {password.length > 0 && <PasswordCriteria password={password} />}
           </View>
 
-          <View style={styles.field}>
-            <View style={styles.passwordWrap}>
+          <View className="mb-[28px]">
+            <View className="relative">
               <TextInput
-                style={[styles.input, { flex: 1, borderBottomWidth: 0 }]}
+                className="text-[16px] text-system-blue-dark py-2 border-b border-gray-300 pr-10"
                 placeholder="Confirm Password"
                 placeholderTextColor="#9CA3AF"
-                value={form.confirm_password}
-                onChangeText={set("confirm_password")}
-                secureTextEntry={!showConfirm}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
               />
-              <Pressable
-                onPress={() => setShowConfirm(!showConfirm)}
-                hitSlop={8}
+              <TouchableOpacity
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-0 top-1/2 -translate-y-1/2 p-2"
               >
-                <Text style={styles.eyeBtn}>{showConfirm ? "🙈" : "👁"}</Text>
-              </Pressable>
+                <Ionicons 
+                  name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
+                  size={20} 
+                  color="#9CA3AF" 
+                />
+              </TouchableOpacity>
             </View>
-            <View style={styles.underline} />
           </View>
 
-          {role === "customer" && (
-            <View style={styles.field}>
+          {role === "CUSTOMER" && (
+            <View className="mb-[28px]">
               <TextInput
-                style={styles.input}
-                placeholder="Referral Code (optional)"
+                className="text-[16px] text-system-blue-dark py-2 border-b border-gray-300"
+                placeholder="Referral Code (Optional)"
                 placeholderTextColor="#9CA3AF"
-                value={form.referral_code}
-                onChangeText={set("referral_code")}
+                value={referralCode}
+                onChangeText={(val) => setReferralCode(val.toUpperCase())}
                 autoCapitalize="characters"
               />
             </View>
           )}
 
-          <Pressable
-            onPress={handleRegister}
-            style={[styles.button, isLoading && styles.buttonDisabled]}
-            disabled={isLoading}
+          <TouchableOpacity 
+            className="flex-row items-center gap-2 mb-[32px]"
+            onPress={() => setRememberPassword(!rememberPassword)}
           >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Create Account</Text>
-            )}
-          </Pressable>
+            <View className={`w-5 h-5 rounded border items-center justify-center ${rememberPassword ? "bg-system-blue-light border-system-blue-light" : "border-gray-300"}`}>
+              {rememberPassword && <Ionicons name="checkmark" size={14} color="white" />}
+            </View>
+            <Text className="text-[14px] text-gray-600">Remember my Password</Text>
+          </TouchableOpacity>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <Link href="/(auth)/login" asChild>
-              <Pressable>
-                <Text style={styles.footerLink}>Login</Text>
-              </Pressable>
-            </Link>
+          <Button
+            onPress={handleRegister}
+            isLoading={isLoading}
+            className="mb-6"
+          >
+            Register
+          </Button>
+
+          <View className="flex-row justify-center">
+            <Text className="text-[#6B7280] text-[14px]">
+              Already have an account?{" "}
+            </Text>
+            <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
+              <Text className="text-system-blue-light text-[14px] font-semibold">
+                Login
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: "#fff" },
-  inner: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
-    textAlign: "center",
-    marginBottom: 32,
-  },
-  error: {
-    backgroundColor: "#FEF2F2",
-    color: "#DC2626",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    fontSize: 13,
-  },
-  roleRow: {
-    flexDirection: "row",
-    backgroundColor: "#F5F5F5",
-    borderRadius: 10,
-    padding: 4,
-    marginBottom: 28,
-    gap: 4,
-  },
-  roleBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  roleBtnActive: {
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  roleText: { fontSize: 15, color: "#6B7280", fontWeight: "500" },
-  roleTextActive: { color: Colors.primary, fontWeight: "700" },
-  field: { marginBottom: 24 },
-  input: {
-    fontSize: 16,
-    color: "#111827",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#D1D5DB",
-  },
-  passwordWrap: { flexDirection: "row", alignItems: "center" },
-  underline: { borderBottomWidth: 1, borderBottomColor: "#D1D5DB" },
-  eyeBtn: { fontSize: 18, paddingHorizontal: 4 },
-  button: {
-    backgroundColor: Colors.primary,
-    height: 55,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 24,
-    marginTop: 8,
-  },
-  buttonDisabled: { opacity: 0.7 },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  footer: { flexDirection: "row", justifyContent: "center" },
-  footerText: { color: "#6B7280", fontSize: 14 },
-  footerLink: { color: Colors.primary, fontSize: 14, fontWeight: "600" },
-});

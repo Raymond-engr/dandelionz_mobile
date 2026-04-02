@@ -1,12 +1,12 @@
 import { CategorySlider } from "@/components/category-slider";
 import { FilterModal } from "@/components/filter-modal";
 import { HeroSlider } from "@/components/hero-slider";
-import { LoadingSpinner } from "@/components/loading-spinner";
 import { ProductGrid } from "@/components/product-grid";
+import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
 import { SearchBar } from "@/components/search-bar";
 import { useGetProductsQuery } from "@/lib/api/publicApi";
 import React, { useCallback, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { RefreshControl, ScrollView, View, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Filters {
@@ -29,7 +29,7 @@ export default function ShopScreen() {
     ...filters,
   });
 
-  const products = data?.results ?? data?.data ?? [];
+  const products = data?.data ?? [];
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -38,15 +38,16 @@ export default function ShopScreen() {
   }, [refetch]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#030482" />
         }
       >
-        <View style={styles.searchRow}>
+        <View className="px-4 mb-6 pt-4">
           <SearchBar
             value={search}
             onChange={setSearch}
@@ -58,7 +59,15 @@ export default function ShopScreen() {
         <HeroSlider />
         <CategorySlider />
 
-        {isLoading ? <LoadingSpinner /> : <ProductGrid products={products} />}
+        <View className="px-4 mb-4">
+           <Text className="text-[20px] font-bold text-system-blue-dark">New Arrivals</Text>
+        </View>
+
+        {isLoading && !refreshing ? (
+          <ProductGridSkeleton count={4} />
+        ) : (
+          <ProductGrid products={products} />
+        )}
       </ScrollView>
 
       <FilterModal
@@ -70,9 +79,3 @@ export default function ShopScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
-  content: { paddingHorizontal: 16, paddingBottom: 32, paddingTop: 16 },
-  searchRow: { marginBottom: 20 },
-});

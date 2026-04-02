@@ -11,9 +11,10 @@ import {
   Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons, MaterialCommunityIcons, Feather, FontAwesome5 } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import Svg, { Line, Polyline, Circle, Path, Text as SvgText } from "react-native-svg";
+import Svg, { Line, Polyline, Circle } from "react-native-svg";
+import { formatCurrency } from "@/lib/utils";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -101,7 +102,7 @@ export default function AdminAnalyticsScreen() {
         <View className="flex-row flex-wrap justify-between mb-6">
           <StatCard
             label="Total Sales"
-            value={`₦${parseFloat(analytics?.total_sales || "0").toLocaleString()}`}
+            value={formatCurrency(analytics?.total_sales)}
             change="+0.00%"
             icon={<Feather name="trending-up" size={18} color="#16a34a" />}
             iconBg="bg-green-50"
@@ -138,7 +139,7 @@ export default function AdminAnalyticsScreen() {
           <View className="mb-6">
             <Text className="text-[12px] text-gray-500 mb-1">Sales 2025</Text>
             <Text className="text-[24px] font-bold text-gray-900">
-              ₦{parseFloat(analytics?.total_sales || "0").toLocaleString()}
+              {formatCurrency(analytics?.total_sales)}
             </Text>
             <Text className="text-[10px] text-green-500 font-medium">+0.5% vs LAST YEAR</Text>
           </View>
@@ -211,21 +212,41 @@ export default function AdminAnalyticsScreen() {
           <View className="items-center justify-center mb-6 relative">
             <Svg height="200" width="200" viewBox="0 0 200 200">
               <Circle cx="100" cy="100" r="80" fill="none" stroke="#e5e7eb" strokeWidth="25" />
-              {/* Simplified single segment for visual placeholder of donut if more segments aren't easily calculated here */}
-              <Circle
-                cx="100"
-                cy="100"
-                r="80"
-                fill="none"
-                stroke="#030482"
-                strokeWidth="25"
-                strokeDasharray="250 503"
-                transform="rotate(-90 100 100)"
-              />
+              {(() => {
+                const total = orderStats.reduce((acc, curr) => acc + (curr.value || 0), 0);
+                if (total === 0) return null;
+                
+                const circumference = 2 * Math.PI * 80;
+                let currentOffset = 0;
+
+                return orderStats.map((stat, i) => {
+                  const percentage = (stat.value || 0) / total;
+                  const strokeDasharray = `${percentage * circumference} ${circumference}`;
+                  const strokeDashoffset = -currentOffset;
+                  currentOffset += percentage * circumference;
+
+                  return (
+                    <Circle
+                      key={i}
+                      cx="100"
+                      cy="100"
+                      r="80"
+                      fill="none"
+                      stroke={stat.color}
+                      strokeWidth="25"
+                      strokeDasharray={strokeDasharray}
+                      strokeDashoffset={strokeDashoffset}
+                      transform="rotate(-90 100 100)"
+                    />
+                  );
+                });
+              })()}
             </Svg>
             <View className="absolute inset-0 items-center justify-center">
-               <Text className="text-2xl font-bold text-gray-900">1.05</Text>
-               <Text className="text-[10px] text-gray-500">Average range</Text>
+               <Text className="text-2xl font-bold text-gray-900">
+                 {orderStats.reduce((acc, curr) => acc + (curr.value || 0), 0)}
+               </Text>
+               <Text className="text-[10px] text-gray-500">Total Orders</Text>
             </View>
           </View>
 

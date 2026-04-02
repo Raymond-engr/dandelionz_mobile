@@ -1,37 +1,41 @@
+import { Divider } from "@/components/ui/divider";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import { Colors } from "@/constants/theme";
 import { useGetVendorOrderDetailsQuery } from "@/lib/api/vendorApi";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import {
-    ActivityIndicator,
     Pressable,
     ScrollView,
-    StyleSheet,
     Text,
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { formatCurrency } from "@/lib/utils";
 
 function StatusPill({ status }: { status: string }) {
   const s = status?.toUpperCase();
-  let bg = "#F3F4F6";
-  let color = "#374151";
+  let bg = "bg-gray-100";
+  let text = "text-gray-600";
+  
   if (s === "PAID" || s === "DELIVERED") {
-    bg = "rgba(77,255,151,0.25)";
-    color = "#166534";
+    bg = "bg-green-100";
+    text = "text-green-700";
   } else if (s === "PENDING") {
-    bg = "rgba(255,212,59,0.3)";
-    color = "#854D0E";
+    bg = "bg-yellow-100";
+    text = "text-yellow-700";
   } else if (s === "SHIPPED") {
-    bg = "rgba(3,4,130,0.15)";
-    color = Colors.primary;
+    bg = "bg-blue-100";
+    text = "text-blue-700";
   } else if (s === "CANCELED") {
-    bg = "rgba(255,77,77,0.15)";
-    color = Colors.red;
+    bg = "bg-red-100";
+    text = "text-red-700";
   }
+  
   return (
-    <View style={[styles.pill, { backgroundColor: bg }]}>
-      <Text style={[styles.pillText, { color }]}>{status}</Text>
+    <View className={`px-3 py-1 rounded-full ${bg}`}>
+      <Text className={`text-[12px] font-bold ${text}`}>{status}</Text>
     </View>
   );
 }
@@ -43,7 +47,7 @@ export default function VendorOrderDetailScreen() {
   const {
     data: response,
     isLoading,
-    error,
+    isError,
   } = useGetVendorOrderDetailsQuery(id ?? "");
   const order = response?.data;
 
@@ -54,254 +58,128 @@ export default function VendorOrderDetailScreen() {
       completed: step.completed,
     })) ?? [];
 
+  const renderHeader = () => (
+    <View className="flex-row items-center justify-between px-4 py-4 bg-white">
+      <Pressable onPress={() => router.back()} className="w-10">
+        <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
+      </Pressable>
+      <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
+        Order Details
+      </Text>
+      <View className="w-10" />
+    </View>
+  );
+
   if (isLoading) {
     return (
-      <View style={[styles.center, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View className="flex-1 bg-white items-center justify-center">
+        <LoadingSpinner />
       </View>
     );
   }
 
-  if (error || !order) {
+  if (isError || !order) {
     return (
-      <View style={[styles.center, { paddingTop: insets.top }]}>
-        <Text style={styles.errorText}>Failed to load order details.</Text>
-        <Pressable onPress={() => router.back()} style={styles.backLink}>
-          <Text style={styles.backLinkText}>Go Back</Text>
-        </Pressable>
+      <View className="flex-1 bg-white items-center justify-center px-[21px]">
+        <MaterialIcons name="error-outline" size={64} color="#D1D5DB" />
+        <Text className="text-[18px] text-gray-500 mt-4 text-center">Failed to load order details.</Text>
+        <View className="w-full mt-8">
+          <Pressable onPress={() => router.back()} className="bg-system-blue-light py-4 rounded-[12px] items-center">
+            <Text className="text-white font-bold">Go Back</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={8}
-          style={styles.backBtn}
-        >
-          <Text style={styles.backArrow}>←</Text>
-        </Pressable>
-        <Text style={styles.headerTitle}>Order Details</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+      {renderHeader()}
+      <Divider />
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Order Info */}
-        <View style={styles.infoRow}>
+        {/* Order Meta */}
+        <View className="p-[21px] flex-row justify-between items-start bg-gray-50/30">
           <View>
-            <Text style={styles.metaLabel}>
-              Order ID: <Text style={styles.metaValue}>{order.order_id}</Text>
-            </Text>
-            <Text style={styles.metaLabel}>
-              Date:{" "}
-              <Text style={styles.metaValue}>
-                {order.created_at
-                  ? new Date(order.created_at).toLocaleDateString()
-                  : "N/A"}
-              </Text>
+            <Text className="text-[13px] text-gray-400 font-bold uppercase tracking-wider mb-1">Order ID</Text>
+            <Text className="text-[18px] font-bold text-system-blue-dark">{order.order_id}</Text>
+            <Text className="text-[13px] text-gray-500 mt-1">
+              {new Date(order.created_at).toLocaleString()}
             </Text>
           </View>
           <StatusPill status={order.status} />
         </View>
 
-        {/* Customer */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Customer</Text>
-          <Text style={styles.customerName}>
-            {order.customer?.full_name ?? "N/A"}
-          </Text>
-          <Text style={styles.customerEmail}>
-            {order.customer?.email ?? "N/A"}
-          </Text>
-          {order.customer?.phone_number ? (
-            <Text style={styles.customerEmail}>
-              {order.customer.phone_number}
-            </Text>
-          ) : null}
+        <Divider height={11} />
+
+        {/* Customer Info */}
+        <View className="p-[21px]">
+          <Text className="text-[14px] font-bold text-gray-400 uppercase tracking-widest mb-4">Customer Details</Text>
+          <View className="bg-white border border-gray-100 rounded-[16px] p-4 shadow-sm">
+            <Text className="text-[16px] font-bold text-system-blue-dark">{order.customer?.full_name}</Text>
+            <Text className="text-[14px] text-gray-500 mt-1">{order.customer?.email}</Text>
+            {order.customer?.phone_number && (
+              <Text className="text-[14px] text-gray-500 mt-1">{order.customer.phone_number}</Text>
+            )}
+          </View>
         </View>
 
         {/* Items */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Items</Text>
-          {(order.items ?? order.order_items ?? []).map(
-            (item: any, idx: number) => {
-              const name = item.product_name ?? item.product?.name ?? "Item";
-              const qty = item.quantity;
-              const subtotal = item.item_subtotal ?? item.price ?? "0";
-              return (
-                <View
-                  key={idx}
-                  style={[styles.itemRow, idx > 0 && styles.itemRowBorder]}
-                >
-                  <View>
-                    <Text style={styles.itemName}>{name}</Text>
-                    <Text style={styles.itemQty}>Qty: {qty}</Text>
-                  </View>
-                  <Text style={styles.itemPrice}>
-                    ₦
-                    {parseFloat(subtotal).toLocaleString("en-NG", {
-                      minimumFractionDigits: 2,
-                    })}
+        <View className="p-[21px] pt-0">
+          <Text className="text-[14px] font-bold text-gray-400 uppercase tracking-widest mb-4">Order Items</Text>
+          <View className="bg-white border border-gray-100 rounded-[16px] p-4 shadow-sm">
+            {(order.items ?? order.order_items ?? []).map((item: any, idx: number) => (
+              <View key={idx} className={`flex-row justify-between py-3 ${idx > 0 ? 'border-t border-gray-50' : ''}`}>
+                <View className="flex-1 pr-4">
+                  <Text className="text-[15px] font-bold text-system-blue-dark" numberOfLines={1}>
+                    {item.product_name ?? item.product?.name}
                   </Text>
+                  <Text className="text-[12px] text-gray-400 mt-1">Quantity: {item.quantity}</Text>
                 </View>
-              );
-            },
-          )}
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>
-              ₦
-              {parseFloat(
-                order.total_amount ?? order.total_price ?? "0",
-              ).toLocaleString("en-NG", {
-                minimumFractionDigits: 2,
-              })}
-            </Text>
+                <Text className="text-[15px] font-bold text-system-blue-dark">
+                  {formatCurrency(item.item_subtotal ?? item.price)}
+                </Text>
+              </View>
+            ))}
+            
+            <View className="mt-4 pt-4 border-t-2 border-gray-50 flex-row justify-between items-center">
+              <Text className="text-[16px] font-bold text-gray-500">Total Revenue</Text>
+              <Text className="text-[20px] font-bold text-system-blue-light">
+                {formatCurrency(order.total_amount ?? order.total_price)}
+              </Text>
+            </View>
           </View>
         </View>
 
         {/* Timeline */}
         {trackingSteps.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Order Timeline</Text>
-            {trackingSteps.map((step: any, i: number) => (
-              <View key={i} style={styles.timelineRow}>
-                <View style={styles.timelineLeft}>
-                  <View
-                    style={[styles.dot, step.completed && styles.dotActive]}
-                  />
-                  {i < trackingSteps.length - 1 && (
-                    <View
-                      style={[styles.line, step.completed && styles.lineActive]}
-                    />
-                  )}
+          <View className="p-[21px] pt-0">
+            <Text className="text-[14px] font-bold text-gray-400 uppercase tracking-widest mb-4">Tracking History</Text>
+            <View className="bg-gray-50/50 rounded-[16px] p-6 border border-gray-100">
+              {trackingSteps.map((step: any, i: number) => (
+                <View key={i} className="flex-row">
+                  <View className="items-center mr-4 w-6">
+                    <View className={`w-4 h-4 rounded-full border-2 ${step.completed ? 'bg-system-blue-light border-system-blue-light' : 'bg-white border-gray-300'}`} />
+                    {i < trackingSteps.length - 1 && (
+                      <View className={`w-[2px] h-10 ${step.completed ? 'bg-system-blue-light' : 'bg-gray-200'}`} />
+                    )}
+                  </View>
+                  <View className="flex-1 pb-6">
+                    <Text className={`text-[14px] ${step.completed ? 'font-bold text-system-blue-dark' : 'text-gray-400'}`}>
+                      {step.label}
+                    </Text>
+                    {step.date && <Text className="text-[11px] text-gray-400 mt-1">{step.date}</Text>}
+                  </View>
                 </View>
-                <View style={styles.timelineContent}>
-                  <Text
-                    style={[
-                      styles.stepLabel,
-                      step.completed && styles.stepLabelActive,
-                    ]}
-                  >
-                    {step.label}
-                  </Text>
-                  {step.date ? (
-                    <Text style={styles.stepDate}>{step.date}</Text>
-                  ) : null}
-                </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
         )}
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-  },
-  backBtn: { width: 40 },
-  backArrow: { fontSize: 24, color: Colors.primary },
-  headerTitle: { fontSize: 18, fontWeight: "600", color: Colors.primary },
-  content: { padding: 16, paddingBottom: 40 },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 16,
-  },
-  metaLabel: { fontSize: 13, color: "#6B7280", marginBottom: 2 },
-  metaValue: { fontWeight: "600", color: "#111827" },
-  pill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 50 },
-  pillText: { fontSize: 12, fontWeight: "600" },
-  card: {
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 10,
-  },
-  customerName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 2,
-  },
-  customerEmail: { fontSize: 13, color: "#6B7280" },
-  itemRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-  },
-  itemRowBorder: { borderTopWidth: 1, borderTopColor: "#E5E7EB" },
-  itemName: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#111827",
-    marginBottom: 2,
-  },
-  itemQty: { fontSize: 12, color: "#9CA3AF" },
-  itemPrice: { fontSize: 14, fontWeight: "600", color: "#111827" },
-  totalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    marginTop: 4,
-  },
-  totalLabel: { fontSize: 15, fontWeight: "600", color: "#111827" },
-  totalValue: { fontSize: 18, fontWeight: "700", color: Colors.primary },
-  timelineRow: { flexDirection: "row", marginBottom: 20 },
-  timelineLeft: { alignItems: "center", marginRight: 14, width: 20 },
-  dot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#D1D5DB",
-    backgroundColor: "#fff",
-  },
-  dotActive: { borderColor: Colors.primary, backgroundColor: Colors.primary },
-  line: {
-    width: 2,
-    flex: 1,
-    backgroundColor: "#D1D5DB",
-    marginTop: 4,
-    minHeight: 20,
-  },
-  lineActive: { backgroundColor: Colors.primary },
-  timelineContent: { flex: 1, paddingTop: 1 },
-  stepLabel: { fontSize: 14, color: "#6B7280" },
-  stepLabelActive: { fontWeight: "600", color: "#111827" },
-  stepDate: { fontSize: 12, color: "#9CA3AF", marginTop: 2 },
-  errorText: { color: "#DC2626", marginBottom: 12 },
-  backLink: { paddingVertical: 8, paddingHorizontal: 16 },
-  backLinkText: { color: Colors.primary, fontWeight: "600" },
-});

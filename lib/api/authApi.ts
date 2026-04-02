@@ -97,6 +97,28 @@ export const authApi = baseApi.injectEndpoints({
     }),
 
     // Password Reset
+    forgotPassword: builder.mutation<
+      { success: boolean; message: string },
+      PasswordResetRequest
+    >({
+      query: (body) => ({
+        url: "/auth/password-reset/",
+        method: "POST",
+        body,
+      }),
+    }),
+
+    resetPassword: builder.mutation<
+      { success: boolean; message: string },
+      ConfirmPasswordResetRequest
+    >({
+      query: (body) => ({
+        url: "/auth/password-reset/confirm/",
+        method: "POST",
+        body,
+      }),
+    }),
+
     requestPasswordReset: builder.mutation<
       { success: boolean; message: string },
       PasswordResetRequest
@@ -181,6 +203,8 @@ export const {
   useRegisterMutation,
   useLoginMutation,
   useRefreshTokenMutation,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
   useRequestPasswordResetMutation,
   useConfirmPasswordResetMutation,
   useCheckVerificationQuery,

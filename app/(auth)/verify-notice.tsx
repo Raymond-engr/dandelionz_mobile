@@ -1,83 +1,52 @@
-import { Colors } from "@/constants/theme";
+import { Button } from "@/components/ui/button";
+import { Divider } from "@/components/ui/divider";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import Svg, { Circle, Path } from "react-native-svg";
+import { Text, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 
 export default function VerifyNoticeScreen() {
   const router = useRouter();
 
   return (
-    <View style={styles.container}>
-      <View style={styles.iconWrap}>
-        <Svg width={80} height={80} viewBox="0 0 80 80">
-          <Circle cx={40} cy={40} r={40} fill="#EFF6FF" />
-          <Path
-            d="M20 30l20 14 20-14M20 30v24h40V30"
-            stroke={Colors.primary}
-            strokeWidth={3}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-        </Svg>
+    <View className="flex-1 bg-white items-center justify-between py-10">
+      <View className="w-full items-center px-6">
+        <Text className="text-[24px] font-semibold text-system-blue-dark text-center mb-12">
+          Verify Email
+        </Text>
+
+        <View className="w-[120px] h-[120px] rounded-full bg-[#F5F7FA] items-center justify-center mb-10">
+          <Svg width={60} height={60} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M3 8L10.89 13.26C11.2129 13.4753 11.6014 13.5901 11.9985 13.5901C12.3956 13.5901 12.7841 13.4753 13.107 13.26L21 8M5 19H19C19.5304 19 20.0391 18.7893 20.4142 18.4142C20.7893 18.0391 21 17.5304 21 17V7C21 6.46957 20.7893 5.96086 20.4142 5.58579C20.0391 5.21071 19.5304 5 19 5H5C4.46957 5 3.96086 5.21071 3.58579 5.58579C3.21071 5.96086 3 6.46957 3 7V17C3 17.5304 3.21071 18.0391 3.58579 18.4142C3.96086 18.7893 4.46957 19 5 19Z"
+              stroke="#030482"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+        </View>
+
+        <Text className="text-[20px] font-semibold text-system-blue-dark text-center px-4">
+          Check your inbox
+        </Text>
+        
+        <Text className="text-[16px] text-[#6B7280] text-center mt-4 px-6 leading-6">
+          We&apos;ve sent a verification link to your email address. Please click the link to verify your account.
+        </Text>
+        <Text className="text-[14px] text-[#9CA3AF] text-center mt-4 px-6">
+          If you don&apos;t see the email, please check your spam folder.
+        </Text>
       </View>
 
-      <Text style={styles.heading}>Verify Your Email</Text>
-      <Text style={styles.subtitle}>
-        We've sent a verification link to your email address. Please check your
-        inbox and click the link to verify your account.
-      </Text>
-      <Text style={styles.note}>
-        If you don't see the email, check your spam folder.
-      </Text>
-
-      <Pressable
-        onPress={() => router.replace("/(auth)/login")}
-        style={styles.button}
-      >
-        <Text style={styles.buttonText}>Back to Login</Text>
-      </Pressable>
+      <View className="w-full items-center">
+        <Divider className="mb-6" />
+        <View className="w-full px-6">
+          <Button onPress={() => router.replace("/(auth)/login")}>
+            Back to Login
+          </Button>
+        </View>
+      </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 32,
-  },
-  iconWrap: { marginBottom: 32 },
-  heading: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#6B7280",
-    textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 12,
-  },
-  note: {
-    fontSize: 13,
-    color: "#9CA3AF",
-    textAlign: "center",
-    marginBottom: 40,
-  },
-  button: {
-    backgroundColor: Colors.primary,
-    height: 55,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-  },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-});

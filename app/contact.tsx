@@ -1,217 +1,105 @@
+import { Button } from "@/components/ui/button";
+import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
-    ActivityIndicator,
     Linking,
     Pressable,
     ScrollView,
-    StyleSheet,
     Text,
-    TextInput,
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-const CONTACT_METHODS = [
-  { label: "Call Us", value: "tel:+2340000000000", icon: "📞" },
-  { label: "Email Us", value: "mailto:support@dandelionz.net", icon: "✉️" },
-  { label: "WhatsApp", value: "https://wa.me/2340000000000", icon: "💬" },
-];
 
 export default function ContactScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
-  const [isLoading, setIsLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
-
-  const set = (key: string) => (val: string) =>
-    setForm((f) => ({ ...f, [key]: val }));
-
-  const handleSubmit = async () => {
-    setError("");
-    if (!form.name || !form.email || !form.message) {
-      setError("Please fill in all fields");
-      return;
-    }
-    setIsLoading(true);
-    // Simulate or connect to your contact API
-    await new Promise((r) => setTimeout(r, 1000));
-    setIsLoading(false);
-    setSuccess(true);
+  const handleCall = () => {
+    Linking.openURL('tel:08083817902');
   };
 
+  const renderHeader = () => (
+    <View className="flex-row items-center justify-between px-4 py-4 bg-white">
+      <Pressable onPress={() => router.back()} className="w-10">
+        <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
+      </Pressable>
+      <Text className="text-[20px] font-bold text-system-blue-dark text-center flex-1">
+        Contact Us
+      </Text>
+      <View className="w-10" />
+    </View>
+  );
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.backBtn}>←</Text>
-        </Pressable>
-        <Text style={styles.headerTitle}>Contact Us</Text>
-        <View style={{ width: 32 }} />
-      </View>
+    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+      {renderHeader()}
+      <Divider height={1} />
 
       <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 100 }}
       >
-        {/* Contact methods */}
-        <View style={styles.methodsSection}>
-          <Text style={styles.sectionLabel}>Get in touch</Text>
-          <View style={styles.methodsRow}>
-            {CONTACT_METHODS.map((m) => (
-              <Pressable
-                key={m.label}
-                onPress={() => Linking.openURL(m.value)}
-                style={styles.methodBtn}
-              >
-                <Text style={styles.methodIcon}>{m.icon}</Text>
-                <Text style={styles.methodLabel}>{m.label}</Text>
-              </Pressable>
-            ))}
-          </View>
+        {/* Support Icon & Intro */}
+        <View className="px-[21px] py-10 items-center">
+            <View className="w-20 h-20 bg-blue-50 rounded-full items-center justify-center mb-6">
+              <MaterialIcons name="support-agent" size={48} color={Colors.primary} />
+            </View>
+            <Text className="text-[22px] font-bold text-system-blue-dark text-center mb-2">
+              How can we help you?
+            </Text>
+            <Text className="text-[14px] text-[#6B7280] leading-6 mb-8 px-4 text-center">
+              We're here to help! Whether you have questions about your order or being a vendor, feel free to reach out to our team.
+            </Text>
         </View>
 
-        {/* Divider */}
-        <View style={styles.divider} />
+        <Divider height={11} />
 
-        {/* Contact form */}
-        <View style={styles.formSection}>
-          <Text style={styles.sectionLabel}>Send us a message</Text>
-
-          {success ? (
-            <View style={styles.successBox}>
-              <Text style={styles.successText}>
-                ✅ Message sent! We'll get back to you soon.
-              </Text>
+        {/* Phone Section */}
+        <View className="px-[21px] py-8">
+            <View className="flex-row items-start gap-4 mb-6">
+                <View className="w-10 h-10 rounded-full bg-blue-50 items-center justify-center">
+                    <MaterialIcons name="phone" size={20} color={Colors.primary} />
+                </View>
+                <View className="flex-1">
+                    <Text className="text-[16px] font-bold text-system-blue-dark mb-1">Phone Numbers</Text>
+                    <Text className="text-[15px] text-gray-600 font-medium">08083817902</Text>
+                    <Text className="text-[15px] text-gray-600 font-medium">08141680059</Text>
+                </View>
             </View>
-          ) : (
-            <>
-              {error ? <Text style={styles.error}>{error}</Text> : null}
 
-              <View style={styles.field}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Your Name"
-                  placeholderTextColor="#9CA3AF"
-                  value={form.name}
-                  onChangeText={set("name")}
-                />
-              </View>
+            <Button onPress={handleCall} className="h-[50px] rounded-full">
+                <Text className="text-white font-bold text-[15px]">Call Us Now</Text>
+            </Button>
+        </View>
 
-              <View style={styles.field}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email Address"
-                  placeholderTextColor="#9CA3AF"
-                  value={form.email}
-                  onChangeText={set("email")}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
+        <Divider height={11} />
 
-              <View style={styles.field}>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder="Your message..."
-                  placeholderTextColor="#9CA3AF"
-                  value={form.message}
-                  onChangeText={set("message")}
-                  multiline
-                  numberOfLines={5}
-                  textAlignVertical="top"
-                />
-              </View>
+        {/* Address Section */}
+        <View className="px-[21px] py-8">
+            <View className="flex-row items-start gap-4">
+                <View className="w-10 h-10 rounded-full bg-blue-50 items-center justify-center">
+                    <MaterialIcons name="location-on" size={20} color={Colors.primary} />
+                </View>
+                <View className="flex-1">
+                    <Text className="text-[16px] font-bold text-system-blue-dark mb-2">Our Office</Text>
+                    <Text className="text-[15px] text-gray-600 leading-6">
+                        No 1 Agbani Crescent Akwuke Road{"\n"}
+                        Opposite Everistus Catholic Church Gariki{"\n"}
+                        Enugu State, Nigeria.
+                    </Text>
+                </View>
+            </View>
+        </View>
 
-              <Pressable
-                onPress={handleSubmit}
-                style={[
-                  styles.submitBtn,
-                  isLoading && styles.submitBtnDisabled,
-                ]}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.submitBtnText}>Send Message</Text>
-                )}
-              </Pressable>
-            </>
-          )}
+        <View className="mt-10 px-[21px]">
+            <Text className="text-[12px] text-gray-400 text-center uppercase tracking-widest font-bold">
+                Dandelionz Customer Support
+            </Text>
         </View>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-  },
-  backBtn: { fontSize: 24, color: Colors.primary, width: 32 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: Colors.primary },
-  content: { paddingBottom: 40 },
-  methodsSection: { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 28 },
-  sectionLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 16,
-  },
-  methodsRow: { flexDirection: "row", gap: 12 },
-  methodBtn: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    borderRadius: 999,
-    paddingVertical: 14,
-    alignItems: "center",
-    gap: 4,
-  },
-  methodIcon: { fontSize: 20 },
-  methodLabel: { fontSize: 13, fontWeight: "600", color: "#fff" },
-  divider: { height: 41, backgroundColor: "#F5F7FA" },
-  formSection: { paddingHorizontal: 24, paddingTop: 28 },
-  error: {
-    backgroundColor: "#FEF2F2",
-    color: "#DC2626",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    fontSize: 13,
-  },
-  successBox: { backgroundColor: "#F0FDF4", padding: 16, borderRadius: 8 },
-  successText: { color: "#166534", fontSize: 14 },
-  field: { marginBottom: 20 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: "#111827",
-  },
-  textArea: { height: 120 },
-  submitBtn: {
-    backgroundColor: Colors.primary,
-    height: 55,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  submitBtnDisabled: { opacity: 0.7 },
-  submitBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-});

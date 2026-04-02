@@ -1,96 +1,92 @@
-import { usePathname, useRouter } from "expo-router";
+import { Colors } from "@/constants/theme";
+import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import * as Haptics from "expo-haptics";
 import React from "react";
 import {
     Platform,
+    Pressable,
     StyleSheet,
     Text,
-    TouchableOpacity,
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
     AccountIcon,
     AdminHomeIcon,
-    OrdersIcon,
+    OrderIcon,
     ProductIcon,
     UsersIcon,
     VendorIcon,
 } from "./icons";
 
-const ACTIVE_COLOR = "#030482";
-const INACTIVE_COLOR = "#9ca3af"; // gray-400
-
-type Tab = {
+type TabConfig = {
   name: string;
   label: string;
   Icon: React.ComponentType<{ active: boolean; color: string; size?: number }>;
 };
 
-const TABS: Tab[] = [
-  {
-    name: "index",
-    label: "Home",
-    Icon: AdminHomeIcon,
-  },
-  {
-    name: "vendor",
-    label: "Vendor",
-    Icon: VendorIcon,
-  },
-  {
-    name: "product",
-    label: "Product",
-    Icon: ProductIcon,
-  },
-  {
-    name: "users",
-    label: "Users",
-    Icon: UsersIcon,
-  },
-  {
-    name: "orders",
-    label: "Orders",
-    Icon: OrdersIcon,
-  },
-  {
-    name: "account",
-    label: "Account",
-    Icon: AccountIcon,
-  },
-];
+const TAB_CONFIGS: Record<string, TabConfig> = {
+  index: { label: "Home", Icon: AdminHomeIcon, name: "index" },
+  vendor: { label: "Vendor", Icon: VendorIcon, name: "vendor" },
+  product: { label: "Product", Icon: ProductIcon, name: "product" },
+  users: { label: "Users", Icon: UsersIcon, name: "users" },
+  orders: { label: "Order", Icon: OrderIcon, name: "orders" },
+  account: { label: "Account", Icon: AccountIcon, name: "account" },
+};
 
-export function AdminTabBar() {
+export function AdminTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const pathname = usePathname();
-  const router = useRouter();
-
-  function isActive(tab: Tab) {
-    if (tab.name === "index") {
-      return pathname === "/(admin)/(tabs)" || pathname === "/(admin)/(tabs)/";
-    }
-    return pathname.includes(`/(admin)/(tabs)/${tab.name}`);
-  }
 
   return (
-    <View
-      style={[
-        styles.container,
-        { paddingBottom: insets.bottom > 0 ? insets.bottom : 8 },
-      ]}
-    >
-      {TABS.map((tab) => {
-        const active = isActive(tab);
-        const color = active ? ACTIVE_COLOR : INACTIVE_COLOR;
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      {state.routes.map((route, index) => {
+        const { options } = descriptors[route.key];
+        const label = TAB_CONFIGS[route.name]?.label || route.name;
+        const Icon = TAB_CONFIGS[route.name]?.Icon || AdminHomeIcon;
+
+        const isFocused = state.index === index;
+
+        const onPress = () => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          const event = navigation.emit({
+            type: "tabPress",
+            target: route.key,
+            canPreventDefault: true,
+          });
+
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name, route.params);
+          }
+        };
+
+        const onLongPress = () => {
+          navigation.emit({
+            type: "tabLongPress",
+            target: route.key,
+          });
+        };
+
+        const color = isFocused ? Colors.white : Colors.dark_main;
+
         return (
-          <TouchableOpacity
-            key={tab.name}
-            style={styles.tab}
-            onPress={() => router.push(`/(admin)/(tabs)/${tab.name === 'index' ? '' : tab.name}` as any)}
-            activeOpacity={0.7}
+          <Pressable
+            key={route.key}
+            accessibilityRole="button"
+            accessibilityState={isFocused ? { selected: true } : {}}
+            accessibilityLabel={options.tabBarAccessibilityLabel}
+            onPress={onPress}
+            onLongPress={onLongPress}
+            style={[styles.tab, isFocused && styles.activeTab]}
           >
-            <tab.Icon active={active} color={color} size={22} />
-            <Text style={[styles.label, { color }]}>{tab.label}</Text>
-          </TouchableOpacity>
+            <View style={styles.iconContainer}>
+              <Icon active={isFocused} color={color} size={22} />
+            </View>
+            {isFocused && (
+              <Text style={styles.activeLabel} numberOfLines={1}>
+                {label}
+              </Text>
+            )}
+          </Pressable>
         );
       })}
     </View>
@@ -100,10 +96,12 @@ export function AdminTabBar() {
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    backgroundColor: "#ffffff",
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#e5e7eb",
-    paddingTop: 8,
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+    height: 64,
+    alignItems: "center",
+    paddingHorizontal: 8,
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -118,11 +116,27 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
+    flexDirection: "column",
     alignItems: "center",
-    gap: 3,
+    justifyContent: "center",
+    gap: 4,
+    height: 40,
   },
-  label: {
-    fontSize: 10,
-    fontWeight: "500",
+  activeTab: {
+    flex: 2.5, // Even more space for the label
+    flexDirection: "row",
+    backgroundColor: Colors.primary,
+    borderRadius: 50,
+    paddingHorizontal: 12,
+    gap: 6,
+    marginHorizontal: 4,
+  },
+  activeLabel: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  iconContainer: {
+    position: "relative",
   },
 });

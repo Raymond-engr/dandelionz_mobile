@@ -162,7 +162,7 @@ export default function ProductDetailScreen() {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 20 }}>
         <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>Product Not Found</Text>
-        <TouchableOpacity onPress={() => router.push("/(tabs)/")} className="bg-system-blue-light px-6 py-2 rounded-lg">
+        <TouchableOpacity onPress={() => router.push("/(tabs)")} className="bg-system-blue-light px-6 py-2 rounded-lg">
           <Text className="text-white">Back to Home</Text>
         </TouchableOpacity>
       </View>

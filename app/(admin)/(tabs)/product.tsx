@@ -2,24 +2,31 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
-  StyleSheet,
-  TextInput,
   ActivityIndicator,
   RefreshControl,
-  Image,
   ScrollView,
+  Alert,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useGetAllProductsQuery, useGetAllCategoriesQuery } from "@/lib/api/adminApi";
-import { Feather } from "@expo/vector-icons";
+import { 
+  useGetAllProductsQuery, 
+  useGetAllCategoriesQuery,
+  useDeleteCategoryMutation,
+  useDeleteProductMutation 
+} from "@/lib/api/adminApi";
+import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Divider } from "@/components/ui/divider";
+import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
+import { OrderListItemSkeleton } from "@/components/OrderListItemSkeleton";
+import { formatCurrency } from "@/lib/utils";
 
 type TabKey = "products" | "categories";
 
 export default function AdminProduct() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabKey>("categories");
   const [search, setSearch] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -27,7 +34,6 @@ export default function AdminProduct() {
   const {
     data: categoriesData,
     isLoading: loadingCategories,
-    isError: errorCategories,
     refetch: refetchCategories,
   } = useGetAllCategoriesQuery();
   const categories = categoriesData || [];
@@ -35,16 +41,46 @@ export default function AdminProduct() {
   const {
     data: productsData,
     isLoading: loadingProducts,
-    isError: errorProducts,
     refetch: refetchProducts,
   } = useGetAllProductsQuery({});
   const products = productsData?.data || [];
+
+  const [deleteCategory] = useDeleteCategoryMutation();
+  const [deleteProduct] = useDeleteProductMutation();
 
   async function onRefresh() {
     setRefreshing(true);
     await Promise.all([refetchProducts(), refetchCategories()]);
     setRefreshing(false);
   }
+
+  const handleDeleteCategory = (slug: string, name: string) => {
+    Alert.alert("Delete Category", `Are you sure you want to delete "${name}"?`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: async () => {
+        try {
+          await deleteCategory(slug).unwrap();
+          refetchCategories();
+        } catch (err: any) {
+          Alert.alert("Error", err?.data?.message || "Failed to delete category");
+        }
+      }}
+    ]);
+  };
+
+  const handleDeleteProduct = (slug: string, name: string) => {
+    Alert.alert("Delete Product", `Are you sure you want to delete "${name}"?`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: async () => {
+        try {
+          await deleteProduct(slug).unwrap();
+          refetchProducts();
+        } catch (err: any) {
+          Alert.alert("Error", err?.data?.message || "Failed to delete product");
+        }
+      }}
+    ]);
+  };
 
   const filteredProducts = products.filter((p: any) =>
     p.name?.toLowerCase().includes(search.toLowerCase())
@@ -55,271 +91,238 @@ export default function AdminProduct() {
 
   const isLoading =
     activeTab === "products" ? loadingProducts : loadingCategories;
-  const isError = activeTab === "products" ? errorProducts : errorCategories;
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
-      <View style={styles.headerCentered}>
-        <Text style={styles.titleCentered}>Products</Text>
+    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-[21px] py-4">
+        <View className="w-10" />
+        <Text className="text-[24px] font-semibold text-system-blue-dark">Products</Text>
+        <TouchableOpacity 
+          className="w-10 h-10 items-center justify-center bg-[#F5F7FA] rounded-full"
+        >
+          <Feather name="search" size={20} color="#030482" />
+        </TouchableOpacity>
       </View>
 
+      <Divider />
+
+      {/* Tabs */}
+      <View className="flex-row px-[21px] py-4 gap-4">
+        <TouchableOpacity
+          onPress={() => setActiveTab("categories")}
+          className={`flex-1 py-3 rounded-full items-center ${activeTab === "categories" ? "bg-system-blue-light" : "bg-[#F5F7FA]"}`}
+        >
+          <Text className={`text-[14px] font-semibold ${activeTab === "categories" ? "text-white" : "text-[#6B7280]"}`}>
+            Categories
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setActiveTab("products")}
+          className={`flex-1 py-3 rounded-full items-center ${activeTab === "products" ? "bg-system-blue-light" : "bg-[#F5F7FA]"}`}
+        >
+          <Text className={`text-[14px] font-semibold ${activeTab === "products" ? "text-white" : "text-[#6B7280]"}`}>
+            Products
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <Divider />
+
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 40 }}
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#030482"
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#030482" />
         }
       >
-        <View style={{ padding: 16 }}>
-          <Text className="text-sm text-gray-600 mb-4">
-            Manage your categories and products
-          </Text>
+        <View className="p-4">
+          <Text className="text-sm text-gray-600 mb-4">Manage your categories and products</Text>
 
-          {/* Tabs */}
-          <View style={styles.tabsUnderline}>
-            {(["categories", "products"] as TabKey[]).map((tab) => (
-              <TouchableOpacity
-                key={tab}
-                style={[styles.tabUnderline, activeTab === tab && styles.tabActiveUnderline]}
-                onPress={() => {
-                  setActiveTab(tab);
-                  setSearch("");
-                }}
-              >
-                <Text
-                  style={[
-                    styles.tabTextUnderline,
-                    activeTab === tab && styles.tabTextActiveUnderline,
-                  ]}
-                >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {activeTab === "products" ? (
+          {/* Categories Tab Content */}
+          {activeTab === 'categories' && (
             <View>
-              <View className="grid grid-cols-1 gap-3 mb-6">
-                <View className="bg-system-blue-light rounded-lg p-4 flex-row items-center justify-between">
-                  <View>
-                    <Text className="text-sm text-white/90 mb-1">Total Products</Text>
-                    <Text className="text-3xl font-bold text-white">{products.length}</Text>
-                  </View>
-                  <Feather name="package" size={48} color="white" style={{ opacity: 0.8 }} />
-                </View>
+              <TouchableOpacity 
+                onPress={() => router.push("/(admin)/product/category/new" as any)}
+                className="bg-[#f5f7fa] h-[101px] rounded-[12px] flex-row items-center justify-center gap-4 mb-6 shadow-sm"
+              >
+                <Ionicons name="add-circle-outline" size={32} color="#030482" />
+                <Text className="text-[20px] font-bold text-system-blue-light">Add New Category</Text>
+              </TouchableOpacity>
 
-                <View className="flex-row gap-3 mb-3">
-                  <View className="flex-1 bg-green-50 rounded-lg p-3">
-                    <Text className="text-[10px] text-gray-700 mb-1">Approved Products</Text>
-                    <Text className="text-xl font-bold text-gray-900">{products.filter((p: any) => p.status === 'APPROVED').length}</Text>
-                  </View>
-                  <View className="flex-1 bg-red-50 rounded-lg p-3">
-                    <Text className="text-[10px] text-gray-700 mb-1">Rejected Products</Text>
-                    <Text className="text-xl font-bold text-gray-900">{products.filter((p: any) => p.status === 'REJECTED').length}</Text>
-                  </View>
+              {isLoading && !refreshing ? (
+                <View>
+                  <OrderListItemSkeleton />
+                  <OrderListItemSkeleton />
+                  <OrderListItemSkeleton />
                 </View>
-                
-                <View className="bg-yellow-50 rounded-lg p-3">
-                  <Text className="text-[10px] text-gray-700 mb-1">Pending Products</Text>
-                  <Text className="text-xl font-bold text-gray-900">{products.filter((p: any) => p.status === 'PENDING').length}</Text>
-                </View>
-              </View>
-
-              <View className="mb-3 flex-row items-center justify-between">
-                <Text className="text-base font-semibold text-gray-900">Products</Text>
-                <View className="flex-row gap-2">
-                  <TouchableOpacity onPress={() => router.push("/(admin)/product/new")} className="bg-system-blue-light p-2 rounded-lg">
-                    <Feather name="plus" size={20} color="white" />
-                  </TouchableOpacity>
-                  <TouchableOpacity>
-                    <Feather name="filter" size={20} color="#4b5563" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {isLoading ? (
-                <ActivityIndicator size="large" color="#030482" />
               ) : (
                 <View>
-                  {filteredProducts.map((item: any) => (
-                    <TouchableOpacity
-                      key={item.slug}
-                      style={styles.rowProduct}
-                      onPress={() => router.push(`/(admin)/product/${item.slug}`)}
-                      activeOpacity={0.7}
-                    >
-                      <View className="flex-row items-start justify-between mb-2">
-                        <View className="flex-1">
-                          <Text className="text-sm font-semibold text-gray-900">{item.name}</Text>
-                          <Text className="text-[10px] text-gray-600">{item.vendor?.store_name || 'N/A'}</Text>
-                          <Text className="text-[10px] text-gray-600">{item.category}</Text>
-                        </View>
-                        <View className="items-end gap-2">
-                          <View className={`px-2 py-1 rounded-full ${
-                            item.status === 'APPROVED' ? 'bg-green-100' : 
-                            item.status === 'REJECTED' ? 'bg-red-100' : 'bg-yellow-100'
-                          }`}>
-                            <Text className={`text-[10px] font-medium ${
-                              item.status === 'APPROVED' ? 'text-green-700' : 
-                              item.status === 'REJECTED' ? 'text-red-700' : 'text-yellow-700'
-                            }`}>
-                              {item.status}
+                  {filteredCategories.length === 0 ? (
+                    <Text className="text-center text-gray-500 mt-10">No categories found</Text>
+                  ) : (
+                    filteredCategories.map((item: any) => (
+                      <View key={item.slug} className="mb-4">
+                        <View className="bg-gray-50 rounded-xl p-4 flex-row items-center">
+                          <TouchableOpacity
+                            onPress={() => router.push(`/(admin)/product/category/${item.slug}/edit`)}
+                            className="flex-1"
+                          >
+                            <Text className="text-[16px] font-bold text-system-blue-dark">
+                              {item.name}
                             </Text>
+                            <View className="flex-row gap-4 mt-1">
+                              <Text className="text-[12px] text-[#6B7280]">
+                                Products: <Text className="font-bold text-gray-700">{item.product_count || 0}</Text>
+                              </Text>
+                              <Text className="text-[12px] text-[#6B7280]">
+                                Sales: <Text className="font-bold text-gray-700">{formatCurrency(item.total_sales)}</Text>
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                          
+                          <View className="flex-row gap-2">
+                            <TouchableOpacity 
+                              onPress={() => router.push(`/(admin)/product/category/${item.slug}/edit`)}
+                              className="p-2 bg-blue-100 rounded-lg"
+                            >
+                              <Feather name="edit-2" size={18} color="#030482" />
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                              onPress={() => handleDeleteCategory(item.slug, item.name)}
+                              className="p-2 bg-red-100 rounded-lg"
+                            >
+                              <Feather name="trash-2" size={18} color="#dc2626" />
+                            </TouchableOpacity>
                           </View>
                         </View>
                       </View>
-                      <View className="flex-row items-center gap-2">
-                        <Text className="text-base font-bold text-gray-900">
-                          ₦{parseFloat(item.price).toLocaleString()}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
+                    ))
+                  )}
                 </View>
               )}
             </View>
-          ) : (
+          )}
+
+          {/* Products Tab Content */}
+          {activeTab === 'products' && (
             <View>
-              <View className="mb-3 flex-row items-center justify-between">
-                <Text className="text-base font-semibold text-gray-900">Categories</Text>
-                <TouchableOpacity onPress={() => router.push("/(admin)/product/category/new/edit")} className="bg-system-blue-light p-2 rounded-lg">
-                  <Feather name="plus" size={20} color="white" />
+              {/* Product Stats Grid */}
+              <View className="mb-6">
+                <View className="bg-system-blue-light h-[101px] rounded-[12px] p-4 mb-4 flex-row items-center justify-between shadow-sm">
+                  <View>
+                    <Text className="text-[14px] text-white opacity-90 mb-1">Total Products</Text>
+                    <Text className="text-[32px] font-bold text-white">{products.length}</Text>
+                  </View>
+                  <MaterialCommunityIcons name="package-variant-closed" size={48} color="white" style={{ opacity: 0.8 }} />
+                </View>
+
+                <View className="flex-row gap-3 mb-3">
+                  <View className="flex-1 bg-[rgba(77,255,151,0.25)] rounded-[12px] p-3">
+                    <Text className="text-[12px] text-[#207d47] font-medium mb-1">Approved</Text>
+                    <Text className="text-[20px] font-bold text-gray-900">{products.filter((p: any) => p.status === 'APPROVED').length}</Text>
+                  </View>
+                  <View className="flex-1 bg-[rgba(255,77,77,0.25)] rounded-[12px] p-3">
+                    <Text className="text-[12px] text-[#760303] font-medium mb-1">Rejected</Text>
+                    <Text className="text-[20px] font-bold text-gray-900">{products.filter((p: any) => p.status === 'REJECTED').length}</Text>
+                  </View>
+                </View>
+                
+                <View className="bg-[rgba(255,212,59,0.3)] rounded-[12px] p-3">
+                  <Text className="text-[12px] text-[#856404] font-medium mb-1">Pending</Text>
+                  <Text className="text-[20px] font-bold text-gray-900">{products.filter((p: any) => p.status === 'PENDING').length}</Text>
+                </View>
+              </View>
+
+              <View className="flex-row items-center justify-between mb-4">
+                <Text className="text-[18px] font-bold text-system-blue-dark">All Products</Text>
+                <TouchableOpacity onPress={() => router.push("/(admin)/product/new" as any)} className="bg-system-blue-light p-2 rounded-lg">
+                  <Ionicons name="add" size={20} color="white" />
                 </TouchableOpacity>
               </View>
 
-              {isLoading ? (
-                <ActivityIndicator size="large" color="#030482" />
+              {isLoading && !refreshing ? (
+                <ProductGridSkeleton columns={1} count={5} />
               ) : (
                 <View>
-                  {filteredCategories.map((item: any) => (
-                    <TouchableOpacity
-                      key={item.slug}
-                      style={styles.rowProduct}
-                      onPress={() => router.push(`/(admin)/product/category/${item.slug}/edit`)}
-                      activeOpacity={0.7}
-                    >
-                      <View className="flex-row items-center justify-between">
-                        <View>
-                          <Text className="text-sm font-semibold text-gray-900">{item.name}</Text>
-                          <Text className="text-[10px] text-gray-600">{item.product_count || 0} products</Text>
+                  {filteredProducts.length === 0 ? (
+                    <Text className="text-center text-gray-500 mt-10">No products found</Text>
+                  ) : (
+                    filteredProducts.map((item: any) => {
+                      const hasDiscount = parseFloat(item.discount || "0") > 0;
+                      const originalPrice = parseFloat(item.price);
+                      const discountedPrice = hasDiscount 
+                        ? originalPrice * (1 - parseFloat(item.discount) / 100)
+                        : originalPrice;
+
+                      return (
+                        <View key={item.slug} className="mb-4">
+                          <View className="bg-gray-50 rounded-xl p-4 flex-row">
+                            <TouchableOpacity
+                              onPress={() => router.push(`/(admin)/product/${item.slug}`)}
+                              className="flex-1"
+                            >
+                              <View className="flex-row justify-between items-start mb-2">
+                                <View className="flex-1 pr-2">
+                                  <Text className="text-[16px] font-bold text-system-blue-dark" numberOfLines={1}>
+                                    {item.name}
+                                  </Text>
+                                  <Text className="text-[12px] text-[#6B7280] mt-0.5">
+                                    {item.vendor?.store_name} • {item.category}
+                                  </Text>
+                                </View>
+                                <View className={`px-2 py-0.5 rounded-full ${
+                                  item.status === 'APPROVED' ? 'bg-green-100' : 
+                                  item.status === 'REJECTED' ? 'bg-red-100' : 'bg-orange-100'
+                                }`}>
+                                  <Text className={`text-[10px] font-bold ${
+                                    item.status === 'APPROVED' ? 'text-green-700' : 
+                                    item.status === 'REJECTED' ? 'text-red-700' : 'text-orange-700'
+                                  }`}>
+                                    {item.status}
+                                  </Text>
+                                </View>
+                              </View>
+                              
+                              <View className="flex-row items-center mt-2">
+                                <Text className="text-[16px] font-bold text-system-blue-dark mr-2">
+                                  {formatCurrency(discountedPrice)}
+                                </Text>
+                                {hasDiscount && (
+                                  <Text className="text-[13px] text-gray-400 line-through">
+                                    {formatCurrency(originalPrice)}
+                                  </Text>
+                                )}
+                                <View className="flex-1" />
+                                <Text className="text-[12px] text-gray-500">Stock: {item.stock || 0}</Text>
+                              </View>
+                            </TouchableOpacity>
+                            
+                            <View className="ml-3 gap-2">
+                              <TouchableOpacity 
+                                onPress={() => router.push(`/(admin)/product/${item.slug}/edit` as any)}
+                                className="p-2 bg-blue-100 rounded-lg"
+                              >
+                                <Feather name="edit-2" size={18} color="#030482" />
+                              </TouchableOpacity>
+                              <TouchableOpacity 
+                                onPress={() => handleDeleteProduct(item.slug, item.name)}
+                                className="p-2 bg-red-100 rounded-lg"
+                              >
+                                <Feather name="trash-2" size={18} color="#dc2626" />
+                              </TouchableOpacity>
+                            </View>
+                          </View>
                         </View>
-                        <View className="flex-row gap-2">
-                           <TouchableOpacity onPress={() => router.push(`/(admin)/product/category/${item.slug}/edit`)}>
-                              <Feather name="edit-2" size={18} color="#030482" />
-                           </TouchableOpacity>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
+                      );
+                    })
+                  )}
                 </View>
               )}
             </View>
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#ffffff" },
-  headerCentered: {
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
-    alignItems: "center",
-  },
-  titleCentered: { fontSize: 18, fontWeight: "600", color: "#111827" },
-  tabsUnderline: {
-    flexDirection: "row",
-    gap: 16,
-    marginBottom: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
-  },
-  tabUnderline: {
-    paddingBottom: 8,
-    paddingHorizontal: 4,
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
-  },
-  tabActiveUnderline: {
-    borderBottomColor: "#030482",
-  },
-  tabTextUnderline: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#6b7280",
-  },
-  tabTextActiveUnderline: {
-    color: "#030482",
-  },
-  rowProduct: {
-    padding: 16,
-    backgroundColor: "#f9fafb",
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  tabs: {
-    flexDirection: "row",
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    gap: 8,
-  },
-  tab: {
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: "#e5e7eb",
-  },
-  tabActive: { backgroundColor: "#16a34a" },
-  tabText: { fontSize: 13, fontWeight: "500", color: "#6b7280" },
-  tabTextActive: { color: "#ffffff" },
-  searchWrap: { paddingHorizontal: 16, paddingBottom: 12 },
-  search: {
-    backgroundColor: "#ffffff",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: "#111827",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  list: { paddingHorizontal: 16, paddingBottom: 32 },
-  row: {
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  thumb: {
-    width: 52,
-    height: 52,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  thumbPlaceholder: { backgroundColor: "#e5e7eb" },
-  rowContent: { flex: 1 },
-  rowName: { fontSize: 15, fontWeight: "600", color: "#111827" },
-  rowSub: { fontSize: 12, color: "#6b7280", marginTop: 2 },
-  rowTag: {
-    marginTop: 4,
-    fontSize: 11,
-    color: "#16a34a",
-    fontWeight: "500",
-  },
-  error: { textAlign: "center", color: "#ef4444", marginTop: 40 },
-  empty: { textAlign: "center", color: "#6b7280", marginTop: 40 },
-});

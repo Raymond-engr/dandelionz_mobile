@@ -55,7 +55,7 @@ export function AdminTabBar({ state, descriptors, navigation }: BottomTabBarProp
           });
 
           if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name, route.params);
+            navigation.navigate(route.name);
           }
         };
 

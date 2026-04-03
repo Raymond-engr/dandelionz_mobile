@@ -31,7 +31,7 @@ export function NotificationProvider({
   children: React.ReactNode;
 }) {
   const dispatch = useAppDispatch();
-  const { isAuthenticated, accessToken } = useAppSelector(
+  const { isAuthenticated, accessToken, user } = useAppSelector(
     (state) => state.auth,
   );
   
@@ -45,106 +45,131 @@ export function NotificationProvider({
   const notificationListener = useRef<Notifications.Subscription | null>(null);
   const responseListener = useRef<Notifications.Subscription | null>(null);
 
-  const [triggerGetStats] =
-    customerApi.useLazyCustomerGetNotificationStatsQuery();
+  // Stats can be triggered by any authenticated user using this hook
+  const [triggerGetStats] = customerApi.useLazyCustomerGetNotificationStatsQuery();
   const [registerPushToken] = useRegisterPushTokenMutation();
 
   // --- WebSocket Logic (Foreground Live Updates) ---
   const connectWebSocket = () => {
     if (!accessToken || socketRef.current?.readyState === WebSocket.OPEN)
       return;
-    if (socketRef.current) socketRef.current.close();
-
-    const wsUrl = `wss://dandelionz.net/ws/notifications/?token=${accessToken}`;
-    const socket = new WebSocket(wsUrl);
-    socketRef.current = socket;
-
-    socket.onopen = () => {
-      dispatch(setConnected(true));
-      triggerGetStats()
-        .unwrap()
-        .then((response) => {
-          if (response.success)
-            dispatch(setUnreadCount(response.data.unread_count));
-        })
-        .catch(() => {});
-    };
-
-    socket.onmessage = (event) => {
+    if (socketRef.current) {
       try {
-        const payload = JSON.parse(event.data);
-        if (payload.type === "notification") {
-          dispatch(addNotification(payload.data));
-        }
-      } catch {}
-    };
-
-    socket.onclose = (event) => {
-      dispatch(setConnected(false));
-      socketRef.current = null;
-      if (isAuthenticated && !event.wasClean) {
-        reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
-      }
-    };
-
-    socket.onerror = () => socket.close();
-  };
-
-  // --- Push Notification Logic (Background/Killed State Updates) ---
-  async function registerForPushNotificationsAsync() {
-    let token;
-
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FF231F7C',
-      });
+        socketRef.current.close();
+      } catch (e) {}
     }
 
-    if (Device.isDevice) {
+    // Match web app's URL structure: token= instead of ?token=
+    const wsUrl = `wss://dandelionz.net/ws/notifications/token=${accessToken}`;
+    
+    try {
+      const socket = new WebSocket(wsUrl);
+      socketRef.current = socket;
+
+      socket.onopen = () => {
+        dispatch(setConnected(true));
+        triggerGetStats()
+          .unwrap()
+          .then((response) => {
+            if (response.success)
+              dispatch(setUnreadCount(response.data.unread_count));
+          })
+          .catch(() => {});
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.type === "notification") {
+            dispatch(addNotification(payload.data));
+          }
+        } catch {}
+      };
+
+      socket.onclose = (event) => {
+        dispatch(setConnected(false));
+        socketRef.current = null;
+        if (isAuthenticated && !event.wasClean) {
+          reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
+        }
+      };
+
+      socket.onerror = () => {
+        if (socketRef.current) {
+          try {
+            socketRef.current.close();
+          } catch (e) {}
+        }
+      };
+    } catch (e) {
+      console.error("WebSocket connection error:", e);
+    }
+  };
+
+  // --- Push Notification Logic ---
+  async function registerForPushNotificationsAsync() {
+    if (!Device.isDevice) {
+      console.log('Push notifications require a physical device');
+      return;
+    }
+
+    try {
+      // Restore Android Channel Setup
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'default',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF231F7C',
+        });
+      }
+
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
+      
       if (existingStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
+
       if (finalStatus !== 'granted') {
-        console.log('Failed to get push token for push notification!');
+        console.log('Failed to get push token permission!');
         return;
       }
-      token = (await Notifications.getExpoPushTokenAsync({
-        projectId: '95497ecd-0fd2-43d5-9078-c1a54f1f3aa4',
-      })).data;
+
+      // getExpoPushTokenAsync can sometimes hang or fail in certain environments
+      // We wrap it in a timeout so it never blocks the login/app flow
+      const tokenResponse = await Promise.race([
+        Notifications.getExpoPushTokenAsync({
+          projectId: '95497ecd-0fd2-43d5-9078-c1a54f1f3aa4',
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Push token timeout')), 10000))
+      ]) as any;
+
+      const token = tokenResponse.data;
       
-      console.log("--- NATIVE PUSH TOKEN ---");
-      console.log(token);
-      console.log("--------------------------");
-      
-      try {
+      if (token) {
         await registerPushToken({ 
           token, 
           platform: Platform.OS 
         }).unwrap();
-        console.log("--- PUSH TOKEN REGISTERED WITH BACKEND ---");
-      } catch (err) {
-        console.log("--- FAILED TO REGISTER PUSH TOKEN WITH BACKEND ---", err);
       }
-    } else {
-      console.log('Must use physical device for Push Notifications');
+    } catch (err) {
+      console.log("Push notification registration error:", err);
     }
-
-    return token;
   }
 
   useEffect(() => {
-    // 1. WebSocket Management
+    // 1. WebSocket Management & Push Registration
     if (isAuthenticated && accessToken) {
       connectWebSocket();
       registerForPushNotificationsAsync();
     } else {
-      socketRef.current?.close();
+      if (socketRef.current) {
+        try {
+          socketRef.current.close();
+        } catch (e) {}
+      }
       if (reconnectTimeoutRef.current)
         clearTimeout(reconnectTimeoutRef.current);
       dispatch(setConnected(false));
@@ -174,9 +199,11 @@ export function NotificationProvider({
       
       if (notificationListener.current) {
         notificationListener.current.remove();
+        notificationListener.current = null;
       }
       if (responseListener.current) {
         responseListener.current.remove();
+        responseListener.current = null;
       }
     };
   }, [isAuthenticated, accessToken]);

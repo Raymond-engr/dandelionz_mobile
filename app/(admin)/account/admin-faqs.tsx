@@ -8,39 +8,32 @@ import { Divider } from "@/components/ui/divider";
 
 const FAQS = [
   {
-    question: "How do I place an order?",
-    answer:
-      "Browse products, add items to your cart, then proceed to checkout. You can pay using your preferred payment method.",
+    question: "How do I approve a new vendor application?",
+    answer: "Go to the Vendor tab, select 'Pending' applications, review the vendor's documents, and tap 'Approve' or 'Reject'. Once approved, the vendor will receive a notification.",
   },
   {
-    question: "What payment methods are accepted?",
-    answer:
-      "We accept bank transfers, card payments, and other supported mobile payment options.",
+    question: "How are payouts to vendors processed?",
+    answer: "Payouts are managed in the Settlements section. After an order is marked as delivered and the clearance period passes, funds move to the vendor's withdrawable balance.",
   },
   {
-    question: "How long does delivery take?",
-    answer:
-      "Delivery typically takes 2–5 business days depending on your location. You can track your order in the Orders section.",
+    question: "How do I resolve a customer dispute?",
+    answer: "Navigate to Settlements → Disputes. Review the evidence provided by both the customer and the vendor, then select the appropriate resolution (Refund or Release Funds).",
   },
   {
-    question: "Can I return or exchange a product?",
-    answer:
-      "Yes. Returns and exchanges are accepted within 7 days of delivery, provided the item is unused and in its original packaging.",
+    question: "Can I flag or remove a product listing?",
+    answer: "Yes. In the Inventory tab, you can search for any product. You can 'Flag' a product to hide it from the shop for review or delete it if it violates platform policies.",
   },
   {
-    question: "How do I become a vendor?",
-    answer:
-      'Register an account and select "Vendor" as your role. Your account will be reviewed and approved by our team.',
+    question: "How do I manage administrative withdrawals?",
+    answer: "Go to Account → Withdraw Earnings. Here you can withdraw the platform's commission and service fees to the registered corporate bank account.",
   },
   {
-    question: "Is my payment information secure?",
-    answer:
-      "Absolutely. We use industry-standard encryption and never store your card details on our servers.",
+    question: "How do I update platform-wide payment settings?",
+    answer: "Go to Account → Payment Settings. This section allows you to configure bank details for collections and manage the administrative transaction PIN.",
   },
   {
-    question: "How do I contact customer support?",
-    answer:
-      "You can reach us via the Contact Us page, email, phone, or WhatsApp. Our team is available Monday–Friday, 9am–6pm.",
+    question: "How do I track system-wide analytics?",
+    answer: "The Dashboard provides a summary of total sales, active vendors, and pending orders. For detailed reports, use the Analytics tab to filter by date or category.",
   },
 ];
 
@@ -74,7 +67,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
-export default function FAQsScreen() {
+export default function AdminFaqsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -98,7 +91,7 @@ export default function FAQsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text className="text-[14px] text-gray-500 mb-6 leading-[20px]">
-          Find answers to common questions about using Dandelionz.
+          Frequently asked questions for Dandelionz Administration.
         </Text>
 
         {FAQS.map((faq, i) => (

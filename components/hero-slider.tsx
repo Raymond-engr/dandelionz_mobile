@@ -27,12 +27,13 @@ export function HeroSlider() {
 
   useEffect(() => {
     autoPlayRef.current = setInterval(() => {
+      if (!scrollRef.current) return;
       setCurrent((prev) => {
         const next = (prev + 1) % slides.length;
         scrollRef.current?.scrollTo({ x: next * SLIDE_WIDTH, animated: true });
         return next;
       });
-    }, 3000);
+    }, 4000);
     return () => {
       if (autoPlayRef.current) clearInterval(autoPlayRef.current);
     };

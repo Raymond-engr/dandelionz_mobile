@@ -65,7 +65,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -98,9 +98,7 @@
         "expo-build-properties",
         {
           "android": {
-            "extraMavenRepos": [
-              "https://maven.google.com"
-            ]
+            "extraMavenRepos": ["https://maven.google.com"]
           }
         }
       ]

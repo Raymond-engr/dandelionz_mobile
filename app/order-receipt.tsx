@@ -1,18 +1,11 @@
-import { Button } from "@/components/ui/button";
-import { Divider } from "@/components/ui/divider";
 import { LoadingSpinner } from "@/components/loading-spinner";
+import { Button } from "@/components/ui/button";
 import { Colors } from "@/constants/theme";
 import { useGetOrderReceiptQuery } from "@/lib/api/publicApi";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
-import {
-  ScrollView,
-  Text,
-  View,
-  Pressable,
-  Alert,
-} from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function OrderReceiptScreen() {
@@ -35,14 +28,14 @@ export default function OrderReceiptScreen() {
   };
 
   const renderHeader = () => (
-    <View 
+    <View
       className="flex-row items-center justify-between px-4 py-4 bg-white"
       style={{ paddingTop: insets.top }}
     >
       <Pressable onPress={() => router.back()} className="w-10">
         <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
       </Pressable>
-      <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
+      <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
         Receipt
       </Text>
       <View className="w-10" />
@@ -80,7 +73,7 @@ export default function OrderReceiptScreen() {
     <View className="flex-1 bg-white">
       {renderHeader()}
 
-      <ScrollView 
+      <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
       >
@@ -92,20 +85,27 @@ export default function OrderReceiptScreen() {
 
           <View className="items-end mb-6">
             <Text className="text-gray-500 text-[14px]">
-              {receiptData.payment?.paid_at 
-                ? new Date(receiptData.payment.paid_at).toLocaleDateString("en-NG", {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  }) 
-                : 'Date N/A'}
+              {receiptData.payment?.paid_at
+                ? new Date(receiptData.payment.paid_at).toLocaleDateString(
+                    "en-NG",
+                    {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    },
+                  )
+                : "Date N/A"}
             </Text>
           </View>
 
           {/* Table Header */}
           <View className="flex-row justify-between pb-2 mb-2 border-b border-gray-100">
-            <Text className="text-[12px] font-bold text-gray-400">DESCRIPTION</Text>
-            <Text className="text-[12px] font-bold text-gray-400">SUBTOTAL</Text>
+            <Text className="text-[12px] font-bold text-gray-400">
+              DESCRIPTION
+            </Text>
+            <Text className="text-[12px] font-bold text-gray-400">
+              SUBTOTAL
+            </Text>
           </View>
 
           {/* Items */}
@@ -113,7 +113,10 @@ export default function OrderReceiptScreen() {
             {receiptData.items?.map((item: any, idx: number) => (
               <View key={idx} className="flex-row justify-between mb-3">
                 <Text className="text-[16px] text-system-blue-dark flex-1 pr-4">
-                  {item.product_name} <Text className="text-gray-400 font-medium">x{item.quantity}</Text>
+                  {item.product_name}{" "}
+                  <Text className="text-gray-400 font-medium">
+                    x{item.quantity}
+                  </Text>
                 </Text>
                 <Text className="text-[16px] font-semibold text-system-blue-dark">
                   ₦{parseFloat(item.price_at_purchase || "0").toLocaleString()}
@@ -125,22 +128,36 @@ export default function OrderReceiptScreen() {
           {/* Details */}
           <View className="space-y-4 mb-8">
             <View className="flex-row justify-between py-2">
-              <Text className="text-[14px] font-medium text-gray-500">Email</Text>
-              <Text className="text-[14px] text-system-blue-dark">{receiptData.customer_email}</Text>
+              <Text className="text-[14px] font-medium text-gray-500">
+                Email
+              </Text>
+              <Text className="text-[14px] text-system-blue-dark">
+                {receiptData.customer_email}
+              </Text>
             </View>
             <View className="flex-row justify-between py-2">
-              <Text className="text-[14px] font-medium text-gray-500">Transaction Ref</Text>
-              <Text className="text-[14px] text-system-blue-dark">{receiptData.payment?.reference || "N/A"}</Text>
+              <Text className="text-[14px] font-medium text-gray-500">
+                Transaction Ref
+              </Text>
+              <Text className="text-[14px] text-system-blue-dark">
+                {receiptData.payment?.reference || "N/A"}
+              </Text>
             </View>
             <View className="flex-row justify-between py-2">
-              <Text className="text-[14px] font-medium text-gray-500">Order ID</Text>
-              <Text className="text-[14px] text-system-blue-dark">{receiptData.order_id}</Text>
+              <Text className="text-[14px] font-medium text-gray-500">
+                Order ID
+              </Text>
+              <Text className="text-[14px] text-system-blue-dark">
+                {receiptData.order_id}
+              </Text>
             </View>
           </View>
 
           {/* Total */}
           <View className="flex-row justify-between pt-4 border-t border-gray-200 mb-10">
-            <Text className="text-[18px] font-bold text-system-blue-dark">Total</Text>
+            <Text className="text-[18px] font-bold text-system-blue-dark">
+              Total
+            </Text>
             <Text className="text-[18px] font-bold text-system-blue-dark">
               ₦{parseFloat(receiptData.total_price || "0").toLocaleString()}
             </Text>
@@ -148,12 +165,12 @@ export default function OrderReceiptScreen() {
 
           {/* Actions */}
           <View className="space-y-4">
-            <Button onPress={handleExport}>
-              Export Receipt
-            </Button>
-            <Button 
-              variant="outline" 
-              onPress={() => router.push(`/order-tracking?id=${receiptData.order_id}` as any)}
+            <Button onPress={handleExport}>Export Receipt</Button>
+            <Button
+              variant="outline"
+              onPress={() =>
+                router.push(`/order-tracking?id=${receiptData.order_id}` as any)
+              }
             >
               Track Order / View Details
             </Button>

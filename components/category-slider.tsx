@@ -1,4 +1,5 @@
 import { Colors } from "@/constants/theme";
+import { getCategoryImage } from "@/constants/categories";
 import { useGetCategoriesQuery } from "@/lib/api/publicApi";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -21,37 +22,35 @@ export function CategorySlider() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
       >
-        {categories.map((cat: any) => (
-          <Pressable
-            key={cat.id}
-            onPress={() =>
-              router.push(
-                `/category/${cat.name.toLowerCase().replace(/\s+/g, "-")}`,
-              )
-            }
-          >
-            <View className="w-28 h-32 rounded-[12px] overflow-hidden border border-gray-100 bg-white shadow-sm">
-              <View className="h-[70%] bg-white">
-                {cat.image ? (
+        {categories.map((cat: any) => {
+          const categoryImage = cat.image ? { uri: cat.image } : getCategoryImage(cat.name);
+
+          return (
+            <Pressable
+              key={cat.id}
+              onPress={() =>
+                router.push(
+                  `/category/${cat.name.toLowerCase().replace(/\s+/g, "-")}`,
+                )
+              }
+            >
+              <View className="w-28 h-32 rounded-[12px] overflow-hidden border border-gray-100 bg-white shadow-sm">
+                <View className="h-[70%] bg-white">
                   <Image
-                    source={{ uri: cat.image }}
+                    source={categoryImage}
                     className="w-full h-full"
                     contentFit="cover"
                   />
-                ) : (
-                  <View className="w-full h-full bg-gray-50 items-center justify-center">
-                     <Text className="text-[10px] text-gray-300">No Image</Text>
-                  </View>
-                )}
+                </View>
+                <View className="h-[30%] bg-system-blue-light items-center justify-center px-1">
+                  <Text className="text-[11px] font-bold text-white text-center" numberOfLines={2}>
+                    {cat.name}
+                  </Text>
+                </View>
               </View>
-              <View className="h-[30%] bg-system-blue-light items-center justify-center px-1">
-                <Text className="text-[11px] font-bold text-white text-center" numberOfLines={2}>
-                  {cat.name}
-                </Text>
-              </View>
-            </View>
-          </Pressable>
-        ))}
+            </Pressable>
+          );
+        })}
       </ScrollView>
     </View>
   );

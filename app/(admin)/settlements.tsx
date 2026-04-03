@@ -11,14 +11,34 @@ export default function AdminSettlementsMenu() {
   const insets = useSafeAreaInsets();
 
   const menuItems = [
-    { label: "Summary", icon: "assessment", href: "/(admin)/settlements/summary" },
-    { label: "Transaction History", icon: "history", href: "/(admin)/settlements/history" },
+    {
+      label: "Summary",
+      icon: "assessment",
+      href: "/(admin)/settlements/summary",
+    },
+    {
+      label: "Transaction History",
+      icon: "history",
+      href: "/(admin)/settlements/history",
+    },
   ];
 
   const paymentItems = [
-    { label: "Vendor Settlements", icon: "storefront", href: "/(admin)/settlements/vendor" },
-    { label: "Payout Management", icon: "payments", href: "/(admin)/settlements/payout" },
-    { label: "Disputes & Refunds", icon: "gavel", href: "/(admin)/settlements/disputes" },
+    {
+      label: "Vendor Settlements",
+      icon: "storefront",
+      href: "/(admin)/settlements/vendor",
+    },
+    {
+      label: "Payout Management",
+      icon: "payments",
+      href: "/(admin)/settlements/payout",
+    },
+    {
+      label: "Disputes & Refunds",
+      icon: "gavel",
+      href: "/(admin)/settlements/disputes",
+    },
   ];
 
   const renderItem = (item: any) => (
@@ -46,7 +66,7 @@ export default function AdminSettlementsMenu() {
         <Pressable onPress={() => router.back()} className="w-10">
           <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
         </Pressable>
-        <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
+        <Text className="text-[20px] font-semibold text-system-blue-light text-center flex-1">
           Payments & Settlements
         </Text>
         <View className="w-10" />

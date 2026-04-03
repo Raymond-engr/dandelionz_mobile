@@ -55,11 +55,11 @@ export default function VendorLayout() {
         options={{ headerShown: false, title: "Close Account" }}
       />
       <Stack.Screen
-        name="account/faqs"
+        name="account/vendor-faqs"
         options={{ headerShown: false, title: "FAQs" }}
       />
       <Stack.Screen
-        name="account/terms"
+        name="account/vendor-terms"
         options={{ headerShown: false, title: "Terms & Conditions" }}
       />
       <Stack.Screen name="wallet/withdraw" options={{ headerShown: false }} />

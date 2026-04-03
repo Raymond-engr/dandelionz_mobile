@@ -2,10 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { useGetCustomerProfileQuery } from "@/lib/api/customerApi";
 import { useAppSelector, useLogout } from "@/lib/hooks";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
     ActivityIndicator,
+    Alert,
     Image,
     Pressable,
     ScrollView,
@@ -23,7 +25,7 @@ function AccountLink({ label, route, last = false }: { label: string; route: str
         className="flex-row justify-between items-center py-4 px-[21px]"
       >
         <Text className="text-[16px] text-system-blue-dark font-medium">{label}</Text>
-        <Text className="text-[20px] text-[#9CA3AF]">›</Text>
+        <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" />
       </Pressable>
       {!last && <View className="h-[1px] bg-[#F5F7FA] mx-[21px]" />}
     </View>
@@ -36,6 +38,17 @@ export default function AccountScreen() {
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const authUser = useAppSelector((s) => s.auth.user);
   const logout = useLogout();
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Log Out",
+      "Are you sure you want to log out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Log Out", onPress: logout, style: "destructive" }
+      ]
+    );
+  };
 
   const { data: profileResponse, isLoading } = useGetCustomerProfileQuery(
     undefined,
@@ -112,7 +125,7 @@ export default function AccountScreen() {
       <View className="px-[21px] mt-8">
         <Button
           variant="outline"
-          onPress={logout}
+          onPress={handleLogout}
           className="border-system-red"
         >
           <Text className="text-system-red">Log Out</Text>

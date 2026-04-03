@@ -1,17 +1,22 @@
 import { useAppSelector } from "@/lib/hooks";
-import { Redirect, Stack } from "expo-router";
-import React from "react";
+import { Stack, router } from "expo-router";
+import React, { useEffect } from "react";
 
 export default function AdminLayout() {
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
 
-  // Hydration is handled in the root layout, so we only check user here
-  if (!user) {
-    return <Redirect href="/(auth)/login" />;
-  }
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      router.replace("/(auth)/login");
+    } else if (user.role !== "BUSINESS_ADMIN") {
+      router.replace("/(tabs)");
+    }
+  }, [isAuthenticated, user]);
 
-  if (user.role !== "BUSINESS_ADMIN") {
-    return <Redirect href="/(tabs)" />;
+  // Return null or a loading state while redirecting to avoid 
+  // rendering children that might depend on auth context
+  if (!isAuthenticated || !user || user.role !== "BUSINESS_ADMIN") {
+    return null;
   }
 
   return (
@@ -72,7 +77,7 @@ export default function AdminLayout() {
         options={{ headerShown: false, title: "Create Notification" }}
       />
       <Stack.Screen
-        name="account/faqs"
+        name="account/admin-faqs"
         options={{ headerShown: false, title: "FAQs" }}
       />
 

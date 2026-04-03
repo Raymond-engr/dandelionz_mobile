@@ -1,4 +1,5 @@
 import { Colors } from "@/constants/theme";
+import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -59,7 +60,7 @@ export default function VendorTermsScreen() {
           hitSlop={8}
           style={styles.backBtn}
         >
-          <Text style={styles.backArrow}>←</Text>
+          <Feather name="chevron-left" size={32} color={Colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Terms & Conditions</Text>
         <View style={{ width: 40 }} />
@@ -104,7 +105,6 @@ const styles = StyleSheet.create({
     borderBottomColor: "#F3F4F6",
   },
   backBtn: { width: 40 },
-  backArrow: { fontSize: 24, color: Colors.primary },
   headerTitle: { fontSize: 18, fontWeight: "600", color: Colors.primary },
   content: { padding: 20, paddingBottom: 40 },
   lastUpdated: { fontSize: 12, color: "#9CA3AF", marginBottom: 12 },

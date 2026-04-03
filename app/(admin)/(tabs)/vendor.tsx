@@ -123,7 +123,7 @@ export default function AdminVendors() {
                   <Text className="text-system-blue-light font-bold text-[16px]">{initials}</Text>
                 </View>
                 
-                <div className="flex-1 ml-4 min-w-0">
+                <View className="flex-1 ml-4 min-w-0">
                   <Text className="text-[16px] font-bold text-system-blue-dark" numberOfLines={1}>
                     {item.store_name}
                   </Text>
@@ -140,7 +140,7 @@ export default function AdminVendors() {
                       </View>
                     )}
                   </View>
-                </div>
+                </View>
                 
                 <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" />
               </TouchableOpacity>

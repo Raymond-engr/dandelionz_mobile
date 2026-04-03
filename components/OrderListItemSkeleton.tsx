@@ -7,7 +7,7 @@ export function OrderListItemSkeleton() {
     <View className="bg-gray-50 rounded-[12px] p-4 mb-3 mx-4">
       <View className="flex-row items-start gap-3">
         <Skeleton className="w-10 h-10 rounded-full" />
-        <div className="flex-1">
+        <View className="flex-1">
           <View className="flex-row justify-between mb-2">
             <Skeleton className="h-4 w-1/3" />
             <Skeleton className="h-5 w-16 rounded-full" />
@@ -22,7 +22,7 @@ export function OrderListItemSkeleton() {
               <Skeleton className="h-3 w-12" />
             </View>
           </View>
-        </div>
+        </View>
       </View>
     </View>
   );

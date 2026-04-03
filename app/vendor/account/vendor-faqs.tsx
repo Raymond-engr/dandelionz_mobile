@@ -8,39 +8,44 @@ import { Divider } from "@/components/ui/divider";
 
 const FAQS = [
   {
-    question: "How do I place an order?",
-    answer:
-      "Browse products, add items to your cart, then proceed to checkout. You can pay using your preferred payment method.",
+    question: "How do I list a product on Dandelionz?",
+    answer: "Go to Products → tap the + button → fill in your product details (name, description, images, price, and stock) → publish directly to your store or save as a draft.",
   },
   {
-    question: "What payment methods are accepted?",
-    answer:
-      "We accept bank transfers, card payments, and other supported mobile payment options.",
+    question: "When will I receive payment for an order?",
+    answer: "Payments are processed after an order is marked as delivered. Once cleared, funds appear in your withdrawable balance within 24–48 hours.",
   },
   {
-    question: "How long does delivery take?",
-    answer:
-      "Delivery typically takes 2–5 business days depending on your location. You can track your order in the Orders section.",
+    question: "How do I withdraw my earnings?",
+    answer: "Go to Wallet → tap 'Withdraw Earnings' → enter the amount → confirm with your 4-digit payment PIN. Withdrawals are transferred to your registered bank account.",
   },
   {
-    question: "Can I return or exchange a product?",
-    answer:
-      "Yes. Returns and exchanges are accepted within 7 days of delivery, provided the item is unused and in its original packaging.",
+    question: "How do I set or change my payment PIN?",
+    answer: "Go to Account → Payment Settings → Set/Change Payment PIN. You'll receive an OTP to verify before setting a new PIN.",
   },
   {
-    question: "How do I become a vendor?",
-    answer:
-      'Register an account and select "Vendor" as your role. Your account will be reviewed and approved by our team.',
+    question: "What are the fees charged on sales?",
+    answer: "Dandelionz charges a small platform fee per successful transaction. The exact percentage is shown in your vendor agreement and payment settings.",
   },
   {
-    question: "Is my payment information secure?",
-    answer:
-      "Absolutely. We use industry-standard encryption and never store your card details on our servers.",
+    question: "Can I edit a product after it's been published?",
+    answer: "Yes. Go to Products → tap any product → select Edit. You can update name, images, price, and stock at any time.",
   },
   {
-    question: "How do I contact customer support?",
-    answer:
-      "You can reach us via the Contact Us page, email, phone, or WhatsApp. Our team is available Monday–Friday, 9am–6pm.",
+    question: "What happens when I save a product as a draft?",
+    answer: "Drafts are visible only to you and not shown to buyers. You can submit a draft to your store whenever you're ready from the Products tab.",
+  },
+  {
+    question: "How do I handle a return or refund?",
+    answer: "Contact our support team via the 'Contact Us' option in Account. Our team will guide you through the return and refund process.",
+  },
+  {
+    question: "Why is my withdrawal showing as 'Pending'?",
+    answer: "Withdrawals may take 1–3 business days depending on your bank. If it stays pending for longer, please contact support.",
+  },
+  {
+    question: "How do I close my vendor account?",
+    answer: "Go to Account → Close Account. Note that closing your account is permanent and will remove all your listings and earnings history.",
   },
 ];
 
@@ -74,7 +79,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
-export default function FAQsScreen() {
+export default function VendorFaqsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -98,7 +103,7 @@ export default function FAQsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text className="text-[14px] text-gray-500 mb-6 leading-[20px]">
-          Find answers to common questions about using Dandelionz.
+          Frequently asked questions about selling on Dandelionz.
         </Text>
 
         {FAQS.map((faq, i) => (

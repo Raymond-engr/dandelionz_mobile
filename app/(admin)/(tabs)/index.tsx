@@ -1,16 +1,17 @@
 import { useAppSelector } from "@/lib/hooks";
 import { useGetAnalyticsQuery } from "@/lib/api/adminApi";
-import { useRouter } from "expo-router";
-import React from "react";
+import { router } from "expo-router";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
+  Pressable,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
 
@@ -53,18 +54,17 @@ function StatCard({ label, value, icon, iconBg, isLoading, change = "+0.00%" }: 
 }
 
 export default function AdminDashboard() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
   const user = useAppSelector((state) => state.auth.user);
-  const unreadCount = useAppSelector((state) => state.notification.unreadCount);
+  // const unreadCount = useAppSelector((state) => state.notification.unreadCount);
+  const unreadCount = 0;
   
-  const [period, setPeriod] = React.useState<"weekly" | "monthly" | "annual">("weekly");
+  const [filters, setFilters] = useState<{ period: "weekly" | "monthly" | "annual" }>({ period: "weekly" });
 
   const { data: analyticsResponse, isLoading, refetch } =
-    useGetAnalyticsQuery({ period });
+    useGetAnalyticsQuery(filters);
 
   const analytics = analyticsResponse?.data;
-  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   async function onRefresh() {
     setRefreshing(true);
@@ -73,7 +73,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -106,19 +106,19 @@ export default function AdminDashboard() {
         <View className="px-4 mb-6">
           <View className="flex-row bg-gray-100 p-1 rounded-xl">
             {(["weekly", "monthly", "annual"] as const).map((p) => (
-              <TouchableOpacity
+              <Pressable
                 key={p}
-                onPress={() => setPeriod(p)}
+                onPress={() => setFilters({ period: p })}
                 className={`flex-1 py-2.5 rounded-lg items-center ${
-                  period === p
+                  filters.period === p
                     ? "bg-white shadow-sm"
                     : ""
                 }`}
               >
-                <Text className={`text-[13px] font-bold ${period === p ? "text-system-blue-dark" : "text-gray-500"}`}>
+                <Text className={`text-[13px] font-bold ${filters.period === p ? "text-system-blue-dark" : "text-gray-500"}`}>
                   {p.charAt(0).toUpperCase() + p.slice(1)}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
         </View>
@@ -192,6 +192,6 @@ export default function AdminDashboard() {
           </View>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

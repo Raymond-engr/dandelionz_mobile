@@ -1,21 +1,25 @@
 import React, { useEffect } from "react";
 import { BottomTabBar } from "@/components/bottom-tab-bar";
 import { useAppSelector } from "@/lib/hooks";
-import { Tabs, useRouter } from "expo-router";
+import { Tabs, useRouter, useSegments } from "expo-router";
 
 export default function TabsLayout() {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const router = useRouter();
+  const segments = useSegments();
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      if (user.role === "BUSINESS_ADMIN") {
+      // Only redirect if we are currently in the (tabs) segment
+      const inTabs = segments[0] === "(tabs)";
+      
+      if (user.role === "BUSINESS_ADMIN" && inTabs) {
         router.replace("/(admin)/(tabs)");
-      } else if (user.role === "VENDOR") {
+      } else if (user.role === "VENDOR" && inTabs) {
         router.replace("/vendor/(tabs)");
       }
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user?.role, segments]);
 
   return (
     <Tabs

@@ -8,6 +8,7 @@ import React from "react";
 import {
     ActivityIndicator,
     Image,
+    Alert,
     Pressable,
     ScrollView,
     Text,
@@ -51,6 +52,17 @@ export default function VendorAccountScreen() {
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const logout = useLogout();
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Log Out",
+      "Are you sure you want to log out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Log Out", onPress: logout, style: "destructive" }
+      ]
+    );
+  };
 
   const { data: profileData, isLoading } = useGetVendorProfileQuery(undefined, {
     skip: !isAuthenticated,
@@ -123,7 +135,7 @@ export default function VendorAccountScreen() {
 
       {/* Group 2: Logout & Close Account */}
       <View>
-        <MenuRow label="Logout" onPress={logout} danger />
+        <MenuRow label="Logout" onPress={handleLogout} danger />
         <MenuRow label="Close Account" onPress={() => router.push("/vendor/account/delete" as any)} danger last />
       </View>
 
@@ -131,8 +143,8 @@ export default function VendorAccountScreen() {
 
       {/* Group 3: FAQs, Terms, Contact Us */}
       <View>
-        <MenuRow label="FAQs" onPress={() => router.push("/vendor/account/faqs" as any)} />
-        <MenuRow label="Terms and Conditions" onPress={() => router.push("/vendor/account/terms" as any)} />
+        <MenuRow label="FAQs" onPress={() => router.push("/vendor/account/vendor-faqs" as any)} />
+        <MenuRow label="Terms and Conditions" onPress={() => router.push("/vendor/account/vendor-terms" as any)} />
         <MenuRow label="Contact Us" onPress={() => router.push("/contact" as any)} last />
       </View>
 

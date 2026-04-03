@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useLoginMutation } from "@/lib/api/authApi";
 import { setCredentials } from "@/lib/features/auth/authSlice";
 import { useAppDispatch } from "@/lib/hooks";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -15,7 +15,6 @@ import {
 } from "react-native";
 
 export default function LoginScreen() {
-  const router = useRouter();
   const dispatch = useAppDispatch();
   const [login, { isLoading }] = useLoginMutation();
 
@@ -53,7 +52,8 @@ export default function LoginScreen() {
         } else if (userRole === "VENDOR") {
           router.replace("/vendor");
         } else {
-          router.replace("/(tabs)");
+          // Explicitly target the index screen of the tabs
+          router.replace("/(tabs)/");
         }
       }
     } catch (err: any) {

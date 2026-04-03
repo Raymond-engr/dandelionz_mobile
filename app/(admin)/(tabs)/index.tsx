@@ -108,7 +108,11 @@ export default function AdminDashboard() {
             {(["weekly", "monthly", "annual"] as const).map((p) => (
               <Pressable
                 key={p}
-                onPress={() => setFilters({ period: p })}
+                onPress={() => {
+                  setTimeout(() => {
+                    setFilters({ period: p });
+                  }, 0);
+                }}
                 className={`flex-1 py-2.5 rounded-lg items-center ${
                   filters.period === p
                     ? "bg-white shadow-sm"

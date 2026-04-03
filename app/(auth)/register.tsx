@@ -113,7 +113,11 @@ export default function RegisterScreen() {
             {/* Role Selector */}
             <View className="flex-row mb-[28px] bg-gray-100 p-1 rounded-xl">
               <Pressable
-                onPress={() => setFilters({ role: "CUSTOMER" })}
+                onPress={() => {
+                  setTimeout(() => {
+                    setFilters({ role: "CUSTOMER" });
+                  }, 0);
+                }}
                 className={`flex-1 py-2 rounded-lg items-center ${filters.role === "CUSTOMER" ? "bg-white shadow-sm" : ""}`}
               >
                 <Text className={`font-medium ${filters.role === "CUSTOMER" ? "text-system-blue-dark" : "text-gray-500"}`}>
@@ -121,7 +125,11 @@ export default function RegisterScreen() {
                 </Text>
               </Pressable>
               <Pressable
-                onPress={() => setFilters({ role: "VENDOR" })}
+                onPress={() => {
+                  setTimeout(() => {
+                    setFilters({ role: "VENDOR" });
+                  }, 0);
+                }}
                 className={`flex-1 py-2 rounded-lg items-center ${filters.role === "VENDOR" ? "bg-white shadow-sm" : ""}`}
               >
                 <Text className={`font-medium ${filters.role === "VENDOR" ? "text-system-blue-dark" : "text-gray-500"}`}>

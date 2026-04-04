@@ -22,6 +22,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatCurrency } from "@/lib/utils";
+import Toast from "react-native-toast-message";
 
 type ProductType = "store" | "draft";
 
@@ -61,9 +62,13 @@ export default function VendorProductsScreen() {
   const handleSubmitDraft = async (slug: string) => {
     try {
       await submitDraft(slug).unwrap();
-      Alert.alert("Success", "Product submitted for approval!");
+      Toast.show({ type: "success", text1: "Product submitted for approval!" });
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.message || "Failed to submit product");
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || "Failed to submit product" 
+      });
     }
   };
 
@@ -89,8 +94,13 @@ export default function VendorProductsScreen() {
       } else {
         await deleteDraft(slug).unwrap();
       }
+      Toast.show({ type: "success", text1: "Product deleted successfully" });
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.message || "Failed to delete product");
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || "Failed to delete product" 
+      });
     }
   };
 

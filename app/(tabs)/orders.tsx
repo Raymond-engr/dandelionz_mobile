@@ -1,39 +1,62 @@
-import { Divider } from "@/components/ui/divider";
 import { OrderListItemSkeleton } from "@/components/OrderListItemSkeleton";
+import { Divider } from "@/components/ui/divider";
 import { useGetCustomerOrdersQuery } from "@/lib/api/publicApi";
 import { useAppSelector } from "@/lib/hooks";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    FlatList,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    Text,
-    View,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const STATUS_TABS = ["All", "Pending", "Shipped", "Delivered", "Cancelled"];
+const STATUS_TABS = [
+  "All",
+  "Pending",
+  "Paid",
+  "Shipped",
+  "Delivered",
+  "Cancelled",
+];
+
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  pending: { bg: "#FEF3C7", text: "#D97706" },
+  paid: { bg: "#DBEAFE", text: "#2563EB" },
+  shipped: { bg: "#EDE9FE", text: "#7C3AED" },
+  delivered: { bg: "#D1FAE5", text: "#059669" },
+  cancelled: { bg: "#FEE2E2", text: "#DC2626" },
+};
 
 export default function OrdersScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const [activeTab, setActiveTab] = useState("All");
+  const [refreshing, setRefreshing] = useState(false);
 
+  // Always fetch all orders — filter client-side
+  // (the API status filter uses uppercase but is unreliable cross-backend)
   const {
     data: ordersResponse,
     isLoading,
     refetch,
-  } = useGetCustomerOrdersQuery(
-    activeTab === "All" ? {} : { status: activeTab.toLowerCase() },
-    { skip: !isAuthenticated },
-  );
+  } = useGetCustomerOrdersQuery({}, { skip: !isAuthenticated });
 
-  const orders = Array.isArray(ordersResponse) ? ordersResponse : [];
+  const allOrders = Array.isArray(ordersResponse) ? ordersResponse : [];
 
-  const [refreshing, setRefreshing] = useState(false);
+  // Client-side filter
+  const orders =
+    activeTab === "All"
+      ? allOrders
+      : allOrders.filter(
+          (item) => item.status?.toLowerCase() === activeTab.toLowerCase(),
+        );
+
   const onRefresh = async () => {
     setRefreshing(true);
     await refetch();
@@ -42,7 +65,10 @@ export default function OrdersScreen() {
 
   if (!isAuthenticated) {
     return (
-      <View className="flex-1 bg-white items-center justify-center p-8 gap-4">
+      <View
+        className="flex-1 bg-white items-center justify-center p-8 gap-4"
+        style={{ paddingTop: insets.top }}
+      >
         <Text className="text-[18px] font-semibold text-system-blue-dark">
           Log in to see your orders
         </Text>
@@ -59,20 +85,18 @@ export default function OrdersScreen() {
   return (
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
       {/* Header */}
-      <View className="px-[21px] py-4">
+      <View className="px-[21px] py-4 border-b border-gray-100">
         <Text className="text-[24px] font-bold text-system-blue-dark text-center">
           My Orders
         </Text>
       </View>
 
-      <Divider />
-
-      {/* Tabs */}
-      <View className="py-4">
+      {/* Filter tabs */}
+      <View className="py-3">
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 21, gap: 12 }}
+          contentContainerStyle={{ paddingHorizontal: 21, gap: 10 }}
         >
           {STATUS_TABS.map((tab) => (
             <Pressable
@@ -85,7 +109,7 @@ export default function OrdersScreen() {
               }`}
             >
               <Text
-                className={`text-[14px] font-medium ${
+                className={`text-[13px] font-semibold ${
                   activeTab === tab ? "text-white" : "text-gray-500"
                 }`}
               >
@@ -96,8 +120,11 @@ export default function OrdersScreen() {
         </ScrollView>
       </View>
 
+      <Divider height={1} />
+
       {isLoading && !refreshing ? (
-        <View className="pt-4">
+        <View className="pt-4 px-[21px]">
+          <OrderListItemSkeleton />
           <OrderListItemSkeleton />
           <OrderListItemSkeleton />
           <OrderListItemSkeleton />
@@ -106,63 +133,87 @@ export default function OrdersScreen() {
         <FlatList
           data={orders}
           keyExtractor={(item) => item.order_id}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: 100, paddingTop: 8 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#030482"
+            />
           }
-          ListEmptyComponent={
+          ListEmptyComponent={() => (
             <View className="items-center justify-center pt-20 px-10">
-              <Text className="text-[16px] text-[#6B7280] text-center">
-                You haven&apos;t placed any orders yet.
+              <Ionicons name="receipt-outline" size={64} color="#D1D5DB" />
+              <Text className="text-[18px] font-bold text-system-blue-dark mt-4">
+                No orders found
+              </Text>
+              <Text className="text-[14px] text-gray-500 text-center mt-2">
+                {activeTab === "All"
+                  ? "You haven't placed any orders yet."
+                  : `No ${activeTab.toLowerCase()} orders found.`}
               </Text>
             </View>
-          }
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: "/order-receipt" as any,
-                  params: { id: item.order_id },
-                })
-              }
-              className="mx-[21px] mb-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm"
-            >
-              <View className="flex-row justify-between items-center mb-3">
-                <Text className="text-[14px] font-bold text-system-blue-dark">
-                  #{item.order_id}
-                </Text>
-                <View
-                  className={`px-3 py-1 rounded-full ${
-                    item.status === "Delivered" ? "bg-green-50" : "bg-blue-50"
-                  }`}
-                >
-                  <Text
-                    className={`text-[12px] font-semibold ${
-                      item.status === "Delivered"
-                        ? "text-green-600"
-                        : "text-system-blue-light"
-                    }`}
-                  >
-                    {item.status}
-                  </Text>
-                </View>
-              </View>
-
-              <View className="flex-row justify-between items-end">
-                <View>
-                  <Text className="text-[12px] text-[#6B7280] mb-1">
-                    {new Date(item.ordered_at).toLocaleDateString()}
-                  </Text>
-                  <Text className="text-[16px] font-bold text-system-blue-dark">
-                    ₦{parseFloat(item.total_with_delivery).toLocaleString()}
-                  </Text>
-                </View>
-                <Text className="text-system-blue-light font-semibold text-[14px]">
-                  View Receipt ›
-                </Text>
-              </View>
-            </Pressable>
           )}
+          renderItem={({ item }) => {
+            const statusKey = item.status?.toLowerCase() || "pending";
+            const color = STATUS_COLORS[statusKey] || STATUS_COLORS.pending;
+
+            return (
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: "/order-receipt" as any,
+                    params: { id: item.order_id },
+                  })
+                }
+                className="mx-[21px] mb-3 bg-white rounded-2xl border border-gray-100 p-4 shadow-sm active:opacity-80"
+              >
+                {/* Order ID + Status */}
+                <View className="flex-row justify-between items-center mb-2">
+                  <Text
+                    className="text-[14px] font-bold text-system-blue-dark"
+                    numberOfLines={1}
+                    style={{ maxWidth: "60%" }}
+                  >
+                    #{item.order_id.slice(0, 8)}
+                  </Text>
+                  <View
+                    className="px-3 py-1 rounded-full"
+                    style={{ backgroundColor: color.bg }}
+                  >
+                    <Text
+                      className="text-[11px] font-bold uppercase"
+                      style={{ color: color.text }}
+                    >
+                      {item.status}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Date */}
+                <Text className="text-[12px] text-[#9CA3AF] mb-2">
+                  {new Date(item.ordered_at).toLocaleDateString("en-NG", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </Text>
+
+                {/* Total + CTA */}
+                <View className="flex-row justify-between items-center">
+                  <Text className="text-[18px] font-bold text-system-blue-dark">
+                    ₦
+                    {parseFloat(
+                      item.total_with_delivery || "0",
+                    ).toLocaleString()}
+                  </Text>
+                  <Text className="text-system-blue-light font-semibold text-[13px]">
+                    View Receipt ›
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          }}
         />
       )}
     </View>

@@ -18,6 +18,7 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import { Divider } from "@/components/ui/divider";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
+import Toast from "react-native-toast-message";
 
 export default function UserDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,17 +41,25 @@ export default function UserDetail() {
   const handleAction = async () => {
     if (!user) return;
     if (!reason.trim()) {
-      Alert.alert("Error", "Please provide a reason for this action.");
+      Toast.show({ type: "error", text1: "Error", text2: "Please provide a reason for this action." });
       return;
     }
 
     try {
       await updateUserStatus({ uuid: user.uuid, action, reason }).unwrap();
-      Alert.alert("Success", `User successfully ${action === "suspend" ? "suspended" : "activated"}`);
+      Toast.show({ 
+        type: "success", 
+        text1: "Success", 
+        text2: `User successfully ${action === "suspend" ? "suspended" : "activated"}` 
+      });
       setReason("");
       refetch();
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.message || "Failed to update user status");
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || "Failed to update user status" 
+      });
     }
   };
 

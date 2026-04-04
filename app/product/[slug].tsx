@@ -30,6 +30,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -100,7 +101,11 @@ export default function ProductDetailScreen() {
     if (Object.keys(variantOptions).length > 0) {
       const missingVariants = Object.keys(variantOptions).filter(v => !selectedVariants[v]);
       if (missingVariants.length > 0) {
-        Alert.alert("Selection Required", `Please select ${missingVariants.join(', ')}`);
+        Toast.show({
+          type: "error",
+          text1: "Selection Required",
+          text2: `Please select ${missingVariants.join(", ")}`,
+        });
         return;
       }
     }
@@ -108,11 +113,17 @@ export default function ProductDetailScreen() {
     try {
       if (isInCart) {
         await removeFromCart({ slug: product.slug, selected_variants: selectedVariants }).unwrap();
+        Toast.show({ type: "success", text1: "Removed from cart" });
       } else {
         await addToCart({ slug: product.slug, quantity, selected_variants: selectedVariants }).unwrap();
+        Toast.show({ type: "success", text1: "Added to cart" });
       }
     } catch (err: any) {
-      Alert.alert("Error", err.data?.error || "Failed to update cart");
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: err.data?.error || "Failed to update cart",
+      });
     }
   };
 
@@ -123,10 +134,15 @@ export default function ProductDetailScreen() {
     }
     if (!product || !product.slug) return;
     try {
-      if (isInWishlist) await removeFromWishlist(product.slug).unwrap();
-      else await addToWishlist({ slug: product.slug }).unwrap();
+      if (isInWishlist) {
+        await removeFromWishlist(product.slug).unwrap();
+        Toast.show({ type: "success", text1: "Removed from wishlist" });
+      } else {
+        await addToWishlist({ slug: product.slug }).unwrap();
+        Toast.show({ type: "success", text1: "Added to wishlist" });
+      }
     } catch {
-      Alert.alert("Error", "Failed to update wishlist");
+      Toast.show({ type: "error", text1: "Failed to update wishlist" });
     }
   };
 
@@ -135,18 +151,28 @@ export default function ProductDetailScreen() {
       router.push("/(auth)/login");
       return;
     }
-    if (userRating === 0) { Alert.alert("Error", "Please select a rating"); return; }
-    if (!userComment.trim()) { Alert.alert("Error", "Please enter a comment"); return; }
+    if (userRating === 0) {
+      Toast.show({ type: "error", text1: "Please select a rating" });
+      return;
+    }
+    if (!userComment.trim()) {
+      Toast.show({ type: "error", text1: "Please enter a comment" });
+      return;
+    }
 
     try {
       await addProductReview({ slug, rating: userRating, comment: userComment }).unwrap();
-      Alert.alert("Success", "Review submitted successfully");
+      Toast.show({ type: "success", text1: "Review submitted successfully" });
       setUserRating(0);
       setUserComment("");
       refetchProduct();
       refetchReviews();
     } catch (err: any) {
-      Alert.alert("Error", err.data?.message || "Failed to submit review");
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: err.data?.message || "Failed to submit review",
+      });
     }
   };
 

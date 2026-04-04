@@ -22,6 +22,7 @@ interface VendorProfile {
   longitude?: number;
   bank_name: string;
   account_number: string;
+  account_name: string;
   recipient_code: string;
   is_verified_vendor: boolean;
 }

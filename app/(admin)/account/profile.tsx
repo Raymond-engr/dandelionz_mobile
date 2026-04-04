@@ -4,12 +4,15 @@ import { Colors } from "@/constants/theme";
 import {
   useGetAdminProfileQuery,
   useUpdateAdminProfileMutation,
+  useUploadAdminPhotoMutation,
 } from "@/lib/api/adminApi";
 import { MaterialIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -20,6 +23,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function AdminProfileScreen() {
   const router = useRouter();
@@ -31,6 +35,7 @@ export default function AdminProfileScreen() {
   } = useGetAdminProfileQuery();
   const [updateProfile, { isLoading: isSaving }] =
     useUpdateAdminProfileMutation();
+  const [uploadPhoto] = useUploadAdminPhotoMutation();
 
   const [isEditing, setIsEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -53,17 +58,41 @@ export default function AdminProfileScreen() {
     }
   }, [profile]);
 
+  const handlePickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const uri = result.assets[0].uri;
+      const filename = uri.split("/").pop() || "photo.jpg";
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : "image/jpeg";
+      const form = new FormData();
+      form.append("profile_picture", { uri, name: filename, type } as any);
+      try {
+        await uploadPhoto(form).unwrap();
+        Toast.show({ type: "success", text1: "Profile photo updated!" });
+        refetch();
+      } catch {
+        Toast.show({ type: "error", text1: "Failed to upload photo" });
+      }
+    }
+  };
+
   const handleSave = async () => {
     try {
       await updateProfile({
         full_name: formData.fullName,
         phone_number: formData.phoneNumber,
       }).unwrap();
-      Alert.alert("Success", "Profile updated successfully");
+      Toast.show({ type: "success", text1: "Profile updated successfully" });
       setIsEditing(false);
       refetch();
     } catch (err) {
-      Alert.alert("Error", "Failed to update profile");
+      Toast.show({ type: "error", text1: "Failed to update profile" });
     }
   };
 
@@ -107,14 +136,24 @@ export default function AdminProfileScreen() {
         <View className="p-[21px]">
           {/* Profile Picture */}
           <View className="flex-row items-center gap-4 mb-8">
-            <View className="w-[64px] h-[64px] rounded-full bg-system-blue-light items-center justify-center relative">
-              <Text className="text-white text-[22px] font-bold">
-                {initials}
-              </Text>
+            <TouchableOpacity onPress={handlePickImage} className="relative">
+              <View className="w-[64px] h-[64px] rounded-full bg-system-blue-light items-center justify-center overflow-hidden">
+                {profile?.profile_picture ? (
+                  <Image
+                    source={{ uri: profile.profile_picture }}
+                    className="w-full h-full"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text className="text-white text-[22px] font-bold">
+                    {initials}
+                  </Text>
+                )}
+              </View>
               <View className="absolute bottom-0 right-0 w-6 h-6 bg-system-blue-light rounded-full items-center justify-center border-2 border-white">
                 <MaterialIcons name="camera-alt" size={12} color="white" />
               </View>
-            </View>
+            </TouchableOpacity>
             <View>
               <Text className="text-[18px] font-bold text-system-blue-dark">
                 {formData.fullName || "Admin User"}

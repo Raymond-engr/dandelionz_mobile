@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function VendorChangePasswordScreen() {
   const router = useRouter();
@@ -38,19 +39,19 @@ export default function VendorChangePasswordScreen() {
     if (passwords.current) {
       setStep(2);
     } else {
-      Alert.alert("Error", "Please enter your current password.");
+      Toast.show({ type: "error", text1: "Please enter your current password." });
     }
   };
 
   const handleUpdate = async () => {
     const c = validatePassword(passwords.new);
     if (!c.length || !c.uppercase || !c.lowercase || !c.special) {
-      Alert.alert("Error", "New password does not meet security requirements.");
+      Toast.show({ type: "error", text1: "New password does not meet security requirements." });
       return;
     }
 
     if (passwords.new !== passwords.confirm) {
-      Alert.alert("Error", "Passwords do not match.");
+      Toast.show({ type: "error", text1: "Passwords do not match." });
       return;
     }
 
@@ -60,10 +61,14 @@ export default function VendorChangePasswordScreen() {
         new_password: passwords.new,
       }).unwrap();
       
-      Alert.alert("Success", "Password changed successfully!");
+      Toast.show({ type: "success", text1: "Password changed successfully!" });
       router.back();
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.message || "Failed to change password. Please check your current password.");
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || "Failed to change password." 
+      });
       setStep(1);
     }
   };

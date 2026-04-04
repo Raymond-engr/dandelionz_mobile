@@ -21,6 +21,7 @@ import {
   Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function VendorNotificationsScreen() {
   const router = useRouter();
@@ -48,9 +49,9 @@ export default function VendorNotificationsScreen() {
   const handleMarkAllRead = async () => {
     try {
       await markAllAsRead().unwrap();
-      Alert.alert("Success", "All notifications marked as read.");
+      Toast.show({ type: "success", text1: "All notifications marked as read." });
     } catch (err) {
-      Alert.alert("Error", "Failed to mark all as read.");
+      Toast.show({ type: "error", text1: "Failed to mark all as read." });
     }
   };
 
@@ -66,9 +67,10 @@ export default function VendorNotificationsScreen() {
           onPress: async () => {
             try {
               await deleteNotification(id).unwrap();
+              Toast.show({ type: "success", text1: "Notification deleted" });
               refetch();
             } catch (err) {
-              Alert.alert("Error", "Failed to delete notification.");
+              Toast.show({ type: "error", text1: "Failed to delete notification." });
             }
           }
         }

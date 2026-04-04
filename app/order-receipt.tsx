@@ -5,8 +5,9 @@ import { useGetOrderReceiptQuery } from "@/lib/api/publicApi";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function OrderReceiptScreen() {
   const router = useRouter();
@@ -24,7 +25,11 @@ export default function OrderReceiptScreen() {
   const receiptData = response?.data;
 
   const handleExport = () => {
-    Alert.alert("Export Receipt", "The export feature is coming soon!");
+    Toast.show({
+      type: "info",
+      text1: "Export Receipt",
+      text2: "The export feature is coming soon!",
+    });
   };
 
   const renderHeader = () => (
@@ -164,7 +169,7 @@ export default function OrderReceiptScreen() {
           </View>
 
           {/* Actions */}
-          <View className="space-y-4">
+          <View className="gap-4">
             <Button onPress={handleExport}>Export Receipt</Button>
             <Button
               variant="outline"

@@ -21,6 +21,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
 
 export default function CategoryEdit() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -51,10 +52,11 @@ export default function CategoryEdit() {
   async function pickImage() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
-        "Permission required",
-        "Please allow photo library access to upload a category image.",
-      );
+      Toast.show({ 
+        type: "error", 
+        text1: "Permission required", 
+        text2: "Please allow photo library access to upload a category image." 
+      });
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -70,12 +72,12 @@ export default function CategoryEdit() {
 
   async function handleSave() {
     if (!name.trim()) {
-      Alert.alert("Validation", "Category name is required.");
+      Toast.show({ type: "error", text1: "Validation", text2: "Category name is required." });
       return;
     }
     
     if (isNew && !imageUri) {
-      Alert.alert("Validation", "Category image is required for new categories.");
+      Toast.show({ type: "error", text1: "Validation", text2: "Category image is required for new categories." });
       return;
     }
 
@@ -96,17 +98,19 @@ export default function CategoryEdit() {
 
       if (isNew) {
         await createCategory(formData).unwrap();
-        Alert.alert("Success", "Category created successfully.", [
-          { text: "OK", onPress: () => router.back() },
-        ]);
+        Toast.show({ type: "success", text1: "Category created successfully." });
+        router.back();
       } else {
         await updateCategory({ slug: id!, data: formData }).unwrap();
-        Alert.alert("Success", "Category updated successfully.", [
-          { text: "OK", onPress: () => router.back() },
-        ]);
+        Toast.show({ type: "success", text1: "Category updated successfully." });
+        router.back();
       }
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.message || `Failed to ${isNew ? 'create' : 'update'} category.`);
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || `Failed to ${isNew ? "create" : "update"} category.` 
+      });
     }
   }
 

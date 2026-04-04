@@ -20,6 +20,7 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import { Divider } from "@/components/ui/divider";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
+import Toast from "react-native-toast-message";
 
 export default function ProductDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,14 +41,18 @@ export default function ProductDetail() {
     try {
       if (action === "Approve Product") {
         await approveProduct(id!).unwrap();
-        Alert.alert("Success", "Product approved successfully!");
+        Toast.show({ type: "success", text1: "Product approved successfully!" });
       } else {
         await rejectProduct({ slug: id!, reason: reason || undefined }).unwrap();
-        Alert.alert("Success", "Product rejected successfully!");
+        Toast.show({ type: "success", text1: "Product rejected successfully!" });
       }
       refetch();
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.message || "Failed to perform action");
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || "Failed to perform action" 
+      });
     }
   };
 

@@ -4,9 +4,10 @@ import { Divider } from "@/components/ui/divider";
 import { useInitializeCheckoutMutation, useInitializeInstallmentCheckoutMutation } from "@/lib/api/publicApi";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Pressable, ScrollView, Text, View, TouchableOpacity, Alert } from "react-native";
+import { Pressable, ScrollView, Text, View, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
 
 export default function CheckoutPayment() {
   const router = useRouter();
@@ -43,10 +44,14 @@ export default function CheckoutPayment() {
           }
         });
       } else {
-        Alert.alert("Error", "Could not initialize payment. Please try again.");
+        Toast.show({ type: "error", text1: "Could not initialize payment. Please try again." });
       }
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.error || err?.data?.message || "Payment initiation failed.");
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.error || err?.data?.message || "Payment initiation failed." 
+      });
     }
   };
 

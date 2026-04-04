@@ -11,9 +11,9 @@ export default function AdminLayout() {
     } else if (user.role !== "BUSINESS_ADMIN") {
       router.replace("/(tabs)");
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user?.role, user?.uuid]);
 
-  // Return null or a loading state while redirecting to avoid 
+  // Return null or a loading state while redirecting to avoid
   // rendering children that might depend on auth context
   if (!isAuthenticated || !user || user.role !== "BUSINESS_ADMIN") {
     return null;
@@ -96,6 +96,14 @@ export default function AdminLayout() {
       <Stack.Screen
         name="product/new"
         options={{ headerShown: false, title: "New Product" }}
+      />
+      <Stack.Screen
+        name="product/[id]/edit"
+        options={{ headerShown: false, title: "Edit Product" }}
+      />
+      <Stack.Screen
+        name="product/category/[id]/edit"
+        options={{ headerShown: false, title: "Category" }}
       />
       <Stack.Screen
         name="users/[id]"

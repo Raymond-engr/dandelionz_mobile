@@ -19,6 +19,7 @@ import {
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { formatCurrency } from "@/lib/utils";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function OrderDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -39,7 +40,7 @@ export default function OrderDetails() {
     try {
       if (action === "cancel") {
         if (!reason.trim()) {
-          Alert.alert("Error", "Please provide a reason for cancellation.");
+          Toast.show({ type: "error", text1: "Error", text2: "Please provide a reason for cancellation." });
           return;
         }
         await cancelOrder({ order_id: order.order_id, reason }).unwrap();
@@ -48,10 +49,14 @@ export default function OrderDetails() {
       } else if (action === "complete") {
         await updateOrderStatus({ order_id: order.order_id, status: "DELIVERED" }).unwrap();
       }
-      Alert.alert("Success", "Order status updated successfully.");
+      Toast.show({ type: "success", text1: "Order status updated successfully." });
       refetch();
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.message || "Failed to update order status");
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || "Failed to update order status" 
+      });
     }
   };
 

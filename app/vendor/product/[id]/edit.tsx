@@ -25,6 +25,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 const CATEGORIES = [
   "Fashion",
@@ -167,7 +168,7 @@ export default function EditProductScreen() {
         }).unwrap();
       }
       
-      Alert.alert("Success", "Product updated successfully!");
+      Toast.show({ type: "success", text1: "Product updated successfully!" });
       router.back();
     } catch (err: any) {
       setErrors({ submit: err?.data?.message ?? "Failed to save product." });

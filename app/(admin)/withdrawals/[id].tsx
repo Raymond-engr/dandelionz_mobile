@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatCurrency } from "@/lib/utils";
+import Toast from "react-native-toast-message";
 
 export default function AdminWithdrawalDetail() {
   const router = useRouter();
@@ -43,10 +44,14 @@ export default function AdminWithdrawalDetail() {
           onPress: async () => {
             try {
               await approve({ withdrawal_id: id! }).unwrap();
-              Alert.alert("Success", "Withdrawal approved successfully.");
+              Toast.show({ type: "success", text1: "Withdrawal approved successfully." });
               router.back();
             } catch (err: any) {
-              Alert.alert("Error", err?.data?.message || "Failed to approve withdrawal.");
+              Toast.show({ 
+                type: "error", 
+                text1: "Error", 
+                text2: err?.data?.message || "Failed to approve withdrawal." 
+              });
             }
           }
         }
@@ -64,15 +69,19 @@ export default function AdminWithdrawalDetail() {
           text: "Reject",
           onPress: async (reason?: string) => {
             if (!reason) {
-              Alert.alert("Error", "A reason is required to reject a withdrawal.");
+              Toast.show({ type: "error", text1: "A reason is required to reject a withdrawal." });
               return;
             }
             try {
               await reject({ withdrawal_id: id!, reason }).unwrap();
-              Alert.alert("Success", "Withdrawal rejected.");
+              Toast.show({ type: "success", text1: "Withdrawal rejected." });
               router.back();
             } catch (err: any) {
-              Alert.alert("Error", err?.data?.message || "Failed to reject withdrawal.");
+              Toast.show({ 
+                type: "error", 
+                text1: "Error", 
+                text2: err?.data?.message || "Failed to reject withdrawal." 
+              });
             }
           }
         }

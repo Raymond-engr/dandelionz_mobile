@@ -11,9 +11,9 @@ import {
   Text,
   View,
   Pressable,
-  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function AdminChangePin() {
   const router = useRouter();
@@ -31,25 +31,29 @@ export default function AdminChangePin() {
     const confP = confirmPin.join("");
 
     if (newP.length < 4 || confP.length < 4) {
-      Alert.alert("Error", "Please fill in all PIN fields.");
+      Toast.show({ type: "error", text1: "Please fill in all PIN fields." });
       return;
     }
 
     if (newP !== confP) {
-      Alert.alert("Error", "New PIN and confirm PIN do not match.");
+      Toast.show({ type: "error", text1: "New PIN and confirm PIN do not match." });
       return;
     }
 
     try {
       await changePin({ 
-        old_pin: oldP || undefined, 
+        current_pin: oldP || undefined, 
         new_pin: newP, 
         confirm_pin: confP 
       }).unwrap();
-      Alert.alert("Success", "Payment PIN updated successfully.");
+      Toast.show({ type: "success", text1: "Payment PIN updated successfully." });
       router.back();
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.message || "Failed to update PIN.");
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || "Failed to update PIN." 
+      });
     }
   };
 

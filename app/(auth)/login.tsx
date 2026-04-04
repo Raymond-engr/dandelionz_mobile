@@ -52,8 +52,7 @@ export default function LoginScreen() {
         } else if (userRole === "VENDOR") {
           router.replace("/vendor");
         } else {
-          // Explicitly target the index screen of the tabs
-          router.replace("/(tabs)/");
+          router.replace("/(tabs)");
         }
       }
     } catch (err: any) {

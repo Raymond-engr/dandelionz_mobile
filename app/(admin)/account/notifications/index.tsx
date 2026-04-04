@@ -24,6 +24,7 @@ import {
   Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function AdminNotificationManagement() {
   const router = useRouter();
@@ -67,30 +68,62 @@ export default function AdminNotificationManagement() {
   const handleMarkAllRead = async () => {
     try {
       await markAllAsRead().unwrap();
-      Alert.alert("Success", "All notifications marked as read.");
+      Toast.show({ type: "success", text1: "All notifications marked as read." });
     } catch (err) {
-      Alert.alert("Error", "Failed to mark all as read.");
+      Toast.show({ type: "error", text1: "Failed to mark all as read." });
     }
   };
 
   const handleDeleteInbox = (id: string) => {
     Alert.alert("Delete", "Delete this notification?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => deleteInbox(id) }
+      { 
+        text: "Delete", 
+        style: "destructive", 
+        onPress: async () => {
+          try {
+            await deleteInbox(id).unwrap();
+            Toast.show({ type: "success", text1: "Notification deleted." });
+          } catch (err) {
+            Toast.show({ type: "error", text1: "Failed to delete notification." });
+          }
+        }
+      }
     ]);
   };
 
   const handleDeleteSystem = (id: string) => {
     Alert.alert("Delete", "Delete this system notification?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => deleteSystem(id) }
+      { 
+        text: "Delete", 
+        style: "destructive", 
+        onPress: async () => {
+          try {
+            await deleteSystem(id).unwrap();
+            Toast.show({ type: "success", text1: "System notification deleted." });
+          } catch (err) {
+            Toast.show({ type: "error", text1: "Failed to delete system notification." });
+          }
+        }
+      }
     ]);
   };
 
   const handlePublish = (id: string) => {
     Alert.alert("Publish", "Publish this draft notification?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Publish", onPress: () => publishNotif(id) }
+      { 
+        text: "Publish", 
+        onPress: async () => {
+          try {
+            await publishNotif(id).unwrap();
+            Toast.show({ type: "success", text1: "Notification published successfully." });
+          } catch (err) {
+            Toast.show({ type: "error", text1: "Failed to publish notification." });
+          }
+        }
+      }
     ]);
   };
 

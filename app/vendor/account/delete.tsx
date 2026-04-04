@@ -1,6 +1,4 @@
-import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
-import { LoadingSpinner } from "@/components/loading-spinner";
 import { Colors } from "@/constants/theme";
 import { useDeleteAccountMutation } from "@/lib/api/vendorApi";
 import { useLogout } from "@/lib/hooks";
@@ -16,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function VendorDeleteAccountScreen() {
   const router = useRouter();
@@ -26,7 +25,10 @@ export default function VendorDeleteAccountScreen() {
 
   const handleDelete = async () => {
     if (!password) {
-      Alert.alert("Error", "Please enter your password to confirm.");
+      Toast.show({
+        type: "error",
+        text1: "Please enter your password to confirm.",
+      });
       return;
     }
 
@@ -35,20 +37,27 @@ export default function VendorDeleteAccountScreen() {
       "Are you absolutely sure you want to permanently close your account? This action cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Yes, Delete", 
+        {
+          text: "Yes, Delete",
           style: "destructive",
           onPress: async () => {
             try {
               await deleteAccount({ password }).unwrap();
-              Alert.alert("Success", "Your account has been closed.");
+              Toast.show({
+                type: "success",
+                text1: "Your account has been closed.",
+              });
               logout();
             } catch (err: any) {
-              Alert.alert("Error", err?.data?.message || "Failed to delete account. Please check your password.");
+              Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: err?.data?.message || "Failed to delete account.",
+              });
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
@@ -57,7 +66,7 @@ export default function VendorDeleteAccountScreen() {
       <Pressable onPress={() => router.back()} className="w-10">
         <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
       </Pressable>
-      <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
+      <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
         Close Account
       </Text>
       <View className="w-10" />
@@ -77,9 +86,11 @@ export default function VendorDeleteAccountScreen() {
         <Text className="text-[22px] font-bold text-system-blue-dark text-center mb-4">
           Do you wish to{"\n"}permanently close{"\n"}to account?
         </Text>
-        
+
         <View className="mb-8">
-          <Text className="text-[12px] font-bold text-gray-400 mb-2 uppercase">Enter Password to Confirm</Text>
+          <Text className="text-[12px] font-bold text-gray-400 mb-2 uppercase">
+            Enter Password to Confirm
+          </Text>
           <TextInput
             className="border border-gray-200 rounded-lg px-4 py-3 text-[16px] text-system-blue-dark"
             value={password}
@@ -94,7 +105,7 @@ export default function VendorDeleteAccountScreen() {
             onPress={handleDelete}
             disabled={isLoading || !password}
             className="flex-1 py-4 bg-white border border-gray-300 rounded-xl items-center justify-center"
-            style={{ opacity: (isLoading || !password) ? 0.5 : 1 }}
+            style={{ opacity: isLoading || !password ? 0.5 : 1 }}
           >
             <Text className="text-gray-900 font-bold text-[16px]">
               {isLoading ? "Deleting..." : "Yes Please"}

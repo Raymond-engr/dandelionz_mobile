@@ -7,7 +7,6 @@ import { addDays, format, isFuture, nextMonday, setHours, setMinutes } from "dat
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
   Platform,
   ScrollView,
   Text,
@@ -16,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function CreateNotificationScreen() {
   const router = useRouter();
@@ -99,12 +99,12 @@ export default function CreateNotificationScreen() {
 
   const handleSave = async (isDraft: boolean) => {
     if (!title || !description) {
-      Alert.alert("Error", "Please fill in all fields.");
+      Toast.show({ type: "error", text1: "Error", text2: "Please fill in all fields." });
       return;
     }
 
     if (scheduledDate && !isFuture(scheduledDate)) {
-      Alert.alert("Error", "Scheduled time must be in the future.");
+      Toast.show({ type: "error", text1: "Error", text2: "Scheduled time must be in the future." });
       return;
     }
 
@@ -120,10 +120,14 @@ export default function CreateNotificationScreen() {
       };
 
       await createNotification(body).unwrap();
-      Alert.alert("Success", isDraft ? "Draft saved successfully!" : "Notification created successfully!");
+      Toast.show({ 
+        type: "success", 
+        text1: "Success", 
+        text2: isDraft ? "Draft saved successfully!" : "Notification created successfully!" 
+      });
       router.back();
     } catch (err) {
-      Alert.alert("Error", "Failed to create notification.");
+      Toast.show({ type: "error", text1: "Error", text2: "Failed to create notification." });
     }
   };
 

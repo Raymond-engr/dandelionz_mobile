@@ -21,6 +21,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function VendorPaymentSettingsScreen() {
   const router = useRouter();
@@ -33,6 +34,7 @@ export default function VendorPaymentSettingsScreen() {
 
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
+  const [accountName, setAccountName] = useState("");
   const [pin, setPin] = useState(["", "", "", ""]);
   const [confirmPin, setConfirmPin] = useState(["", "", "", ""]);
   const [showPinForm, setShowPinPinForm] = useState(false);
@@ -41,20 +43,29 @@ export default function VendorPaymentSettingsScreen() {
     if (settingsData?.data) {
       setBankName(settingsData.data.bank_name || "");
       setAccountNumber(settingsData.data.account_number || "");
+      setAccountName(settingsData.data.account_name || "");
     }
   }, [settingsData]);
 
   const handleUpdateBank = async () => {
-    if (!bankName || !accountNumber) {
-      Alert.alert("Error", "Please fill in all bank details.");
+    if (!bankName || !accountNumber || !accountName) {
+      Toast.show({ type: "error", text1: "Please fill in all bank details." });
       return;
     }
     try {
-      await updateSettings({ bank_name: bankName, account_number: accountNumber }).unwrap();
-      Alert.alert("Success", "Bank details updated successfully!");
+      await updateSettings({ 
+        bank_name: bankName, 
+        account_number: accountNumber,
+        account_name: accountName 
+      }).unwrap();
+      Toast.show({ type: "success", text1: "Bank details updated successfully!" });
       refetch();
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.message || "Failed to update bank details");
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || "Failed to update bank details" 
+      });
     }
   };
 
@@ -63,22 +74,26 @@ export default function VendorPaymentSettingsScreen() {
     const cp = confirmPin.join("");
 
     if (p.length !== 4 || cp.length !== 4) {
-      Alert.alert("Error", "PIN must be 4 digits.");
+      Toast.show({ type: "error", text1: "PIN must be 4 digits." });
       return;
     }
     if (p !== cp) {
-      Alert.alert("Error", "PINs do not match.");
+      Toast.show({ type: "error", text1: "PINs do not match." });
       return;
     }
     try {
       await setPIN({ pin: p, confirm_pin: cp }).unwrap();
-      Alert.alert("Success", "Payment PIN set successfully!");
+      Toast.show({ type: "success", text1: "Payment PIN set successfully!" });
       setShowPinPinForm(false);
       setPin(["", "", "", ""]);
       setConfirmPin(["", "", "", ""]);
       refetch();
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.message || "Failed to set PIN");
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || "Failed to set PIN" 
+      });
     }
   };
 
@@ -93,9 +108,13 @@ export default function VendorPaymentSettingsScreen() {
           onPress: async () => {
             try {
               await requestReset().unwrap();
-              Alert.alert("Success", "PIN reset request sent!");
+              Toast.show({ type: "success", text1: "PIN reset request sent!" });
             } catch (err: any) {
-              Alert.alert("Error", err?.data?.message || "Failed to request reset");
+              Toast.show({ 
+                type: "error", 
+                text1: "Error", 
+                text2: err?.data?.message || "Failed to request reset" 
+              });
             }
           }
         }
@@ -145,7 +164,7 @@ export default function VendorPaymentSettingsScreen() {
             />
           </View>
 
-          <View className="mb-8">
+          <View className="mb-6">
             <Text className="text-[12px] font-bold text-gray-400 mb-2 uppercase tracking-wider">Account Number</Text>
             <TextInput
               className="border-b border-gray-200 py-3 text-[16px] text-system-blue-dark"
@@ -154,6 +173,16 @@ export default function VendorPaymentSettingsScreen() {
               placeholder="10-digit number"
               keyboardType="numeric"
               maxLength={10}
+            />
+          </View>
+
+          <View className="mb-8">
+            <Text className="text-[12px] font-bold text-gray-400 mb-2 uppercase tracking-wider">Account Name</Text>
+            <TextInput
+              className="border-b border-gray-200 py-3 text-[16px] text-system-blue-dark"
+              value={accountName}
+              onChangeText={setAccountName}
+              placeholder="e.g. John Doe"
             />
           </View>
 

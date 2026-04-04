@@ -6,12 +6,12 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-  Alert,
   Pressable,
   Text,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function VendorForgotPinScreen() {
   const router = useRouter();
@@ -21,13 +21,18 @@ export default function VendorForgotPinScreen() {
   const handleRequest = async () => {
     try {
       await requestReset().unwrap();
-      Alert.alert(
-        "Request Sent", 
-        "A PIN reset link has been sent to your registered email address.",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
+      Toast.show({ 
+        type: "success", 
+        text1: "Request Sent", 
+        text2: "A PIN reset link has been sent to your email." 
+      });
+      router.back();
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.message || "Failed to send reset request.");
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || "Failed to send reset request." 
+      });
     }
   };
 

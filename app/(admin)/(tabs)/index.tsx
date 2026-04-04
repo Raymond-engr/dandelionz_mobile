@@ -1,19 +1,18 @@
-import { useAppSelector } from "@/lib/hooks";
 import { useGetAnalyticsQuery } from "@/lib/api/adminApi";
+import { useAppSelector } from "@/lib/hooks";
+import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
-  Pressable,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
-import { Colors } from "@/constants/theme";
 
 type StatCardProps = {
   label: string;
@@ -23,12 +22,19 @@ type StatCardProps = {
   isLoading?: boolean;
 };
 
-function StatCard({ label, value, icon, iconBg, isLoading, change = "+0.00%" }: StatCardProps & { change?: string }) {
+function StatCard({
+  label,
+  value,
+  icon,
+  iconBg,
+  isLoading,
+  change = "+0.00%",
+}: StatCardProps & { change?: string }) {
   return (
     <View className="bg-white h-[110px] rounded-[12px] p-4 w-[48%] mb-4 justify-between border border-gray-100 shadow-sm">
       <View className="flex-row justify-between items-center">
         <Text className="text-[14px] font-medium text-gray-500">{label}</Text>
-        <View 
+        <View
           className="w-[29px] h-[29px] rounded-[6px] items-center justify-center"
           style={{ backgroundColor: iconBg }}
         >
@@ -57,11 +63,16 @@ export default function AdminDashboard() {
   const user = useAppSelector((state) => state.auth.user);
   // const unreadCount = useAppSelector((state) => state.notification.unreadCount);
   const unreadCount = 0;
-  
-  const [filters, setFilters] = useState<{ period: "weekly" | "monthly" | "annual" }>({ period: "weekly" });
 
-  const { data: analyticsResponse, isLoading, refetch } =
-    useGetAnalyticsQuery(filters);
+  const [filters, setFilters] = useState<{
+    period: "weekly" | "monthly" | "annual";
+  }>({ period: "weekly" });
+
+  const {
+    data: analyticsResponse,
+    isLoading,
+    refetch,
+  } = useGetAnalyticsQuery(filters);
 
   const analytics = analyticsResponse?.data;
   const [refreshing, setRefreshing] = useState(false);
@@ -78,7 +89,11 @@ export default function AdminDashboard() {
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#030482" />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#030482"
+          />
         }
       >
         {/* Header & Bell */}
@@ -91,7 +106,7 @@ export default function AdminDashboard() {
               Admin
             </Text>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => router.push("/(admin)/account/notifications" as any)}
             className="w-10 h-10 items-center justify-center bg-[#F5F7FA] rounded-full"
           >
@@ -108,18 +123,14 @@ export default function AdminDashboard() {
             {(["weekly", "monthly", "annual"] as const).map((p) => (
               <Pressable
                 key={p}
-                onPress={() => {
-                  setTimeout(() => {
-                    setFilters({ period: p });
-                  }, 0);
-                }}
+                onPress={() => setFilters({ period: p })}
                 className={`flex-1 py-2.5 rounded-lg items-center ${
-                  filters.period === p
-                    ? "bg-white shadow-sm"
-                    : ""
+                  filters.period === p ? "bg-white shadow-sm" : ""
                 }`}
               >
-                <Text className={`text-[13px] font-bold ${filters.period === p ? "text-system-blue-dark" : "text-gray-500"}`}>
+                <Text
+                  className={`text-[13px] font-bold ${filters.period === p ? "text-system-blue-dark" : "text-gray-500"}`}
+                >
                   {p.charAt(0).toUpperCase() + p.slice(1)}
                 </Text>
               </Pressable>
@@ -141,7 +152,13 @@ export default function AdminDashboard() {
             <StatCard
               label="Total Vendors"
               value={analytics?.total_vendors || 0}
-              icon={<MaterialCommunityIcons name="store-outline" size={16} color="#2563eb" />}
+              icon={
+                <MaterialCommunityIcons
+                  name="store-outline"
+                  size={16}
+                  color="#2563eb"
+                />
+              }
               iconBg="#DBEAFE"
               isLoading={isLoading}
               change="+0.00%"
@@ -166,9 +183,11 @@ export default function AdminDashboard() {
         </View>
 
         <View className="px-4 mt-6">
-          <Text className="text-[18px] font-bold text-system-blue-dark mb-4">Quick Actions</Text>
+          <Text className="text-[18px] font-bold text-system-blue-dark mb-4">
+            Quick Actions
+          </Text>
           <View className="gap-3">
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => router.push("/(admin)/(tabs)/orders")}
               className="flex-row items-center justify-between p-4 bg-white rounded-xl border border-gray-100"
             >
@@ -176,20 +195,28 @@ export default function AdminDashboard() {
                 <View className="w-10 h-10 rounded-full bg-blue-50 items-center justify-center">
                   <Feather name="package" size={20} color="#2563eb" />
                 </View>
-                <Text className="text-[16px] font-medium text-system-blue-dark">Manage Orders</Text>
+                <Text className="text-[16px] font-medium text-system-blue-dark">
+                  Manage Orders
+                </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => router.push("/(admin)/(tabs)/vendor")}
               className="flex-row items-center justify-between p-4 bg-white rounded-xl border border-gray-100"
             >
               <View className="flex-row items-center gap-3">
                 <View className="w-10 h-10 rounded-full bg-green-50 items-center justify-center">
-                  <MaterialCommunityIcons name="store-outline" size={20} color="#16a34a" />
+                  <MaterialCommunityIcons
+                    name="store-outline"
+                    size={20}
+                    color="#16a34a"
+                  />
                 </View>
-                <Text className="text-[16px] font-medium text-system-blue-dark">Manage Vendors</Text>
+                <Text className="text-[16px] font-medium text-system-blue-dark">
+                  Manage Vendors
+                </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
             </TouchableOpacity>

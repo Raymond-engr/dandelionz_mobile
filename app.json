@@ -11,6 +11,7 @@
     "linking": {
       "prefixes": [
         "dandelionz://",
+        "https://app.dandelionz.com.ng",
         "https://dandelionz.com.ng",
         "https://*.dandelionz.com.ng"
       ],

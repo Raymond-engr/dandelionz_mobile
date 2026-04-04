@@ -1,20 +1,23 @@
+import {
+  PasswordCriteria,
+  validatePassword,
+} from "@/components/password-criteria";
 import { Button } from "@/components/ui/button";
 import { useRegisterMutation } from "@/lib/api/authApi";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  Pressable,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { PasswordCriteria, validatePassword } from "@/components/password-criteria";
 
 export default function RegisterScreen() {
   const [register, { isLoading }] = useRegisterMutation();
@@ -26,7 +29,9 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [referralCode, setReferralCode] = useState("");
-  const [filters, setFilters] = useState<{ role: "CUSTOMER" | "VENDOR" }>({ role: "CUSTOMER" });
+  const [filters, setFilters] = useState<{ role: "CUSTOMER" | "VENDOR" }>({
+    role: "CUSTOMER",
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rememberPassword, setRememberPassword] = useState(false);
@@ -34,8 +39,15 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     setError("");
-    
-    if (!firstName || !lastName || !email || !phone || !password || !confirmPassword) {
+
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !phone ||
+      !password ||
+      !confirmPassword
+    ) {
       setError("Please fill in all required fields");
       return;
     }
@@ -62,7 +74,12 @@ export default function RegisterScreen() {
 
     // Password strength
     const criteria = validatePassword(password);
-    if (!criteria.length || !criteria.uppercase || !criteria.lowercase || !criteria.special) {
+    if (
+      !criteria.length ||
+      !criteria.uppercase ||
+      !criteria.lowercase ||
+      !criteria.special
+    ) {
       setError("Password does not meet all security requirements");
       return;
     }
@@ -74,7 +91,9 @@ export default function RegisterScreen() {
         phone_number: phone.trim(),
         password,
         role: filters.role,
-        ...(filters.role === "CUSTOMER" && referralCode ? { referral_code: referralCode.toUpperCase() } : {}),
+        ...(filters.role === "CUSTOMER" && referralCode
+          ? { referral_code: referralCode.toUpperCase() }
+          : {}),
       }).unwrap();
 
       if (res.success) {
@@ -84,7 +103,11 @@ export default function RegisterScreen() {
         });
       }
     } catch (err: any) {
-      setError(err?.data?.error || err?.data?.message || "Registration failed. Please try again.");
+      setError(
+        err?.data?.error ||
+          err?.data?.message ||
+          "Registration failed. Please try again.",
+      );
     }
   };
 
@@ -113,26 +136,22 @@ export default function RegisterScreen() {
             {/* Role Selector */}
             <View className="flex-row mb-[28px] bg-gray-100 p-1 rounded-xl">
               <Pressable
-                onPress={() => {
-                  setTimeout(() => {
-                    setFilters({ role: "CUSTOMER" });
-                  }, 0);
-                }}
+                onPress={() => setFilters({ role: "CUSTOMER" })}
                 className={`flex-1 py-2 rounded-lg items-center ${filters.role === "CUSTOMER" ? "bg-white shadow-sm" : ""}`}
               >
-                <Text className={`font-medium ${filters.role === "CUSTOMER" ? "text-system-blue-dark" : "text-gray-500"}`}>
+                <Text
+                  className={`font-medium ${filters.role === "CUSTOMER" ? "text-system-blue-dark" : "text-gray-500"}`}
+                >
                   Customer
                 </Text>
               </Pressable>
               <Pressable
-                onPress={() => {
-                  setTimeout(() => {
-                    setFilters({ role: "VENDOR" });
-                  }, 0);
-                }}
+                onPress={() => setFilters({ role: "VENDOR" })}
                 className={`flex-1 py-2 rounded-lg items-center ${filters.role === "VENDOR" ? "bg-white shadow-sm" : ""}`}
               >
-                <Text className={`font-medium ${filters.role === "VENDOR" ? "text-system-blue-dark" : "text-gray-500"}`}>
+                <Text
+                  className={`font-medium ${filters.role === "VENDOR" ? "text-system-blue-dark" : "text-gray-500"}`}
+                >
                   Vendor
                 </Text>
               </Pressable>
@@ -196,10 +215,10 @@ export default function RegisterScreen() {
                   onPress={() => setShowPassword(!showPassword)}
                   className="absolute right-0 top-1/2 -translate-y-1/2 p-2"
                 >
-                  <Ionicons 
-                    name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                    size={20} 
-                    color="#9CA3AF" 
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#9CA3AF"
                   />
                 </TouchableOpacity>
               </View>
@@ -220,10 +239,12 @@ export default function RegisterScreen() {
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-0 top-1/2 -translate-y-1/2 p-2"
                 >
-                  <Ionicons 
-                    name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
-                    size={20} 
-                    color="#9CA3AF" 
+                  <Ionicons
+                    name={
+                      showConfirmPassword ? "eye-off-outline" : "eye-outline"
+                    }
+                    size={20}
+                    color="#9CA3AF"
                   />
                 </TouchableOpacity>
               </View>
@@ -242,14 +263,20 @@ export default function RegisterScreen() {
               </View>
             )}
 
-            <TouchableOpacity 
+            <TouchableOpacity
               className="flex-row items-center gap-2 mb-[32px]"
               onPress={() => setRememberPassword(!rememberPassword)}
             >
-              <View className={`w-5 h-5 rounded border items-center justify-center ${rememberPassword ? "bg-system-blue-light border-system-blue-light" : "border-gray-300"}`}>
-                {rememberPassword && <Ionicons name="checkmark" size={14} color="white" />}
+              <View
+                className={`w-5 h-5 rounded border items-center justify-center ${rememberPassword ? "bg-system-blue-light border-system-blue-light" : "border-gray-300"}`}
+              >
+                {rememberPassword && (
+                  <Ionicons name="checkmark" size={14} color="white" />
+                )}
               </View>
-              <Text className="text-[14px] text-gray-600">Remember my Password</Text>
+              <Text className="text-[14px] text-gray-600">
+                Remember my Password
+              </Text>
             </TouchableOpacity>
 
             <Button

@@ -18,6 +18,7 @@ import { MaterialIcons, Ionicons, Feather } from "@expo/vector-icons";
 import { Divider } from "@/components/ui/divider";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
+import Toast from "react-native-toast-message";
 
 export default function VendorDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -55,17 +56,21 @@ export default function VendorDetail() {
     try {
       if (action === "Approve Vendor") {
         await approveVendor({ user_uuid: id!, approve: true }).unwrap();
-        Alert.alert("Success", "Vendor approved successfully");
+        Toast.show({ type: "success", text1: "Vendor approved successfully" });
       } else if (action === "Suspend Vendor") {
         await suspendVendor({ uuid: id!, suspend: true }).unwrap();
-        Alert.alert("Success", "Vendor suspended successfully");
+        Toast.show({ type: "success", text1: "Vendor suspended successfully" });
       } else if (action === "Verify KYC") {
         await verifyKYC({ user_uuid: id!, approve: true }).unwrap();
-        Alert.alert("Success", "Vendor KYC verified successfully");
+        Toast.show({ type: "success", text1: "Vendor KYC verified successfully" });
       }
       refetch();
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.message || "Failed to perform action");
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || "Failed to perform action" 
+      });
     }
   };
 

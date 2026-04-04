@@ -13,10 +13,10 @@ import {
   View,
   Pressable,
   TextInput,
-  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatCurrency } from "@/lib/utils";
+import Toast from "react-native-toast-message";
 
 export default function AdminWithdrawEarnings() {
   const router = useRouter();
@@ -33,21 +33,29 @@ export default function AdminWithdrawEarnings() {
   const handleWithdraw = async () => {
     const fullPin = pin.join("");
     if (!amount || fullPin.length < 4) {
-      Alert.alert("Error", "Please enter both amount and your 4-digit PIN.");
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: "Please enter both amount and your 4-digit PIN." 
+      });
       return;
     }
 
     if (parseFloat(amount) > parseFloat(walletStats?.withdrawable_balance || "0")) {
-      Alert.alert("Error", "Insufficient balance.");
+      Toast.show({ type: "error", text1: "Insufficient balance." });
       return;
     }
 
     try {
       await requestWithdrawal({ amount, pin: fullPin }).unwrap();
-      Alert.alert("Success", "Withdrawal request submitted successfully.");
+      Toast.show({ type: "success", text1: "Withdrawal request submitted successfully." });
       router.back();
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.message || "Failed to submit withdrawal request.");
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || "Failed to submit withdrawal request." 
+      });
     }
   };
 

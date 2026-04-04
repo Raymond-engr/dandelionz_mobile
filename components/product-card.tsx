@@ -14,6 +14,7 @@ import { useRouter } from "expo-router";
 import React from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import Toast from "react-native-toast-message";
 
 interface Props {
   product: Product;
@@ -60,10 +61,16 @@ export function ProductCard({ product, hideAddToCart = false }: Props) {
     }
     if (!product.slug) return;
     try {
-      if (isInWishlist) await removeFromWishlist(product.slug).unwrap();
-      else await addToWishlist({ slug: product.slug }).unwrap();
+      if (isInWishlist) {
+        await removeFromWishlist(product.slug).unwrap();
+        Toast.show({ type: "success", text1: "Removed from wishlist" });
+      } else {
+        await addToWishlist({ slug: product.slug }).unwrap();
+        Toast.show({ type: "success", text1: "Added to wishlist" });
+      }
     } catch (err) {
       console.error(err);
+      Toast.show({ type: "error", text1: "Something went wrong" });
     }
   };
 
@@ -87,15 +94,20 @@ export function ProductCard({ product, hideAddToCart = false }: Props) {
           slug: product.slug, 
           selected_variants: cartItem?.selected_variants || {} 
         }).unwrap();
+        Toast.show({ type: "success", text1: "Removed from cart" });
       } else {
         await addToCart({ 
           slug: product.slug, 
           quantity: 1,
           selected_variants: {} 
         }).unwrap();
+        Toast.show({ type: "success", text1: "Added to cart" });
       }
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.error || "Something went wrong");
+      Toast.show({ 
+        type: "error", 
+        text1: err?.data?.error || "Something went wrong" 
+      });
     }
   };
 

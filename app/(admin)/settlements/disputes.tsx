@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
+import Toast from "react-native-toast-message";
 
 type DisputeStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -48,10 +49,10 @@ export default function AdminDisputesManagement() {
           onPress: async () => {
             try {
               await resolveDispute({ id, action, admin_note: `Admin ${action.toLowerCase()}d this dispute.` }).unwrap();
-              Alert.alert("Success", `Dispute ${action.toLowerCase()}d successfully.`);
+              Toast.show({ type: "success", text1: `Dispute ${action.toLowerCase()}d successfully.` });
               refetch();
             } catch (err) {
-              Alert.alert("Error", "Failed to resolve dispute.");
+              Toast.show({ type: "error", text1: "Failed to resolve dispute." });
             }
           }
         }

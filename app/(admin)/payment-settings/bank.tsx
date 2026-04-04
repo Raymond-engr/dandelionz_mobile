@@ -12,11 +12,11 @@ import {
   View,
   Pressable,
   TextInput,
-  Alert,
   Modal,
   FlatList,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 const NIGERIAN_BANKS = [
   "United Bank for Africa PLC",
@@ -53,7 +53,7 @@ export default function AdminStorePaymentOption() {
 
   const handleUpdate = async () => {
     if (!bankName || !accountNumber || !accountName) {
-      Alert.alert("Error", "Please fill in all fields.");
+      Toast.show({ type: "error", text1: "Please fill in all fields." });
       return;
     }
 
@@ -63,10 +63,14 @@ export default function AdminStorePaymentOption() {
         account_number: accountNumber, 
         account_name: accountName 
       }).unwrap();
-      Alert.alert("Success", "Payment details updated successfully.");
+      Toast.show({ type: "success", text1: "Payment details updated successfully." });
       router.back();
     } catch (err: any) {
-      Alert.alert("Error", err?.data?.message || "Failed to update settings.");
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || "Failed to update settings." 
+      });
     }
   };
 

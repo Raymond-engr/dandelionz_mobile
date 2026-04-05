@@ -2,10 +2,11 @@ import { LoadingSpinner } from "@/components/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { Colors } from "@/constants/theme";
 import { useGetOrderReceiptQuery } from "@/lib/api/publicApi";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
@@ -29,6 +30,16 @@ export default function OrderReceiptScreen() {
       type: "info",
       text1: "Export Receipt",
       text2: "The export feature is coming soon!",
+    });
+  };
+
+  const copyToClipboard = async (text: string) => {
+    if (!text) return;
+    await Clipboard.setStringAsync(text);
+    Toast.show({
+      type: "success",
+      text1: "Copied to clipboard",
+      text2: text,
     });
   };
 
@@ -131,8 +142,8 @@ export default function OrderReceiptScreen() {
           </View>
 
           {/* Details */}
-          <View className="space-y-4 mb-8">
-            <View className="flex-row justify-between py-2">
+          <View className="space-y-6 mb-8">
+            <View className="flex-row justify-between py-2 items-center">
               <Text className="text-[14px] font-medium text-gray-500">
                 Email
               </Text>
@@ -140,21 +151,39 @@ export default function OrderReceiptScreen() {
                 {receiptData.customer_email}
               </Text>
             </View>
-            <View className="flex-row justify-between py-2">
-              <Text className="text-[14px] font-medium text-gray-500">
+
+            <View className="py-2">
+              <Text className="text-[12px] font-medium text-gray-400 uppercase tracking-wider mb-2">
                 Transaction Ref
               </Text>
-              <Text className="text-[14px] text-system-blue-dark">
-                {receiptData.payment?.reference || "N/A"}
-              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  copyToClipboard(receiptData.payment?.reference || "")
+                }
+                className="flex-row items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-100"
+              >
+                <Text className="text-[14px] text-system-blue-dark flex-1 mr-2" numberOfLines={1}>
+                  {receiptData.payment?.reference || "N/A"}
+                </Text>
+                {receiptData.payment?.reference && (
+                  <Ionicons name="copy-outline" size={16} color={Colors.primary} />
+                )}
+              </TouchableOpacity>
             </View>
-            <View className="flex-row justify-between py-2">
-              <Text className="text-[14px] font-medium text-gray-500">
+
+            <View className="py-2">
+              <Text className="text-[12px] font-medium text-gray-400 uppercase tracking-wider mb-2">
                 Order ID
               </Text>
-              <Text className="text-[14px] text-system-blue-dark">
-                {receiptData.order_id}
-              </Text>
+              <TouchableOpacity
+                onPress={() => copyToClipboard(receiptData.order_id)}
+                className="flex-row items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-100"
+              >
+                <Text className="text-[14px] font-bold text-system-blue-dark flex-1 mr-2">
+                  {receiptData.order_id}
+                </Text>
+                <Ionicons name="copy-outline" size={16} color={Colors.primary} />
+              </TouchableOpacity>
             </View>
           </View>
 

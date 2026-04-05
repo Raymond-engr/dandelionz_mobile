@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
 import { useGetCustomerOrderDetailsQuery } from "@/lib/api/publicApi";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -11,9 +12,11 @@ import {
   ScrollView,
   Text,
   TextInput,
+  TouchableOpacity,
   View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function OrderTrackingScreen() {
   const router = useRouter();
@@ -33,6 +36,16 @@ export default function OrderTrackingScreen() {
     if (inputId.trim()) {
       router.setParams({ id: inputId.trim() });
     }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    if (!text) return;
+    await Clipboard.setStringAsync(text);
+    Toast.show({
+      type: "success",
+      text1: "Copied to clipboard",
+      text2: text,
+    });
   };
 
   const trackingSteps =
@@ -127,11 +140,19 @@ export default function OrderTrackingScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
       >
-        <View className="px-6 py-6 items-center">
-          <Text className="text-gray-500 text-[14px]">Tracking Order:</Text>
-          <Text className="text-system-blue-dark text-[18px] font-bold">
-            {order.order_id}
+        <View className="px-6 py-8 items-center">
+          <Text className="text-[12px] font-medium text-gray-400 uppercase tracking-wider mb-2">
+            Tracking Order ID
           </Text>
+          <TouchableOpacity
+            onPress={() => copyToClipboard(order.order_id)}
+            className="flex-row items-center justify-between bg-gray-50 px-5 py-3 rounded-xl border border-gray-100 min-w-[280px] max-w-full"
+          >
+            <Text className="text-system-blue-dark text-[16px] font-bold mr-3" numberOfLines={1}>
+              {order.order_id}
+            </Text>
+            <Ionicons name="copy-outline" size={18} color={Colors.primary} />
+          </TouchableOpacity>
         </View>
 
         <View className="px-10 py-6">

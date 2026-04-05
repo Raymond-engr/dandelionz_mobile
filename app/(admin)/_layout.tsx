@@ -80,6 +80,10 @@ export default function AdminLayout() {
         name="account/admin-faqs"
         options={{ headerShown: false, title: "FAQs" }}
       />
+      <Stack.Screen
+        name="account/change-password"
+        options={{ headerShown: false, title: "Change Password" }}
+      />
 
       <Stack.Screen
         name="orders/[id]"

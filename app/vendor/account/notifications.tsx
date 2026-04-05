@@ -34,6 +34,10 @@ export default function VendorNotificationsScreen() {
   // Handle different potential structures: results, data.results, or data
   const notifications = (response as any)?.results || (response?.data as any)?.results || response?.data || [];
 
+  const filtered = filter === "unread" 
+    ? notifications.filter((n: any) => !n.is_read)
+    : notifications;
+
   const [markAsRead] = useVendorMarkNotificationAsReadMutation();
   const [markAllAsRead, { isLoading: isMarkingAll }] = useVendorMarkAllNotificationsAsReadMutation();
   const [deleteNotification] = useVendorDeleteNotificationMutation();
@@ -86,23 +90,27 @@ export default function VendorNotificationsScreen() {
     }
   };
 
-  const renderHeader = () => (
-    <View className="flex-row items-center justify-between px-4 py-4 bg-white">
-      <Pressable onPress={handleBack} className="w-10">
-        <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
-      </Pressable>
-      <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
-        Notifications
-      </Text>
-      {notifications.length > 0 ? (
-        <TouchableOpacity onPress={handleMarkAllRead} disabled={isMarkingAll}>
-          <MaterialIcons name="done-all" size={24} color={Colors.primary} />
-        </TouchableOpacity>
-      ) : (
-        <View className="w-10" />
-      )}
-    </View>
-  );
+  const renderHeader = () => {
+    const hasUnread = notifications.some((n: any) => !n.is_read);
+    
+    return (
+      <View className="flex-row items-center justify-between px-4 py-4 bg-white">
+        <Pressable onPress={handleBack} className="w-10">
+          <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
+        </Pressable>
+        <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
+          Notifications
+        </Text>
+        {hasUnread ? (
+          <TouchableOpacity onPress={handleMarkAllRead} disabled={isMarkingAll}>
+            <MaterialIcons name="done-all" size={24} color={Colors.primary} />
+          </TouchableOpacity>
+        ) : (
+          <View className="w-10" />
+        )}
+      </View>
+    );
+  };
 
   const renderEmpty = () => (
     <View className="flex-1 items-center justify-center pt-20 px-[21px]">
@@ -143,7 +151,7 @@ export default function VendorNotificationsScreen() {
       <Divider />
 
       <FlatList
-        data={notifications}
+        data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 100 }}
         ListEmptyComponent={renderEmpty}

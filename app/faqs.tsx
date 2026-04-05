@@ -1,10 +1,10 @@
+import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Divider } from "@/components/ui/divider";
 
 const FAQS = [
   {
@@ -49,8 +49,8 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 
   return (
     <View className="mb-4 overflow-hidden border border-gray-200 rounded-xl">
-      <Pressable 
-        onPress={() => setOpen(!open)} 
+      <Pressable
+        onPress={() => setOpen(!open)}
         className="flex-row items-center justify-between p-4 bg-white"
       >
         <Text className="flex-1 text-[15px] font-semibold text-gray-900 leading-[22px]">
@@ -85,7 +85,7 @@ export default function FAQsScreen() {
         <Pressable onPress={() => router.back()} className="w-10">
           <Feather name="chevron-left" size={32} color={Colors.primary} />
         </Pressable>
-        <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
+        <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
           FAQs
         </Text>
         <View className="w-10" />
@@ -94,7 +94,11 @@ export default function FAQsScreen() {
       <Divider />
 
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40 }}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: 24,
+          paddingBottom: 40,
+        }}
         showsVerticalScrollIndicator={false}
       >
         <Text className="text-[14px] text-gray-500 mb-6 leading-[20px]">

@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Colors } from "@/constants/theme";
 import { useGetCustomerProfileQuery } from "@/lib/api/customerApi";
 import { MaterialIcons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Clipboard,
   Pressable,
   ScrollView,
   Share,
@@ -25,9 +25,9 @@ export default function InviteFriendsScreen() {
   const profile = profileResponse?.user;
   const referralCode = profile?.referral_code || "---";
 
-  const handleCopyCode = () => {
+  const handleCopyCode = async () => {
     if (referralCode === "---") return;
-    Clipboard.setString(referralCode);
+    await Clipboard.setStringAsync(referralCode);
     setCopied(true);
     Toast.show({
       type: "success",
@@ -109,7 +109,7 @@ export default function InviteFriendsScreen() {
                 <Text className="text-white font-bold">3</Text>
               </View>
               <Text className="flex-1 text-[14px] text-gray-700 leading-relaxed pt-1">
-                You'll get discounted prices when they make their first order
+                You&apos;ll get discounted prices when they make their first order
               </Text>
             </View>
           </View>
@@ -149,7 +149,7 @@ export default function InviteFriendsScreen() {
               style={{ marginTop: 2 }}
             />
             <Text className="flex-1 text-[12px] text-gray-600 leading-relaxed">
-              The more friends you invite, the more discounts you earn! There's
+              The more friends you invite, the more discounts you earn! There&apos;s
               no limit to how many friends you can refer.
             </Text>
           </View>

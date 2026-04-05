@@ -5,6 +5,7 @@ import {
   useCustomerMarkNotificationAsReadMutation,
   useGetCustomerNotificationsQuery,
 } from "@/lib/api/customerApi";
+import { resolveNotificationUrl } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -18,8 +19,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Toast from "react-native-toast-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function CustomerNotificationsScreen() {
   const router = useRouter();
@@ -61,7 +62,10 @@ export default function CustomerNotificationsScreen() {
   const handleMarkAllRead = async () => {
     try {
       await markAllAsRead().unwrap();
-      Toast.show({ type: "success", text1: "All notifications marked as read." });
+      Toast.show({
+        type: "success",
+        text1: "All notifications marked as read.",
+      });
       refetch();
     } catch {
       Toast.show({ type: "error", text1: "Failed to mark all as read." });
@@ -80,7 +84,10 @@ export default function CustomerNotificationsScreen() {
             refetch();
             Toast.show({ type: "success", text1: "Notification deleted" });
           } catch {
-            Toast.show({ type: "error", text1: "Failed to delete notification." });
+            Toast.show({
+              type: "error",
+              text1: "Failed to delete notification.",
+            });
           }
         },
       },
@@ -176,6 +183,15 @@ export default function CustomerNotificationsScreen() {
                     await markAsRead(item.id)
                       .unwrap()
                       .catch(() => {});
+                  }
+                  if (item.action_url) {
+                    const localPath = resolveNotificationUrl(
+                      item.action_url,
+                      "customer",
+                    );
+                    if (localPath && localPath !== "#") {
+                      router.push(localPath as any);
+                    }
                   }
                 }}
                 className={`px-[21px] py-4 flex-row items-start ${

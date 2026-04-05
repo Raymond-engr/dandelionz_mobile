@@ -10,8 +10,9 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   ScrollView,
@@ -23,6 +24,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
+interface NominatimResult {
+  place_id: number;
+  display_name: string;
+}
+
 export default function VendorProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -33,6 +39,7 @@ export default function VendorProfileScreen() {
     useUploadVendorPhotoMutation();
 
   const [isEditing, setIsEditing] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     storeName: "",
@@ -43,6 +50,10 @@ export default function VendorProfileScreen() {
     accountNumber: "",
     accountName: "",
   });
+
+  const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (profileData?.data) {
@@ -59,6 +70,29 @@ export default function VendorProfileScreen() {
       });
     }
   }, [profileData]);
+
+  const searchAddress = (query: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!query || query.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        setIsSearching(true);
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5&countrycodes=ng`,
+          { headers: { "User-Agent": "DandelionzApp/1.0" } }
+        );
+        const data: NominatimResult[] = await res.json();
+        setSuggestions(data);
+      } catch {
+        setSuggestions([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+  };
 
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -249,13 +283,54 @@ export default function VendorProfileScreen() {
             keyboardType="phone-pad"
           />
 
-          <InputField
-            label="Address"
-            value={formData.address}
-            onChangeText={(t: string) =>
-              setFormData({ ...formData, address: t })
-            }
-          />
+          <View className="mb-6">
+            <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+              Address
+            </Text>
+            <TextInput
+              className={`border-b border-gray-200 py-2 text-[16px] text-system-blue-dark ${
+                !isEditing ? "text-gray-400" : ""
+              }`}
+              value={formData.address}
+              onChangeText={(t) => {
+                setFormData({ ...formData, address: t });
+                if (isEditing) searchAddress(t);
+              }}
+              editable={isEditing}
+              placeholder={isEditing ? "Start typing to search..." : ""}
+            />
+            {isSearching && isEditing && (
+              <ActivityIndicator
+                size="small"
+                color="#030482"
+                style={{ marginTop: 4 }}
+              />
+            )}
+            {suggestions.length > 0 && isEditing && (
+              <View className="border border-gray-200 rounded-xl bg-white mt-1 shadow-sm max-h-40 overflow-hidden">
+                {suggestions.map((item) => (
+                  <TouchableOpacity
+                    key={String(item.place_id)}
+                    onPress={() => {
+                      setFormData({
+                        ...formData,
+                        address: item.display_name,
+                      });
+                      setSuggestions([]);
+                    }}
+                    className="px-4 py-3 border-b border-gray-100 last:border-b-0"
+                  >
+                    <Text
+                      className="text-[13px] text-system-blue-dark"
+                      numberOfLines={2}
+                    >
+                      {item.display_name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
 
           <Divider height={1} className="my-4 opacity-30" />
           <Text className="text-[14px] font-bold text-system-blue-light mb-6">
@@ -287,6 +362,39 @@ export default function VendorProfileScreen() {
             }
           />
 
+          <View className="mb-6">
+            <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+              Password
+            </Text>
+            <View className="relative">
+              <TextInput
+                value="••••••••"
+                editable={false}
+                secureTextEntry={!showPassword}
+                className="border-b border-gray-200 py-2 text-[16px] text-system-blue-dark pr-10"
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                className="absolute right-0 top-1/2 -translate-y-1/2 p-2"
+              >
+                <MaterialIcons
+                  name={showPassword ? "visibility-off" : "visibility"}
+                  size={20}
+                  color="#9CA3AF"
+                />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              onPress={() =>
+                router.push("/vendor/account/change-password" as any)
+              }
+            >
+              <Text className="text-system-blue-light font-bold mt-2">
+                Change Password
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <View className="mt-8 gap-4">
             {!isEditing ? (
               <Button onPress={() => setIsEditing(true)}>Edit Profile</Button>
@@ -300,17 +408,6 @@ export default function VendorProfileScreen() {
                 </Button>
               </>
             )}
-
-            <Pressable
-              onPress={() =>
-                router.push("/vendor/account/change-password" as any)
-              }
-              className="py-4 items-center"
-            >
-              <Text className="text-system-blue-light font-semibold">
-                Change Account Password
-              </Text>
-            </Pressable>
           </View>
         </View>
       </ScrollView>

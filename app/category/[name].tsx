@@ -1,17 +1,12 @@
-import { Divider } from "@/components/ui/divider";
 import { ProductGrid } from "@/components/product-grid";
 import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
+import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
 import { useGetProductsQuery } from "@/lib/api/publicApi";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
-import {
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function CategoryDetailScreen() {
@@ -20,9 +15,7 @@ export default function CategoryDetailScreen() {
   const { name } = useLocalSearchParams<{ name: string }>();
 
   const displayName = name
-    ? name
-        .replace(/-/g, " ")
-        .replace(/\b\w/g, (c) => c.toUpperCase())
+    ? name.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
     : "Category";
 
   const { data, isLoading } = useGetProductsQuery({
@@ -38,7 +31,7 @@ export default function CategoryDetailScreen() {
         <Pressable onPress={() => router.back()} className="w-10">
           <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
         </Pressable>
-        <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
+        <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
           {displayName}
         </Text>
         <View className="w-10" />
@@ -46,8 +39,8 @@ export default function CategoryDetailScreen() {
 
       <Divider />
 
-      <ScrollView 
-        className="flex-1" 
+      <ScrollView
+        className="flex-1"
         contentContainerStyle={{ paddingBottom: 100, paddingTop: 20 }}
         showsVerticalScrollIndicator={false}
       >
@@ -55,7 +48,7 @@ export default function CategoryDetailScreen() {
           <ProductGridSkeleton count={6} />
         ) : products.length > 0 ? (
           <View className="px-[21px]">
-             <ProductGrid products={products} />
+            <ProductGrid products={products} />
           </View>
         ) : (
           <View className="flex-1 items-center justify-center p-20">

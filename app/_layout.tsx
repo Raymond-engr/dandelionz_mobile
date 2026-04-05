@@ -229,7 +229,7 @@ function AppWithProviders() {
             <Stack.Screen name="customer-profile" />
             <Stack.Screen name="account/delivery-address" />
             <Stack.Screen name="customer-notifications" />
-            <Stack.Screen name="account/change-password" />
+            <Stack.Screen name="change-password" />
             <Stack.Screen name="account/delete-account" />
 
             {/* Static pages */}

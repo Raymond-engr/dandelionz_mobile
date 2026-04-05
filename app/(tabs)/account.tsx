@@ -170,15 +170,8 @@ export default function AccountScreen() {
           label="Delivery Address"
           route="/account/delivery-address"
         />
-        <SectionRow
-          label="Invite Friends"
-          route="/account/invite-friends"
-        />
-        <SectionRow
-          label="Change Password"
-          route="/account/change-password"
-          last
-        />
+        <SectionRow label="Invite Friends" route="/account/invite-friends" />
+        <SectionRow label="Change Password" route="/change-password" last />
       </View>
 
       <Divider />

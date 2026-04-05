@@ -1,6 +1,6 @@
 import {
-    PasswordCriteria,
-    validatePassword,
+  PasswordCriteria,
+  validatePassword,
 } from "@/components/password-criteria";
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";

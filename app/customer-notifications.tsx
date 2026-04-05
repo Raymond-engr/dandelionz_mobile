@@ -8,7 +8,7 @@ import {
 import { resolveNotificationUrl } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -28,13 +28,15 @@ export default function CustomerNotificationsScreen() {
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [refreshing, setRefreshing] = useState(false);
 
+  const queryParams = useMemo(() => 
+    filter === "unread" ? { is_read: false } : undefined,
+  [filter]);
+
   const {
     data: notificationsResponse,
     isLoading,
     refetch,
-  } = useGetCustomerNotificationsQuery(
-    filter === "unread" ? { is_read: false } : undefined,
-  );
+  } = useGetCustomerNotificationsQuery(queryParams);
 
   const [markAsRead] = useCustomerMarkNotificationAsReadMutation();
   const [markAllAsRead, { isLoading: isMarkingAll }] =

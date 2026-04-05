@@ -17,8 +17,8 @@
       ],
       "config": {
         "screens": {
-          "forgot-password-confirm": "reset/:uid/:token",
-          "verify-email": "verify/:uid/:token",
+          "forgot-password-confirm": "forgot-password/confirm",
+          "verify-email": "verify-email",
           "(tabs)": {
             "screens": {
               "index": "shop",
@@ -38,11 +38,23 @@
             }
           },
           "category/[name]": "category/:name",
+          "product/[slug]": "product/:slug",
+          "customer-profile": "account/profile",
+          "account/delivery-address": "account/address",
+          "customer-notifications": "account/notifications",
+          "account/change-password": "account/change-password",
+          "account/delete-account": "account/delete",
+          "account/invite-friends": "account/invite-friends",
           "checkout/success": "checkout/success",
           "checkout/webview": "checkout/pay",
-          "order-tracking": "track",
+          "order-tracking": "orders/:id",
           "order-receipt": "receipt/:id",
           "(admin)/payment-settings/forgot-pin": "admin/forgot-pin",
+          "(admin)/(tabs)/index": "admin",
+          "(admin)/(tabs)/orders": "admin/orders",
+          "(admin)/(tabs)/product": "admin/product",
+          "(admin)/(tabs)/users": "admin/users",
+          "(admin)/(tabs)/vendor": "admin/vendor",
           "vendor": {
             "screens": {
               "wallet/history": "vendor/wallet/history",
@@ -62,7 +74,12 @@
       }
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dandelionz",
+      "associatedDomains": [
+        "applinks:dandelionz.com.ng",
+        "applinks:app.dandelionz.com.ng"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -74,7 +91,29 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.dandelionz",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "dandelionz.com.ng",
+              "pathPrefix": "/"
+            },
+            {
+              "scheme": "https",
+              "host": "app.dandelionz.com.ng",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "output": "static",

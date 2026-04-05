@@ -13,7 +13,7 @@ import {
 import { resolveNotificationUrl } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Alert,
   FlatList,
@@ -40,7 +40,10 @@ export default function AdminNotificationManagement() {
   } = useAdminGetAllNotificationsQuery(undefined, { skip: activeTab !== "inbox" });
 
   // System Notifications Query
-  const systemQueryParams = systemFilter === "all" ? undefined : { is_draft: systemFilter === "draft" };
+  const systemQueryParams = useMemo(() => 
+    systemFilter === "all" ? undefined : { is_draft: systemFilter === "draft" },
+  [systemFilter]);
+
   const {
     data: systemResponse,
     isLoading: isSystemLoading,

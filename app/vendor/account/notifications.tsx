@@ -10,7 +10,7 @@ import {
 import { resolveNotificationUrl } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Alert,
   FlatList,
@@ -28,7 +28,9 @@ export default function VendorNotificationsScreen() {
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
-  const queryParams = filter === "unread" ? { is_read: false } : undefined;
+  const queryParams = useMemo(() => 
+    filter === "unread" ? { is_read: false } : undefined,
+  [filter]);
   const { data: response, isLoading, refetch } = useGetVendorNotificationsQuery(queryParams);
   
   // Handle different potential structures: results, data.results, or data

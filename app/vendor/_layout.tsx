@@ -43,6 +43,14 @@ export default function VendorLayout() {
         options={{ headerShown: false, title: "Payment Settings" }}
       />
       <Stack.Screen
+        name="account/payment-settings/change-pin"
+        options={{ headerShown: false, title: "Change Payment PIN" }}
+      />
+      <Stack.Screen
+        name="account/payment-settings/store-payment"
+        options={{ headerShown: false, title: "Bank Details" }}
+      />
+      <Stack.Screen
         name="account/notifications"
         options={{ headerShown: false, title: "Notifications" }}
       />
@@ -69,10 +77,6 @@ export default function VendorLayout() {
       />
       <Stack.Screen name="wallet/success" options={{ headerShown: false }} />
       <Stack.Screen name="wallet/receipt" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="account/payment-settings/store-payment"
-        options={{ headerShown: false, title: "Bank Details" }}
-      />
     </Stack>
   );
 }

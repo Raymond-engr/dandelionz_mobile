@@ -1,27 +1,25 @@
 import { Button } from "@/components/ui/button";
-import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
 import {
-    useGetCustomerProfileQuery,
-    useUpdateCustomerProfileMutation,
-    useUploadCustomerPhotoMutation,
+  useGetCustomerProfileQuery,
+  useUpdateCustomerProfileMutation,
+  useUploadCustomerPhotoMutation,
 } from "@/lib/api/customerApi";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -69,10 +67,11 @@ export default function CustomerProfileScreen() {
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Toast.show({ 
-        type: "error", 
-        text1: "Permission required", 
-        text2: "Please allow photo library access to update your profile picture." 
+      Toast.show({
+        type: "error",
+        text1: "Permission required",
+        text2:
+          "Please allow photo library access to update your profile picture.",
       });
       return;
     }
@@ -98,7 +97,10 @@ export default function CustomerProfileScreen() {
         Toast.show({ type: "success", text1: "Profile photo updated!" });
         refetch();
       } catch {
-        Toast.show({ type: "error", text1: "Failed to upload photo. Please try again." });
+        Toast.show({
+          type: "error",
+          text1: "Failed to upload photo. Please try again.",
+        });
       }
     }
   };
@@ -113,7 +115,10 @@ export default function CustomerProfileScreen() {
       setIsEditing(false);
       refetch();
     } catch {
-      Toast.show({ type: "error", text1: "Failed to update profile. Please try again." });
+      Toast.show({
+        type: "error",
+        text1: "Failed to update profile. Please try again.",
+      });
     }
   };
 
@@ -195,78 +200,78 @@ export default function CustomerProfileScreen() {
 
           {/* Form Fields */}
           <View className="gap-6">
-          {/* Full Name */}
-          <View>
-            <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-              Full Name
-            </Text>
-            <TextInput
-              value={form.fullName}
-              onChangeText={(v) => setForm((f) => ({ ...f, fullName: v }))}
-              editable={isEditing}
-              placeholder="Your full name"
-              className={`text-[16px] text-system-blue-dark py-2 border-b ${
-                isEditing ? "border-system-blue-light" : "border-gray-100"
-              }`}
-            />
+            {/* Full Name */}
+            <View>
+              <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                Full Name
+              </Text>
+              <TextInput
+                value={form.fullName}
+                onChangeText={(v) => setForm((f) => ({ ...f, fullName: v }))}
+                editable={isEditing}
+                placeholder="Your full name"
+                className={`text-[16px] text-system-blue-dark py-2 border-b ${
+                  isEditing ? "border-system-blue-light" : "border-gray-100"
+                }`}
+              />
+            </View>
+
+            {/* Email — always disabled */}
+            <View>
+              <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                Email Address
+              </Text>
+              <TextInput
+                value={form.email}
+                editable={false}
+                className="text-[16px] text-gray-400 py-2 border-b border-gray-100"
+              />
+            </View>
+
+            {/* Phone Number */}
+            <View>
+              <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                Phone Number
+              </Text>
+              <TextInput
+                value={form.phoneNumber}
+                onChangeText={(v) => setForm((f) => ({ ...f, phoneNumber: v }))}
+                editable={isEditing}
+                keyboardType="phone-pad"
+                placeholder="Your phone number"
+                className={`text-[16px] text-system-blue-dark py-2 border-b ${
+                  isEditing ? "border-system-blue-light" : "border-gray-100"
+                }`}
+              />
+            </View>
+
+            {/* Change Password link */}
+            <TouchableOpacity
+              onPress={() => router.push("/change-password" as any)}
+            >
+              <Text className="text-system-blue-light font-semibold text-[14px]">
+                Change Password
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Email — always disabled */}
-          <View>
-            <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-              Email Address
-            </Text>
-            <TextInput
-              value={form.email}
-              editable={false}
-              className="text-[16px] text-gray-400 py-2 border-b border-gray-100"
-            />
+          {/* Action Buttons */}
+          <View className="mt-8 gap-4">
+            {!isEditing ? (
+              <Button onPress={() => setIsEditing(true)}>Edit Profile</Button>
+            ) : (
+              <>
+                <Button onPress={handleSave} isLoading={isSaving}>
+                  Save Changes
+                </Button>
+                <Button variant="outline" onPress={handleDiscard}>
+                  Discard Changes
+                </Button>
+              </>
+            )}
           </View>
-
-          {/* Phone Number */}
-          <View>
-            <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-              Phone Number
-            </Text>
-            <TextInput
-              value={form.phoneNumber}
-              onChangeText={(v) => setForm((f) => ({ ...f, phoneNumber: v }))}
-              editable={isEditing}
-              keyboardType="phone-pad"
-              placeholder="Your phone number"
-              className={`text-[16px] text-system-blue-dark py-2 border-b ${
-                isEditing ? "border-system-blue-light" : "border-gray-100"
-              }`}
-            />
-          </View>
-
-          {/* Change Password link */}
-          <TouchableOpacity
-            onPress={() => router.push("/account/change-password" as any)}
-          >
-            <Text className="text-system-blue-light font-semibold text-[14px]">
-              Change Password
-            </Text>
-          </TouchableOpacity>
         </View>
-
-        {/* Action Buttons */}
-        <View className="mt-8 gap-4">
-          {!isEditing ? (
-            <Button onPress={() => setIsEditing(true)}>Edit Profile</Button>
-          ) : (
-            <>
-              <Button onPress={handleSave} isLoading={isSaving}>
-                Save Changes
-              </Button>
-              <Button variant="outline" onPress={handleDiscard}>
-                Discard Changes
-              </Button>
-            </>
-          )}
-        </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }

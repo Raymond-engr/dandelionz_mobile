@@ -82,9 +82,9 @@ export function resolveNotificationUrl(
   // Logic for Customer
   if (role === "customer") {
     // Order detail mapping (must be before general transaction check)
-    // Map /orders/UUID, /receipt?id=UUID, /order-tracking?id=UUID or /transactions/orders/UUID to /order-receipt?id=UUID
+    // Map /orders/UUID, /receipt?id=UUID, /order-tracking?id=UUID, /payments/UUID or /transactions/orders/UUID to /order-receipt?id=UUID
     const orderMatch = path.match(
-      /\/(?:transactions\/orders|orders|receipt|order-tracking)\/([a-zA-Z0-9-]+)/,
+      /\/(?:transactions\/orders|orders|receipt|order-tracking|payments)\/([a-zA-Z0-9-]+)/,
     );
     if (orderMatch) {
       return `/order-receipt?id=${orderMatch[1]}`;
@@ -106,13 +106,13 @@ export function resolveNotificationUrl(
       return "/order-tracking";
     }
     if (path.startsWith("/receipt")) {
-      return "/orders"; // Fallback to orders list if no ID for receipt
+      return "/(tabs)/orders"; // Use correct tab path
     }
 
     // If backend sends payment or transaction links (not specifically for an order UUID), 
     // redirect to orders list as we can't reliably resolve transaction ID to order ID on frontend
-    if (path.includes("/transactions/") || path.includes("/payment/")) {
-      return "/orders";
+    if (path.includes("/transactions/") || path.includes("/payments/") || path.includes("/payment/")) {
+      return "/(tabs)/orders"; // Use correct tab path
     }
 
     // Map common customer routes
@@ -121,7 +121,7 @@ export function resolveNotificationUrl(
     if (cleanPath === "/account/notifications") return "/customer-notifications";
     if (cleanPath === "/account/profile") return "/customer-profile";
     if (cleanPath === "/account/change-password") return "/change-password";
-    if (cleanPath === "/account/orders" || cleanPath === "/orders") return "/orders";
+    if (cleanPath === "/account/orders" || cleanPath === "/orders") return "/(tabs)/orders"; // Use correct tab path
     if (cleanPath === "/account/faqs") return "/faqs";
     if (cleanPath === "/account/terms") return "/terms";
 

@@ -15,32 +15,35 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-function MenuRow({
+function SectionRow({
   label,
-  onPress,
-  danger = false,
+  route,
   last = false,
+  danger = false,
 }: {
   label: string;
-  onPress: () => void;
-  danger?: boolean;
+  route: string;
   last?: boolean;
+  danger?: boolean;
 }) {
+  const router = useRouter();
   return (
     <View>
       <Pressable
-        onPress={onPress}
+        onPress={() => router.push(route as any)}
         className="flex-row justify-between items-center py-4 px-[21px] active:bg-gray-50"
       >
         <Text
-          className={`text-[16px] font-medium ${danger ? "text-system-red" : "text-system-blue-dark"}`}
+          className={`text-[16px] font-medium ${
+            danger ? "text-system-red" : "text-system-blue-dark"
+          }`}
         >
           {label}
         </Text>
         <MaterialIcons
           name="chevron-right"
           size={24}
-          color={danger ? "#ef4444" : "#9CA3AF"}
+          color={danger ? "#FF4D4D" : "#9CA3AF"}
         />
       </Pressable>
       {!last && <View className="h-[1px] bg-[#F5F7FA] mx-[21px]" />}
@@ -65,10 +68,12 @@ export default function VendorAccountScreen() {
     skip: !isAuthenticated,
   });
 
+  const profile = profileData?.data?.user;
+
   const user = {
-    name: profileData?.data?.user?.full_name ?? "Vendor",
-    email: profileData?.data?.user?.email ?? "",
-    avatar: profileData?.data?.user?.profile_picture ?? null,
+    name: profile?.full_name ?? "Vendor",
+    email: profile?.email ?? "",
+    avatar: profile?.profile_picture ?? null,
   };
 
   const initials =
@@ -94,19 +99,29 @@ export default function VendorAccountScreen() {
       contentContainerStyle={{ paddingBottom: 100 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* User Section */}
+      {/* Profile Header */}
       <View className="flex-row items-center p-[21px] border-b border-gray-100">
-        <View className="w-[64px] h-[64px] rounded-full bg-system-blue-light items-center justify-center overflow-hidden">
-          {user.avatar ? (
-            <Image
-              source={{ uri: user.avatar }}
-              className="w-full h-full"
-              resizeMode="cover"
-            />
-          ) : (
-            <Text className="text-white text-[22px] font-bold">{initials}</Text>
-          )}
-        </View>
+        <Pressable
+          onPress={() => router.push("/vendor/account/profile" as any)}
+          className="relative"
+        >
+          <View className="w-[60px] h-[60px] rounded-full bg-system-blue-light items-center justify-center overflow-hidden">
+            {user.avatar ? (
+              <Image
+                source={{ uri: user.avatar }}
+                className="w-full h-full"
+                resizeMode="cover"
+              />
+            ) : (
+              <Text className="text-white text-[20px] font-bold">
+                {initials}
+              </Text>
+            )}
+          </View>
+          <View className="absolute bottom-0 right-0 w-5 h-5 bg-system-blue-light rounded-full items-center justify-center border-2 border-white">
+            <MaterialIcons name="camera-alt" size={10} color="white" />
+          </View>
+        </Pressable>
         <View className="ml-4 flex-1">
           <Text
             className="text-[18px] font-bold text-system-blue-dark"
@@ -120,31 +135,51 @@ export default function VendorAccountScreen() {
         </View>
       </View>
 
-      {/* Group 1: Profile, Notification, Payment Settings */}
+      {/* Group 1: Profile & Account */}
       <View>
-        <MenuRow
-          label="My Profile"
-          onPress={() => router.push("/vendor/account/profile" as any)}
+        <SectionRow label="My Profile" route="/vendor/account/profile" />
+        <SectionRow
+          label="Notifications"
+          route="/vendor/account/notifications"
         />
-        <MenuRow
-          label="Notification"
-          onPress={() => router.push("/vendor/account/notifications" as any)}
-        />
-        <MenuRow
+        <SectionRow
           label="Payment Settings"
-          onPress={() => router.push("/vendor/account/payment-settings" as any)}
+          route="/vendor/account/payment-settings"
           last
         />
       </View>
 
       <Divider />
 
-      {/* Group 2: Logout & Close Account */}
+      {/* Group 2: Settings */}
       <View>
-        <MenuRow label="Logout" onPress={handleLogout} danger />
-        <MenuRow
-          label="Close Account"
-          onPress={() => router.push("/vendor/account/delete" as any)}
+        <SectionRow
+          label="Change Password"
+          route="/vendor/account/change-password"
+          last
+        />
+      </View>
+
+      <Divider />
+
+      {/* Group 3: Support & Information */}
+      <View>
+        <SectionRow label="Contact Us" route="/contact" />
+        <SectionRow label="FAQs" route="/vendor/account/vendor-faqs" />
+        <SectionRow
+          label="Terms & Conditions"
+          route="/vendor/account/vendor-terms"
+          last
+        />
+      </View>
+
+      <Divider />
+
+      {/* Group 4: Danger zone */}
+      <View>
+        <SectionRow
+          label="Delete Account"
+          route="/vendor/account/delete"
           danger
           last
         />
@@ -152,24 +187,17 @@ export default function VendorAccountScreen() {
 
       <Divider />
 
-      {/* Group 3: FAQs, Terms, Contact Us */}
-      <View>
-        <MenuRow
-          label="FAQs"
-          onPress={() => router.push("/vendor/account/vendor-faqs" as any)}
-        />
-        <MenuRow
-          label="Terms and Conditions"
-          onPress={() => router.push("/vendor/account/vendor-terms" as any)}
-        />
-        <MenuRow
-          label="Contact Us"
-          onPress={() => router.push("/contact" as any)}
-          last
-        />
+      {/* Logout */}
+      <View className="px-[21px] mt-8">
+        <Pressable
+          onPress={handleLogout}
+          className="w-full h-[55px] border border-system-red rounded-[12px] items-center justify-center active:bg-red-50"
+        >
+          <Text className="text-system-red font-semibold text-[16px]">
+            Log Out
+          </Text>
+        </Pressable>
       </View>
-
-      <Divider />
     </ScrollView>
   );
 }

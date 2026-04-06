@@ -61,18 +61,16 @@ function StatCard({
 
 export default function AdminDashboard() {
   const user = useAppSelector((state) => state.auth.user);
-  // const unreadCount = useAppSelector((state) => state.notification.unreadCount);
-  const unreadCount = 0;
+  const unreadCount = useAppSelector((state) => state.notification.unreadCount);
 
-  const [filters, setFilters] = useState<{
-    period: "weekly" | "monthly" | "annual";
-  }>({ period: "weekly" });
-
+  const [period, setPeriod] = useState<"weekly" | "monthly" | "annual">(
+    "weekly",
+  );
   const {
     data: analyticsResponse,
     isLoading,
     refetch,
-  } = useGetAnalyticsQuery(filters);
+  } = useGetAnalyticsQuery({ period });
 
   const analytics = analyticsResponse?.data;
   const [refreshing, setRefreshing] = useState(false);
@@ -123,13 +121,13 @@ export default function AdminDashboard() {
             {(["weekly", "monthly", "annual"] as const).map((p) => (
               <Pressable
                 key={p}
-                onPress={() => setFilters({ period: p })}
+                onPress={() => setPeriod(p)}
                 className={`flex-1 py-2.5 rounded-lg items-center ${
-                  filters.period === p ? "bg-white shadow-sm" : ""
+                  period === p ? "bg-white shadow-sm" : ""
                 }`}
               >
                 <Text
-                  className={`text-[13px] font-bold ${filters.period === p ? "text-system-blue-dark" : "text-gray-500"}`}
+                  className={`text-[13px] font-bold ${period === p ? "text-system-blue-dark" : "text-gray-500"}`}
                 >
                   {p.charAt(0).toUpperCase() + p.slice(1)}
                 </Text>

@@ -1,12 +1,18 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { Tabs } from "expo-router";
 import { AdminTabBar } from "@/components/admin-tab-bar";
 
 export default function AdminTabsLayout() {
+
+  const renderTabBar = useCallback(
+    (props: any) => <AdminTabBar {...props} />,
+    []
+  );
+
   return (
     <Tabs
       screenOptions={{ headerShown: false }}
-      tabBar={(props) => <AdminTabBar {...props} />}
+      tabBar={renderTabBar}
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="vendor" />

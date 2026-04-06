@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
 import { useGetCustomerOrderDetailsQuery } from "@/lib/api/publicApi";
-import { MaterialIcons, Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -13,7 +13,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -148,7 +148,10 @@ export default function OrderTrackingScreen() {
             onPress={() => copyToClipboard(order.order_id)}
             className="flex-row items-center justify-between bg-gray-50 px-5 py-3 rounded-xl border border-gray-100 min-w-[280px] max-w-full"
           >
-            <Text className="text-system-blue-dark text-[16px] font-bold mr-3" numberOfLines={1}>
+            <Text
+              className="text-system-blue-dark text-[16px] font-bold mr-3"
+              numberOfLines={1}
+            >
               {order.order_id}
             </Text>
             <Ionicons name="copy-outline" size={18} color={Colors.primary} />
@@ -205,10 +208,6 @@ export default function OrderTrackingScreen() {
         </View>
 
         <Divider height={11} className="my-4" />
-
-        <View className="px-[21px] py-4">
-          <Button onPress={() => router.push("/")}>Continue Shopping</Button>
-        </View>
       </ScrollView>
     </View>
   );

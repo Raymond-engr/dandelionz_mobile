@@ -29,9 +29,7 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [referralCode, setReferralCode] = useState("");
-  const [filters, setFilters] = useState<{ role: "CUSTOMER" | "VENDOR" }>({
-    role: "CUSTOMER",
-  });
+  const [role, setRole] = useState<"CUSTOMER" | "VENDOR">("CUSTOMER");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rememberPassword, setRememberPassword] = useState(false);
@@ -90,8 +88,8 @@ export default function RegisterScreen() {
         email: email.trim(),
         phone_number: phone.trim(),
         password,
-        role: filters.role,
-        ...(filters.role === "CUSTOMER" && referralCode
+        role: role,
+        ...(role === "CUSTOMER" && referralCode
           ? { referral_code: referralCode.toUpperCase() }
           : {}),
       }).unwrap();
@@ -136,21 +134,21 @@ export default function RegisterScreen() {
             {/* Role Selector */}
             <View className="flex-row mb-[28px] bg-gray-100 p-1 rounded-xl">
               <Pressable
-                onPress={() => setFilters({ role: "CUSTOMER" })}
-                className={`flex-1 py-2 rounded-lg items-center ${filters.role === "CUSTOMER" ? "bg-white shadow-sm" : ""}`}
+                onPress={() => setRole("CUSTOMER")}
+                className={`flex-1 py-2 rounded-lg items-center ${role === "CUSTOMER" ? "bg-white shadow-sm" : ""}`}
               >
                 <Text
-                  className={`font-medium ${filters.role === "CUSTOMER" ? "text-system-blue-dark" : "text-gray-500"}`}
+                  className={`font-medium ${role === "CUSTOMER" ? "text-system-blue-dark" : "text-gray-500"}`}
                 >
                   Customer
                 </Text>
               </Pressable>
               <Pressable
-                onPress={() => setFilters({ role: "VENDOR" })}
-                className={`flex-1 py-2 rounded-lg items-center ${filters.role === "VENDOR" ? "bg-white shadow-sm" : ""}`}
+                onPress={() => setRole("VENDOR")}
+                className={`flex-1 py-2 rounded-lg items-center ${role === "VENDOR" ? "bg-white shadow-sm" : ""}`}
               >
                 <Text
-                  className={`font-medium ${filters.role === "VENDOR" ? "text-system-blue-dark" : "text-gray-500"}`}
+                  className={`font-medium ${role === "VENDOR" ? "text-system-blue-dark" : "text-gray-500"}`}
                 >
                   Vendor
                 </Text>
@@ -250,7 +248,7 @@ export default function RegisterScreen() {
               </View>
             </View>
 
-            {filters.role === "CUSTOMER" && (
+            {role === "CUSTOMER" && (
               <View className="mb-[28px]">
                 <TextInput
                   className="text-[16px] text-system-blue-dark py-2 border-b border-gray-300"

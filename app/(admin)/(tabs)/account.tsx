@@ -91,13 +91,6 @@ export default function AdminAccountScreen() {
       contentContainerStyle={{ paddingBottom: 100 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
-      <View className="p-4 border-b border-gray-100 items-center justify-center">
-        <Text className="text-[20px] font-bold text-system-blue-dark">
-          Account
-        </Text>
-      </View>
-
       {/* User Info */}
       <View className="flex-row items-center p-[21px] border-b border-gray-100">
         <View className="w-[64px] h-[64px] rounded-full bg-system-blue-light items-center justify-center overflow-hidden">
@@ -164,11 +157,20 @@ export default function AdminAccountScreen() {
 
       {/* Group 3: FAQs, Terms and Conditions, Contact Support */}
       <View>
-        <MenuRow label="FAQs" onPress={() => router.push("/(admin)/account/admin-faqs" as any)} />
-        <MenuRow label="Terms and Conditions" onPress={() => router.push("/terms" as any)} />
-        <MenuRow label="Contact Support" onPress={() => router.push("/contact" as any)} last />
+        <MenuRow
+          label="FAQs"
+          onPress={() => router.push("/(admin)/account/admin-faqs" as any)}
+        />
+        <MenuRow
+          label="Terms and Conditions"
+          onPress={() => router.push("/terms" as any)}
+        />
+        <MenuRow
+          label="Contact Support"
+          onPress={() => router.push("/contact" as any)}
+          last
+        />
       </View>
-
 
       <Divider />
 

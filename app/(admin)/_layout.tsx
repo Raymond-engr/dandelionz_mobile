@@ -1,14 +1,20 @@
 import { useAppSelector } from "@/lib/hooks";
 import { Stack, router } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 
 export default function AdminLayout() {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
+      hasRedirected.current = false;
       router.replace("/(auth)/login");
-    } else if (user.role !== "BUSINESS_ADMIN") {
+      return;
+    }
+    if (hasRedirected.current) return;
+    if (user.role !== "BUSINESS_ADMIN") {
+      hasRedirected.current = true;
       router.replace("/(tabs)");
     }
   }, [isAuthenticated, user?.role, user?.uuid]);

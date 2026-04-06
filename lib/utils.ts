@@ -54,10 +54,22 @@ export function resolveNotificationUrl(
       return "/vendor/product";
     }
 
+    // Map web-style account routes to mobile-style vendor account routes
+    if (path.startsWith("/account/")) {
+      const subPath = path.replace("/account/", "").replace(/\/$/, "");
+      if (subPath === "faqs") return "/vendor/account/vendor-faqs";
+      if (subPath === "terms") return "/vendor/account/vendor-terms";
+      return `/vendor/account/${subPath}`;
+    }
+
     // Ensure vendor prefix if missing for other known vendor routes
-    if (!path.startsWith("/vendor") && !path.startsWith("/account")) {
-      // Check if it's a route that has a vendor equivalent
-      const vendorRoutes = ["dashboard", "wallet", "settings"];
+    if (!path.startsWith("/vendor")) {
+      // dashboard maps to root vendor
+      if (path === "/dashboard" || path === "/dashboard/") {
+        return "/vendor";
+      }
+
+      const vendorRoutes = ["wallet", "settings"];
       const cleanPath = path.replace(/^\//, "");
       const firstSegment = cleanPath.split("/")[0];
 
@@ -69,16 +81,74 @@ export function resolveNotificationUrl(
 
   // Logic for Customer
   if (role === "customer") {
-    // If backend sends payment or transaction links, redirect to orders list as we can't reliably resolve transaction ID to order ID on frontend
+    // Order detail mapping (must be before general transaction check)
+    // Map /orders/UUID, /receipt?id=UUID, /order-tracking?id=UUID or /transactions/orders/UUID to /order-receipt?id=UUID
+    const orderMatch = path.match(
+      /\/(?:transactions\/orders|orders|receipt|order-tracking)\/([a-zA-Z0-9-]+)/,
+    );
+    if (orderMatch) {
+      return `/order-receipt?id=${orderMatch[1]}`;
+    }
+
+    // Handle query parameter style /receipt?id=... or /order-tracking?id=...
+    if (path.includes("id=")) {
+      const idMatch = path.match(/id=([a-zA-Z0-9-]+)/);
+      if (idMatch) {
+        if (path.includes("/order-tracking")) {
+          return `/order-tracking?id=${idMatch[1]}`;
+        }
+        return `/order-receipt?id=${idMatch[1]}`;
+      }
+    }
+
+    // If it's a generic order tracking or receipt link without ID, go to tracking search
+    if (path.startsWith("/order-tracking")) {
+      return "/order-tracking";
+    }
+    if (path.startsWith("/receipt")) {
+      return "/orders"; // Fallback to orders list if no ID for receipt
+    }
+
+    // If backend sends payment or transaction links (not specifically for an order UUID), 
+    // redirect to orders list as we can't reliably resolve transaction ID to order ID on frontend
     if (path.includes("/transactions/") || path.includes("/payment/")) {
       return "/orders";
     }
 
-    // Orders: /orders/123 is valid
-    // Products: /product/slug is valid
+    // Map common customer routes
+    const cleanPath = path.replace(/\/$/, "");
+    if (cleanPath === "/dashboard") return "/";
+    if (cleanPath === "/account/notifications") return "/customer-notifications";
+    if (cleanPath === "/account/profile") return "/customer-profile";
+    if (cleanPath === "/account/change-password") return "/change-password";
+    if (cleanPath === "/account/orders" || cleanPath === "/orders") return "/orders";
+    if (cleanPath === "/account/faqs") return "/faqs";
+    if (cleanPath === "/account/terms") return "/terms";
+
+    // Products: /product/slug is valid in mobile as is
+    
     // If backend sends /admin/... or /vendor/... to a customer, redirect to home or safe page
     if (path.startsWith("/admin") || path.startsWith("/vendor")) {
       return "/";
+    }
+  }
+
+  // Logic for Admin
+  if (role === "admin" || role === "BUSINESS_ADMIN") {
+    const orderMatch = path.match(
+      /\/(?:transactions\/orders|orders)\/([a-zA-Z0-9-]+)/,
+    );
+    if (orderMatch) {
+      return `/(admin)/orders/${orderMatch[1]}`;
+    }
+
+    if (path === "/dashboard" || path === "/dashboard/") return "/(admin)/(tabs)";
+    
+    if (path.startsWith("/account/")) {
+      const subPath = path.replace("/account/", "").replace(/\/$/, "");
+      if (subPath === "faqs") return "/(admin)/account/admin-faqs";
+      if (subPath === "notifications") return "/(admin)/account/notifications";
+      return `/(admin)/account/${subPath}`;
     }
   }
 

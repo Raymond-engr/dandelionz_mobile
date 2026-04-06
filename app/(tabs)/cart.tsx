@@ -1,22 +1,20 @@
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import {
-    useGetCartQuery,
-    useRemoveFromCartMutation,
-    useUpdateCartItemMutation,
+  useGetCartQuery,
+  useRemoveFromCartMutation,
+  useUpdateCartItemMutation,
 } from "@/lib/api/publicApi";
 import { useAppSelector } from "@/lib/hooks";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useIsFocused } from "@react-navigation/native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React, { useEffect } from "react";
+import React from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Pressable,
-    Text,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  Text,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -24,7 +22,6 @@ export default function CartScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
-  const isFocused = useIsFocused();
 
   const { data: cartResponse, isLoading } = useGetCartQuery(undefined, {
     skip: !isAuthenticated,
@@ -36,21 +33,30 @@ export default function CartScreen() {
   const items = cartData?.items ?? [];
   const total = parseFloat(cartData?.total ?? "0");
 
-  const redirected = React.useRef(false);
-
-  useEffect(() => {
-    if (isFocused) {
-      redirected.current = false;
-    }
-    if (!isAuthenticated && isFocused && !redirected.current) {
-      redirected.current = true;
-      AsyncStorage.setItem("redirect_after_login", "/(tabs)/cart");
-      router.replace("/(tabs)");
-      router.push("/(auth)/login");
-    }
-  }, [isAuthenticated, isFocused, router]);
-
-  if (!isAuthenticated) return null;
+  // Inline auth check — same pattern as account.tsx, no useIsFocused needed
+  if (!isAuthenticated) {
+    return (
+      <View
+        className="flex-1 bg-white items-center justify-center px-8 gap-4"
+        style={{ paddingTop: insets.top }}
+      >
+        <Text className="text-[64px] mb-2">🛒</Text>
+        <Text className="text-[20px] font-bold text-system-blue-dark text-center">
+          Sign in to view your cart
+        </Text>
+        <Text className="text-[14px] text-[#6B7280] text-center mb-4">
+          Log in to add items and check out
+        </Text>
+        <Button onPress={() => router.push("/(auth)/login")}>Login</Button>
+        <Button
+          variant="outline"
+          onPress={() => router.push("/(auth)/register")}
+        >
+          Create Account
+        </Button>
+      </View>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -63,7 +69,9 @@ export default function CartScreen() {
   const renderEmpty = () => (
     <View className="flex-1 items-center justify-center px-8 pt-20">
       <Text className="text-[64px] mb-5">🛒</Text>
-      <Text className="text-[20px] font-bold text-system-blue-dark mb-2">Your cart is empty</Text>
+      <Text className="text-[20px] font-bold text-system-blue-dark mb-2">
+        Your cart is empty
+      </Text>
       <Text className="text-[14px] text-[#6B7280] text-center mb-8">
         Add products to your cart to see them here
       </Text>
@@ -89,12 +97,15 @@ export default function CartScreen() {
 
           const handleUpdate = (newQty: number) => {
             if (newQty < 1) {
-              removeItem({ slug: product.slug, selected_variants: item.selected_variants }).unwrap();
+              removeItem({
+                slug: product.slug,
+                selected_variants: item.selected_variants,
+              }).unwrap();
             } else {
-              updateItem({ 
-                slug: product.slug, 
+              updateItem({
+                slug: product.slug,
                 quantity: newQty,
-                selected_variants: item.selected_variants 
+                selected_variants: item.selected_variants,
               }).unwrap();
             }
           };
@@ -113,26 +124,32 @@ export default function CartScreen() {
                     <View className="w-full h-full" />
                   )}
                 </View>
-                
+
                 <View className="flex-1 justify-between">
                   <View>
-                    <Text className="text-[14px] font-medium text-system-blue-dark" numberOfLines={2}>
+                    <Text
+                      className="text-[14px] font-medium text-system-blue-dark"
+                      numberOfLines={2}
+                    >
                       {product.name}
                     </Text>
-                    {item.selected_variants && Object.entries(item.selected_variants).map(([k, v]: [string, any]) => (
-                      <Text key={k} className="text-[11px] text-[#6B7280]">
-                        {k}: {v}
-                      </Text>
-                    ))}
+                    {item.selected_variants &&
+                      Object.entries(item.selected_variants).map(
+                        ([k, v]: [string, any]) => (
+                          <Text key={k} className="text-[11px] text-[#6B7280]">
+                            {k}: {v}
+                          </Text>
+                        ),
+                      )}
                   </View>
-                  
+
                   <View className="flex-row justify-between items-center mt-2">
                     <Text className="text-[16px] font-bold text-system-blue-light">
                       ₦{(displayPrice * item.quantity).toLocaleString()}
                     </Text>
-                    
+
                     <View className="flex-row items-center gap-3">
-                      <Pressable 
+                      <Pressable
                         onPress={() => handleUpdate(item.quantity - 1)}
                         className="w-7 h-7 rounded-full border border-[#D1D5DB] items-center justify-center"
                       >
@@ -141,7 +158,7 @@ export default function CartScreen() {
                       <Text className="text-[15px] font-semibold text-system-blue-dark min-w-[20px] text-center">
                         {item.quantity}
                       </Text>
-                      <Pressable 
+                      <Pressable
                         onPress={() => handleUpdate(item.quantity + 1)}
                         className="w-7 h-7 rounded-full border border-[#D1D5DB] items-center justify-center"
                       >
@@ -158,12 +175,14 @@ export default function CartScreen() {
       />
 
       {items.length > 0 && (
-        <View 
+        <View
           className="absolute bottom-0 left-0 right-0 bg-white p-[21px] border-t border-[#F3F4F6]"
           style={{ paddingBottom: Math.max(insets.bottom, 21) }}
         >
           <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-[16px] text-[#6B7280] font-medium">Total</Text>
+            <Text className="text-[16px] text-[#6B7280] font-medium">
+              Total
+            </Text>
             <Text className="text-[20px] font-bold text-system-blue-dark">
               ₦{total.toLocaleString()}
             </Text>

@@ -63,8 +63,9 @@ export default function AdminDashboard() {
   const user = useAppSelector((state) => state.auth.user);
   const unreadCount = useAppSelector((state) => state.notification.unreadCount);
 
+  // Default to "annual" to match the analytics page behaviour
   const [period, setPeriod] = useState<"weekly" | "monthly" | "annual">(
-    "weekly",
+    "annual",
   );
   const {
     data: analyticsResponse,

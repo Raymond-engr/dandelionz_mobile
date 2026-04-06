@@ -1,5 +1,6 @@
 import { OrderListItemSkeleton } from "@/components/OrderListItemSkeleton";
 import { Divider } from "@/components/ui/divider";
+import { Button } from "@/components/ui/button";
 import { useGetCustomerOrdersQuery } from "@/lib/api/publicApi";
 import { useAppSelector } from "@/lib/hooks";
 import { Ionicons } from "@expo/vector-icons";
@@ -66,18 +67,23 @@ export default function OrdersScreen() {
   if (!isAuthenticated) {
     return (
       <View
-        className="flex-1 bg-white items-center justify-center p-8 gap-4"
+        className="flex-1 bg-white items-center justify-center px-8 gap-4"
         style={{ paddingTop: insets.top }}
       >
-        <Text className="text-[18px] font-semibold text-system-blue-dark">
-          Log in to see your orders
+        <Ionicons name="receipt-outline" size={64} color="#D1D5DB" />
+        <Text className="text-[20px] font-bold text-system-blue-dark text-center">
+          Sign in to view your orders
         </Text>
-        <Pressable
-          onPress={() => router.push("/(auth)/login")}
-          className="bg-system-blue-light px-8 py-3 rounded-xl"
+        <Text className="text-[14px] text-[#6B7280] text-center mb-4">
+          Keep track of your purchases and order status
+        </Text>
+        <Button onPress={() => router.push("/(auth)/login")}>Login</Button>
+        <Button
+          variant="outline"
+          onPress={() => router.push("/(auth)/register")}
         >
-          <Text className="text-white font-bold">Login</Text>
-        </Pressable>
+          Create Account
+        </Button>
       </View>
     );
   }
@@ -86,41 +92,45 @@ export default function OrdersScreen() {
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <View className="px-[21px] py-4 border-b border-gray-100">
-        <Text className="text-[24px] font-bold text-system-blue-dark text-center">
+        <Text className="text-[24px] font-bold text-system-blue-dark">
           My Orders
         </Text>
       </View>
 
       {/* Filter tabs */}
-      <View className="py-3">
+      <View className="py-4">
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 21, gap: 10 }}
+          contentContainerStyle={{ paddingHorizontal: 21, gap: 8 }}
         >
-          {STATUS_TABS.map((tab) => (
-            <Pressable
-              key={tab}
-              onPress={() => setActiveTab(tab)}
-              className={`px-5 py-2 rounded-full border ${
-                activeTab === tab
-                  ? "bg-system-blue-light border-system-blue-light"
-                  : "bg-white border-gray-200"
-              }`}
-            >
-              <Text
-                className={`text-[13px] font-semibold ${
-                  activeTab === tab ? "text-white" : "text-gray-500"
-                }`}
+          {STATUS_TABS.map((tab) => {
+            const isActive = activeTab === tab;
+            return (
+              <Pressable
+                key={tab}
+                onPress={() => setActiveTab(tab)}
+                className={`px-5 py-2.5 rounded-full border ${
+                  isActive
+                    ? "bg-system-blue-light border-system-blue-light"
+                    : "bg-white border-gray-100"
+                } shadow-sm`}
+                style={isActive ? { elevation: 2 } : {}}
               >
-                {tab}
-              </Text>
-            </Pressable>
-          ))}
+                <Text
+                  className={`text-[13px] font-bold ${
+                    isActive ? "text-white" : "text-[#6B7280]"
+                  }`}
+                >
+                  {tab}
+                </Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
       </View>
 
-      <Divider height={1} />
+      <Divider height={1} className="opacity-50" />
 
       {isLoading && !refreshing ? (
         <View className="pt-4 px-[21px]">
@@ -133,7 +143,7 @@ export default function OrdersScreen() {
         <FlatList
           data={orders}
           keyExtractor={(item) => item.order_id}
-          contentContainerStyle={{ paddingBottom: 100, paddingTop: 8 }}
+          contentContainerStyle={{ paddingBottom: 100, paddingTop: 16 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -143,15 +153,25 @@ export default function OrdersScreen() {
           }
           ListEmptyComponent={() => (
             <View className="items-center justify-center pt-20 px-10">
-              <Ionicons name="receipt-outline" size={64} color="#D1D5DB" />
-              <Text className="text-[18px] font-bold text-system-blue-dark mt-4">
+              <View className="w-20 h-20 bg-gray-50 rounded-full items-center justify-center mb-4">
+                <Ionicons name="receipt-outline" size={40} color="#D1D5DB" />
+              </View>
+              <Text className="text-[18px] font-bold text-system-blue-dark">
                 No orders found
               </Text>
-              <Text className="text-[14px] text-gray-500 text-center mt-2">
+              <Text className="text-[14px] text-gray-500 text-center mt-2 mb-8">
                 {activeTab === "All"
                   ? "You haven't placed any orders yet."
-                  : `No ${activeTab.toLowerCase()} orders found.`}
+                  : `You have no ${activeTab.toLowerCase()} orders.`}
               </Text>
+              <Button
+                variant="outline"
+                fullWidth={false}
+                className="px-8"
+                onPress={() => router.push("/(tabs)")}
+              >
+                Start Shopping
+              </Button>
             </View>
           )}
           renderItem={({ item }) => {
@@ -166,23 +186,36 @@ export default function OrdersScreen() {
                     params: { id: item.order_id },
                   })
                 }
-                className="mx-[21px] mb-3 bg-white rounded-2xl border border-gray-100 p-4 shadow-sm active:opacity-80"
+                className="mx-[21px] mb-4 bg-white rounded-2xl border border-gray-100 p-5 shadow-sm active:opacity-90 overflow-hidden"
+                style={{
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 15,
+                  elevation: 2,
+                }}
               >
-                {/* Order ID + Status */}
-                <View className="flex-row justify-between items-center mb-2">
-                  <Text
-                    className="text-[14px] font-bold text-system-blue-dark"
-                    numberOfLines={1}
-                    style={{ maxWidth: "60%" }}
-                  >
-                    #{item.order_id.slice(0, 8)}
-                  </Text>
+                {/* Status Indicator Bar */}
+                <View
+                  className="absolute left-0 top-0 bottom-0 w-1.5"
+                  style={{ backgroundColor: color.text }}
+                />
+
+                <View className="flex-row justify-between items-start mb-3">
+                  <View>
+                    <Text className="text-[12px] font-bold text-[#9CA3AF] uppercase mb-1">
+                      Order ID
+                    </Text>
+                    <Text className="text-[15px] font-bold text-system-blue-dark">
+                      #{item.order_id.slice(0, 8).toUpperCase()}
+                    </Text>
+                  </View>
                   <View
-                    className="px-3 py-1 rounded-full"
+                    className="px-3 py-1.5 rounded-lg"
                     style={{ backgroundColor: color.bg }}
                   >
                     <Text
-                      className="text-[11px] font-bold uppercase"
+                      className="text-[10px] font-black uppercase"
                       style={{ color: color.text }}
                     >
                       {item.status}
@@ -190,26 +223,43 @@ export default function OrdersScreen() {
                   </View>
                 </View>
 
-                {/* Date */}
-                <Text className="text-[12px] text-[#9CA3AF] mb-2">
-                  {new Date(item.ordered_at).toLocaleDateString("en-NG", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </Text>
+                <View className="flex-row items-center mb-4">
+                  <View className="w-12 h-12 bg-gray-50 rounded-xl items-center justify-center mr-3">
+                    <Ionicons name="cube-outline" size={24} color="#9CA3AF" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-[13px] text-[#6B7280]">
+                      Ordered on{" "}
+                      {new Date(item.ordered_at).toLocaleDateString("en-NG", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </Text>
+                    <Text className="text-[16px] font-bold text-system-blue-dark mt-0.5">
+                      ₦
+                      {parseFloat(
+                        item.total_with_delivery || "0",
+                      ).toLocaleString()}
+                    </Text>
+                  </View>
+                </View>
 
-                {/* Total + CTA */}
-                <View className="flex-row justify-between items-center">
-                  <Text className="text-[18px] font-bold text-system-blue-dark">
-                    ₦
-                    {parseFloat(
-                      item.total_with_delivery || "0",
-                    ).toLocaleString()}
+                <View className="flex-row justify-between items-center pt-3 border-t border-gray-50">
+                  <Text className="text-[12px] text-[#9CA3AF]">
+                    {item.items_count || 1}{" "}
+                    {item.items_count === 1 ? "item" : "items"}
                   </Text>
-                  <Text className="text-system-blue-light font-semibold text-[13px]">
-                    View Receipt ›
-                  </Text>
+                  <View className="flex-row items-center">
+                    <Text className="text-system-blue-light font-bold text-[13px] mr-1">
+                      View Details
+                    </Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color="#007BFF"
+                    />
+                  </View>
                 </View>
               </Pressable>
             );

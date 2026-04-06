@@ -1,77 +1,177 @@
-import { LoadingSpinner } from "@/components/loading-spinner";
 import { Colors } from "@/constants/theme";
+import { useVerifyPaymentMutation } from "@/lib/api/publicApi";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import React, { useRef, useState } from "react";
+import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView, WebViewNavigation } from "react-native-webview";
 
-export default function CheckoutWebView() {
+/**
+ * Paystack callback URL (set in Paystack dashboard):
+ *   https://app.dandelionz.com.ng/checkout/success
+ *
+ * When Paystack completes payment, it redirects the WebView to that URL.
+ * We detect it here and:
+ *   1. Close the WebView
+ *   2. Call the verify-payment endpoint with the reference
+ *   3. Navigate to the app's success screen
+ */
+
+const PAYSTACK_CALLBACK_HOST = "app.dandelionz.com.ng";
+const PAYSTACK_CALLBACK_PATH = "/checkout/success";
+
+function isPaystackCallback(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.hostname === PAYSTACK_CALLBACK_HOST &&
+      parsed.pathname === PAYSTACK_CALLBACK_PATH
+    );
+  } catch {
+    // Fallback for environments where URL constructor isn't available
+    return (
+      url.includes(PAYSTACK_CALLBACK_HOST) &&
+      url.includes(PAYSTACK_CALLBACK_PATH)
+    );
+  }
+}
+
+function extractReference(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    // Paystack appends ?reference=xxx or ?trxref=xxx
+    return (
+      parsed.searchParams.get("reference") ||
+      parsed.searchParams.get("trxref") ||
+      null
+    );
+  } catch {
+    const match = url.match(/[?&](?:reference|trxref)=([^&]+)/);
+    return match ? match[1] : null;
+  }
+}
+
+export default function PaystackWebView() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { url, reference, plan_id } = useLocalSearchParams<{ 
-    url: string; 
-    reference: string; 
-    plan_id: string; 
+  const { url, orderId } = useLocalSearchParams<{
+    url: string;
+    orderId: string;
   }>();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyPayment] = useVerifyPaymentMutation();
+  const hasHandled = useRef(false);
 
-  const handleNavigationStateChange = (navState: WebViewNavigation) => {
-    const { url: currentUrl } = navState;
-    
-    // Detect the redirect URL from Paystack
-    // The Web version redirects to /checkout/success
-    if (currentUrl.includes("/checkout/success") || currentUrl.includes("verify-payment")) {
-      // Small delay to ensure the redirect is processed
-      setTimeout(() => {
+  const handleNavigationChange = async (navState: WebViewNavigation) => {
+    const currentUrl = navState.url;
+    if (!currentUrl || hasHandled.current) return;
+
+    if (isPaystackCallback(currentUrl)) {
+      hasHandled.current = true;
+      setIsVerifying(true);
+
+      const reference = extractReference(currentUrl);
+
+      try {
+        if (reference) {
+          await verifyPayment({ reference, order_id: orderId }).unwrap();
+        }
+        // Navigate to success screen
         router.replace({
           pathname: "/checkout/success" as any,
-          params: { reference, plan_id }
+          params: { orderId, reference: reference ?? "" },
         });
-      }, 500);
+      } catch (err: any) {
+        setIsVerifying(false);
+        Alert.alert(
+          "Payment Verification Failed",
+          err?.data?.message ||
+            "We could not confirm your payment. Please contact support.",
+          [
+            {
+              text: "OK",
+              onPress: () => router.replace("/(tabs)" as any),
+            },
+          ],
+        );
+      }
     }
   };
 
-  return (
-    <View className="flex-1 bg-white">
-      {/* Header */}
-      <View 
-        className="flex-row items-center justify-between px-4 py-4 bg-white border-b border-gray-100"
-        style={{ paddingTop: insets.top }}
-      >
-        <Pressable onPress={() => router.back()} className="w-10">
-          <MaterialIcons name="close" size={28} color={Colors.primary} />
+  const handleClose = () => {
+    Alert.alert(
+      "Cancel Payment",
+      "Are you sure you want to cancel this payment?",
+      [
+        { text: "Continue Payment", style: "cancel" },
+        {
+          text: "Cancel",
+          style: "destructive",
+          onPress: () => router.back(),
+        },
+      ],
+    );
+  };
+
+  if (!url) {
+    return (
+      <View className="flex-1 bg-white items-center justify-center p-8">
+        <Text className="text-red-500">Invalid payment URL</Text>
+        <Pressable
+          onPress={() => router.back()}
+          className="mt-4 bg-system-blue-light px-6 py-3 rounded-xl"
+        >
+          <Text className="text-white font-bold">Go Back</Text>
         </Pressable>
-        <Text className="text-[20px] font-semibold text-system-blue-dark text-center flex-1">
+      </View>
+    );
+  }
+
+  return (
+    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
+        <Pressable onPress={handleClose} className="w-10">
+          <MaterialIcons name="close" size={24} color={Colors.primary} />
+        </Pressable>
+        <Text className="text-[16px] font-bold text-system-blue-dark text-center flex-1">
           Secure Payment
         </Text>
-        <View className="w-10" />
+        <View className="w-10 flex-row items-center justify-end">
+          <MaterialIcons name="lock" size={18} color="#22C55E" />
+        </View>
       </View>
 
-      <View className="flex-1 relative">
-        {url ? (
-          <WebView
-            source={{ uri: url }}
-            onNavigationStateChange={handleNavigationStateChange}
-            onLoadStart={() => setIsLoading(true)}
-            onLoadEnd={() => setIsLoading(false)}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            startInLoadingState={true}
-            renderLoading={() => (
-              <View className="absolute inset-0 items-center justify-center bg-white z-10">
-                <LoadingSpinner />
-              </View>
-            )}
-          />
-        ) : (
-          <View className="flex-1 items-center justify-center p-6">
-            <Text className="text-red-500 text-center">Invalid payment URL provided.</Text>
-          </View>
-        )}
-      </View>
+      {/* Loading overlay */}
+      {(isLoading || isVerifying) && (
+        <View className="absolute inset-0 bg-white items-center justify-center z-50">
+          <ActivityIndicator size="large" color="#030482" />
+          <Text className="text-[14px] text-gray-500 mt-4">
+            {isVerifying ? "Verifying payment..." : "Loading payment page..."}
+          </Text>
+        </View>
+      )}
+
+      <WebView
+        source={{ uri: url }}
+        onNavigationStateChange={handleNavigationChange}
+        onLoadEnd={() => setIsLoading(false)}
+        onError={() => {
+          setIsLoading(false);
+          Alert.alert(
+            "Error",
+            "Failed to load payment page. Please try again.",
+            [{ text: "OK", onPress: () => router.back() }],
+          );
+        }}
+        javaScriptEnabled
+        domStorageEnabled
+        startInLoadingState={false} // we handle our own loader above
+        className="flex-1"
+      />
     </View>
   );
 }

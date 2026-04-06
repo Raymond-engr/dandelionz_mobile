@@ -64,6 +64,7 @@ export interface Order {
   };
   order_items?: OrderItem[];
   timeline?: OrderTimeline[];
+  items_count?: number;
 }
 
 export interface Product {

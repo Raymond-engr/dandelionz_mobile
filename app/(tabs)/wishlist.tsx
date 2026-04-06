@@ -3,10 +3,8 @@ import { Button } from "@/components/ui/button";
 import { useGetWishlistQuery } from "@/lib/api/publicApi";
 import { useAppSelector } from "@/lib/hooks";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import React, { useEffect } from "react";
+import React from "react";
 import { ActivityIndicator, FlatList, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -14,7 +12,6 @@ export default function WishlistScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
-  const isFocused = useIsFocused();
 
   const {
     data: wishlistItems = [],
@@ -22,19 +19,30 @@ export default function WishlistScreen() {
     refetch,
   } = useGetWishlistQuery(undefined, { skip: !isAuthenticated });
 
-  const redirected = React.useRef(false);
-
-  useEffect(() => {
-    if (isFocused) redirected.current = false;
-    if (!isAuthenticated && isFocused && !redirected.current) {
-      redirected.current = true;
-      AsyncStorage.setItem("redirect_after_login", "/(tabs)/wishlist");
-      router.replace("/(tabs)");
-      router.push("/(auth)/login");
-    }
-  }, [isAuthenticated, isFocused, router]);
-
-  if (!isAuthenticated) return null;
+  // Inline auth check — consistent with account.tsx and cart.tsx
+  if (!isAuthenticated) {
+    return (
+      <View
+        className="flex-1 bg-white items-center justify-center px-8 gap-4"
+        style={{ paddingTop: insets.top }}
+      >
+        <Ionicons name="heart-outline" size={64} color="#D1D5DB" />
+        <Text className="text-[20px] font-bold text-system-blue-dark text-center">
+          Sign in to view your wishlist
+        </Text>
+        <Text className="text-[14px] text-[#6B7280] text-center mb-4">
+          Save your favourite products here
+        </Text>
+        <Button onPress={() => router.push("/(auth)/login")}>Login</Button>
+        <Button
+          variant="outline"
+          onPress={() => router.push("/(auth)/register")}
+        >
+          Create Account
+        </Button>
+      </View>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -82,13 +90,10 @@ export default function WishlistScreen() {
         onRefresh={refetch}
         ListEmptyComponent={renderEmpty}
         renderItem={({ item }: { item: any }) => {
-          // Map data structure exactly like the web version WishlistPage
           const product = {
             ...item.product_details,
             id: item.product,
             slug: item.product_details?.slug,
-            // Ensure image fallback logic is passed if needed,
-            // though the web version trusts product_details.image
             image:
               item.product_details?.image ||
               item.product_details?.images?.[0]?.image_url,

@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { CheckoutProgress } from "@/components/ui/checkout-progress";
 import { Divider } from "@/components/ui/divider";
+import { useGetCustomerProfileQuery } from "@/lib/api/customerApi";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Pressable, ScrollView, Text, View, TouchableOpacity, TextInput } from "react-native";
+import { Pressable, ScrollView, Text, View, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
 
 export default function CheckoutShipping() {
   const router = useRouter();
@@ -13,17 +15,32 @@ export default function CheckoutShipping() {
   const params = useLocalSearchParams();
   
   const [deliveryType, setDeliveryType] = useState<"home" | "pickup">("home");
-  const [address, setAddress] = useState("");
+  
+  const { data: profile, isLoading } = useGetCustomerProfileQuery();
+
+  const hasAddress = !!profile?.shipping_address;
 
   const handleNext = () => {
-    if (deliveryType === "home" && !address.trim()) {
-      alert("Please enter your delivery address");
+    if (deliveryType === "home" && !hasAddress) {
+      Toast.show({
+        type: "error",
+        text1: "Shipping Address Required",
+        text2: "Please add a shipping address to proceed.",
+      });
       return;
     }
-    router.push({
-      pathname: "/checkout/payment",
-      params: { ...params, deliveryType, address }
-    });
+    
+    if (params.frequency === "installment") {
+      router.push({
+        pathname: "/checkout/installments",
+        params: { ...params, deliveryType }
+      });
+    } else {
+      router.push({
+        pathname: "/checkout/payment",
+        params: { ...params, deliveryType }
+      });
+    }
   };
 
   return (
@@ -39,7 +56,7 @@ export default function CheckoutShipping() {
 
       <Divider />
       
-      <CheckoutProgress currentStep={2} />
+      <CheckoutProgress currentStep={1} />
 
       <ScrollView className="flex-1 px-[21px]">
         <Text className="text-[20px] font-medium text-system-blue-dark mb-6">
@@ -68,13 +85,14 @@ export default function CheckoutShipping() {
 
           <Pressable
             onPress={() => setDeliveryType("pickup")}
-            className={`p-5 rounded-[12px] border-2 flex-row items-center justify-between ${
+            disabled // Coming soon like web
+            className={`p-5 rounded-[12px] border-2 flex-row items-center justify-between opacity-50 ${
               deliveryType === "pickup" ? "border-system-blue-light bg-blue-50/30" : "border-gray-100 bg-[#F9FAFB]"
             }`}
           >
             <View>
               <Text className={`text-[16px] font-bold ${deliveryType === "pickup" ? "text-system-blue-light" : "text-system-blue-dark"}`}>
-                Pickup Point
+                Pickup (Coming Soon)
               </Text>
               <Text className="text-[13px] text-[#6B7280] mt-1">Collect from nearest center</Text>
             </View>
@@ -85,16 +103,32 @@ export default function CheckoutShipping() {
         </View>
 
         {deliveryType === "home" && (
-          <View className="mt-8">
-            <Text className="text-[14px] font-semibold text-system-blue-dark mb-2">Delivery Address</Text>
-            <TextInput
-              className="bg-[#F5F7FA] rounded-[12px] h-[100px] p-4 text-[16px] text-system-blue-dark border border-[#E5E7EB]"
-              placeholder="Enter your full address"
-              multiline
-              textAlignVertical="top"
-              value={address}
-              onChangeText={setAddress}
-            />
+          <View className="mt-8 bg-[#F9FAFB] p-5 rounded-[16px] border border-gray-100">
+            <View className="flex-row items-center justify-between mb-3">
+                <Text className="text-[14px] font-bold text-system-blue-dark">Delivery Address</Text>
+                <TouchableOpacity onPress={() => router.push("/account/delivery-address")}>
+                    <Text className="text-[13px] font-bold text-system-blue-light">
+                        {hasAddress ? "Change" : "Add Address"}
+                    </Text>
+                </TouchableOpacity>
+            </View>
+            
+            {isLoading ? (
+                <ActivityIndicator size="small" color="#030482" />
+            ) : hasAddress ? (
+                <View>
+                    <Text className="text-[15px] text-system-blue-dark leading-[22px]">
+                        {profile?.shipping_address}
+                    </Text>
+                    <Text className="text-[14px] text-gray-500 mt-1">
+                        {profile?.city}, {profile?.postal_code}
+                    </Text>
+                </View>
+            ) : (
+                <Text className="text-[14px] text-gray-400 italic">
+                    No shipping address set yet.
+                </Text>
+            )}
           </View>
         )}
       </ScrollView>

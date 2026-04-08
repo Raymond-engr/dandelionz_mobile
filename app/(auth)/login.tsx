@@ -53,18 +53,35 @@ export default function LoginScreen() {
         } else if (userRole === "VENDOR") {
           router.replace("/vendor");
         } else {
-          // CUSTOMER — critical fix:
+          // CUSTOMER navigation — the correct fix for expo-router v6:
           //
-          // router.replace("/(tabs)") FAILS because (tabs) is already at
-          // index 0 of the root Stack (it's the initial screen). Calling
-          // replace() inserts ANOTHER (tabs) at index 1, creating a duplicate
-          // navigator — React Navigation enters an infinite reconciliation loop
-          // → "Maximum update depth exceeded".
+          // ❌ router.replace("/(tabs)") — replaces the (auth) screen at stack
+          //    index 1 with a NEW (tabs), leaving the ORIGINAL (tabs) at index 0.
+          //    Two (tabs) navigators exist simultaneously → React Navigation
+          //    enters an infinite reconciliation loop → "Maximum update depth
+          //    exceeded".
           //
-          // router.navigate("/") works differently: React Navigation sees that
-          // (tabs) is already in the stack at index 0, so it POPS back to it
-          // rather than pushing a duplicate. The auth screen is removed cleanly.
-          router.navigate("/");
+          // ❌ router.navigate("/") — expo-router v6 leaves the spinner running
+          //    indefinitely; the screen never transitions away from login.
+          //
+          // ✅ router.back() — (auth) was PUSHED on top of the already-mounted
+          //    (tabs) at root stack index 0. back() simply pops (auth), the
+          //    existing (tabs) instance is revealed. No duplicate. Clean.
+          //
+          //    queueMicrotask defers the call until AFTER the current render
+          //    frame is committed so the Redux credential update has propagated
+          //    to (tabs) screens before the navigation transition completes.
+          //    This prevents the post-login "everything frozen" symptom.
+          queueMicrotask(() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              // Fallback: login is the very first screen (cold-start deep link,
+              // direct navigation). (tabs) is NOT already in the stack here, so
+              // navigate("/") will not create a duplicate — it simply pushes it.
+              router.navigate("/");
+            }
+          });
         }
       }
     } catch (err: any) {

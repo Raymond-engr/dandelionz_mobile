@@ -2,16 +2,15 @@ import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Colors } from "@/constants/theme";
-import { useVerifyPaymentQuery, useVerifyInstallmentPaymentQuery } from "@/lib/api/publicApi";
+import { useLazyVerifyPaymentQuery, useLazyVerifyInstallmentPaymentQuery } from "@/lib/api/publicApi";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
-import { Text, View, Pressable, ScrollView } from "react-native";
+import { useLocalSearchParams, router } from "expo-router";
+import React, { useEffect, useState, useRef } from "react";
+import { Text, View, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
 export default function CheckoutSuccessScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { reference, plan_id, status } = useLocalSearchParams<{ 
     reference: string; 
@@ -19,29 +18,50 @@ export default function CheckoutSuccessScreen() {
     status: string;
   }>();
 
-  // Standard verification for normal orders
-  const { 
-    data: standardData, 
-    isError: standardError, 
-    isLoading: isStandardLoading 
-  } = useVerifyPaymentQuery(
-    { reference: reference as string },
-    { skip: !reference || !!plan_id }
-  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [verifyData, setVerifyData] = useState<any>(null);
+  const hasVerified = useRef(false);
 
-  // Installment verification for plans
-  const {
-    data: installmentData,
-    isError: installmentError,
-    isLoading: isInstallmentLoading
-  } = useVerifyInstallmentPaymentQuery(
-    { reference: reference as string },
-    { skip: !reference || !plan_id }
-  );
+  const [triggerVerify] = useLazyVerifyPaymentQuery();
+  const [triggerInstallmentVerify] = useLazyVerifyInstallmentPaymentQuery();
 
-  const isLoading = isStandardLoading || isInstallmentLoading;
-  const isError = standardError || installmentError;
-  const verifyData = plan_id ? installmentData : (standardData as any);
+  useEffect(() => {
+    async function verify() {
+      if (hasVerified.current) return;
+      
+      const isCod = status === 'cod';
+      if (isCod) {
+        setIsLoading(false);
+        hasVerified.current = true;
+        return;
+      }
+
+      if (!reference) {
+        setIsError(true);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        let result;
+        if (plan_id) {
+          result = await triggerInstallmentVerify({ reference }).unwrap();
+        } else {
+          result = await triggerVerify({ reference }).unwrap();
+        }
+        setVerifyData(result);
+        hasVerified.current = true;
+      } catch (err) {
+        console.error("Verification error:", err);
+        setIsError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    verify();
+  }, [reference, plan_id, status]);
 
   const renderHeader = () => (
     <View 
@@ -135,7 +155,7 @@ export default function CheckoutSuccessScreen() {
           {!plan_id && (
             <Button 
               variant="outline" 
-              onPress={() => router.push({ pathname: "/order-receipt" as any, params: { id: reference } })}
+              onPress={() => router.push({ pathname: "/order-receipt" as any, params: { id: verifyData?.data?.order_id } })}
             >
               View E-Receipt
             </Button>

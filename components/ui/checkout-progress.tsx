@@ -5,7 +5,7 @@ interface CheckoutProgressProps {
   currentStep: number;
 }
 
-const STEPS = ["Frequency", "Installments", "Shipping", "Payment"];
+const STEPS = ["Frequency", "Shipping", "Payment"];
 
 export function CheckoutProgress({ currentStep }: CheckoutProgressProps) {
   return (
@@ -35,7 +35,7 @@ export function CheckoutProgress({ currentStep }: CheckoutProgressProps) {
         {STEPS.map((step, index) => (
           <Text 
             key={index}
-            className={`text-[12px] text-center w-[70px] ${
+            className={`text-[12px] text-center w-[80px] ${
               index <= currentStep ? "text-system-blue-light font-medium" : "text-[#9CA3AF]"
             }`}
           >

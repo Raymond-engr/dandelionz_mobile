@@ -68,7 +68,7 @@ export default function CheckoutPayment() {
 
       <Divider />
       
-      <CheckoutProgress currentStep={3} />
+      <CheckoutProgress currentStep={2} />
 
       <ScrollView className="flex-1 px-[21px]">
         <Text className="text-[20px] font-medium text-system-blue-dark mb-6">
@@ -120,7 +120,7 @@ export default function CheckoutPayment() {
           onPress={handlePayment}
           isLoading={isLoading}
         >
-          {frequency === "full" ? "Complete Purchase" : "Initialize Plan"}
+          {method === "card" ? "Continue to Paystack" : "Place Order"}
         </Button>
       </View>
     </View>

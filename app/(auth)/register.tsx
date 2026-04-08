@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useRegisterMutation } from "@/lib/api/authApi";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { startTransition, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -35,6 +35,17 @@ export default function RegisterScreen() {
   const [rememberPassword, setRememberPassword] = useState(false);
   const [error, setError] = useState("");
 
+  // Wrap role changes in startTransition so React marks this state update as
+  // non-urgent (a "transition"). This prevents the re-render from interrupting
+  // an ongoing navigation commit and eliminates the
+  // "Couldn't find a navigation context" error that fires when a synchronous
+  // setState triggers a re-render cascade while React Navigation is mid-commit.
+  const handleRoleChange = (newRole: "CUSTOMER" | "VENDOR") => {
+    startTransition(() => {
+      setRole(newRole);
+    });
+  };
+
   const handleRegister = async () => {
     setError("");
 
@@ -50,27 +61,23 @@ export default function RegisterScreen() {
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("Please enter a valid email address");
       return;
     }
 
-    // Phone validation
     const phoneRegex = /^\+?[\d\s-]{10,15}$/;
     if (!phoneRegex.test(phone)) {
       setError("Please enter a valid phone number (10-15 digits)");
       return;
     }
 
-    // Password matching
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
 
-    // Password strength
     const criteria = validatePassword(password);
     if (
       !criteria.length ||
@@ -134,7 +141,7 @@ export default function RegisterScreen() {
             {/* Role Selector */}
             <View className="flex-row mb-[28px] bg-gray-100 p-1 rounded-xl">
               <Pressable
-                onPress={() => setRole("CUSTOMER")}
+                onPress={() => handleRoleChange("CUSTOMER")}
                 className={`flex-1 py-2 rounded-lg items-center ${role === "CUSTOMER" ? "bg-white shadow-sm" : ""}`}
               >
                 <Text
@@ -144,7 +151,7 @@ export default function RegisterScreen() {
                 </Text>
               </Pressable>
               <Pressable
-                onPress={() => setRole("VENDOR")}
+                onPress={() => handleRoleChange("VENDOR")}
                 className={`flex-1 py-2 rounded-lg items-center ${role === "VENDOR" ? "bg-white shadow-sm" : ""}`}
               >
                 <Text

@@ -5,8 +5,9 @@ import {
   useRemoveFromCartMutation,
   useUpdateCartItemMutation,
 } from "@/lib/api/publicApi";
+import { getImageUrl } from "@/lib/utils";
 import { useAppSelector } from "@/lib/hooks";
-import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 // Imperative router — same reason as all other tab screens.
 import { router } from "expo-router";
 import React from "react";
@@ -16,6 +17,8 @@ import {
   Pressable,
   Text,
   View,
+  Image,
+  TouchableOpacity,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -27,7 +30,7 @@ export default function CartScreen() {
     skip: !isAuthenticated,
   });
   const [updateItem] = useUpdateCartItemMutation();
-  const [removeItem] = useRemoveFromCartMutation();
+  const [removeItem, { isLoading: isRemoving }] = useRemoveFromCartMutation();
 
   const cartData = cartResponse?.data;
   const items = cartData?.items ?? [];
@@ -96,43 +99,57 @@ export default function CartScreen() {
             discount > 0 ? price * (1 - discount / 100) : price;
 
           const handleUpdate = (newQty: number) => {
-            if (newQty < 1) {
-              removeItem({
-                slug: product.slug,
-                selected_variants: item.selected_variants,
-              }).unwrap();
-            } else {
-              updateItem({
-                slug: product.slug,
-                quantity: newQty,
-                selected_variants: item.selected_variants,
-              }).unwrap();
-            }
+            if (newQty < 1) return;
+            updateItem({
+              slug: product.slug,
+              quantity: newQty,
+              selected_variants: item.selected_variants,
+            }).unwrap();
           };
+
+          const handleRemove = () => {
+            removeItem({
+              slug: product.slug,
+              selected_variants: item.selected_variants,
+            }).unwrap();
+          };
+
+          const imageUri = getImageUrl(product.image);
 
           return (
             <View>
               <View className="flex-row p-[21px] gap-4">
                 <View className="w-20 h-20 rounded-lg overflow-hidden bg-[#F3F4F6]">
-                  {product.image ? (
+                  {imageUri ? (
                     <Image
-                      source={{ uri: product.image }}
+                      source={{ uri: imageUri }}
                       className="w-full h-full"
-                      contentFit="cover"
+                      resizeMode="cover"
                     />
                   ) : (
-                    <View className="w-full h-full" />
+                    <View className="w-full h-full items-center justify-center">
+                      <Ionicons name="image-outline" size={24} color="#9CA3AF" />
+                    </View>
                   )}
                 </View>
 
                 <View className="flex-1 justify-between">
                   <View>
-                    <Text
-                      className="text-[14px] font-medium text-system-blue-dark"
-                      numberOfLines={2}
-                    >
-                      {product.name}
-                    </Text>
+                    <View className="flex-row justify-between items-start">
+                      <Text
+                        className="text-[14px] font-medium text-system-blue-dark flex-1 pr-2"
+                        numberOfLines={2}
+                      >
+                        {product.name}
+                      </Text>
+                      <TouchableOpacity 
+                        onPress={handleRemove}
+                        disabled={isRemoving}
+                        className="p-1"
+                      >
+                        <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+                      </TouchableOpacity>
+                    </View>
                     {item.selected_variants &&
                       Object.entries(item.selected_variants).map(
                         ([k, v]: [string, any]) => (
@@ -151,7 +168,10 @@ export default function CartScreen() {
                     <View className="flex-row items-center gap-3">
                       <Pressable
                         onPress={() => handleUpdate(item.quantity - 1)}
-                        className="w-7 h-7 rounded-full border border-[#D1D5DB] items-center justify-center"
+                        disabled={item.quantity <= 1}
+                        className={`w-7 h-7 rounded-full border border-[#D1D5DB] items-center justify-center ${
+                          item.quantity <= 1 ? "opacity-30" : ""
+                        }`}
                       >
                         <Text className="text-[18px] text-[#374151]">−</Text>
                       </Pressable>

@@ -6,6 +6,8 @@ import React, { useState } from "react";
 import { Pressable, ScrollView, Text, View, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useInitializeInstallmentCheckoutMutation } from "@/lib/api/publicApi";
+import Toast from "react-native-toast-message";
 
 type InstallmentDuration = '1_month' | '3_months' | '6_months' | '1_year';
 
@@ -20,12 +22,33 @@ export default function CheckoutInstallments() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [duration, setDuration] = useState<InstallmentDuration>('3_months');
+  
+  const [initializeInstallment, { isLoading }] = useInitializeInstallmentCheckoutMutation();
 
-  const handleNext = () => {
-    router.push({
-      pathname: "/checkout/payment",
-      params: { frequency: "installment", duration }
-    });
+  const handleNext = async () => {
+    try {
+      const result = await initializeInstallment({ duration }).unwrap();
+      
+      if (result.data?.authorization_url) {
+        const data = result.data as any;
+        router.push({
+          pathname: "/checkout/webview" as any,
+          params: { 
+            url: data.authorization_url, 
+            reference: data.first_installment_reference, 
+            plan_id: String(data.installment_plan_id)
+          }
+        });
+      } else {
+        Toast.show({ type: "error", text1: "Could not initialize installment plan. Please try again." });
+      }
+    } catch (err: any) {
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.error || err?.data?.message || "Failed to initialize installment plan." 
+      });
+    }
   };
 
   return (
@@ -41,7 +64,7 @@ export default function CheckoutInstallments() {
 
       <Divider />
       
-      <CheckoutProgress currentStep={1} />
+      <CheckoutProgress currentStep={2} />
 
       <ScrollView className="flex-1 px-[21px]">
         <Text className="text-[20px] font-medium text-system-blue-dark mb-6">
@@ -72,7 +95,12 @@ export default function CheckoutInstallments() {
       </ScrollView>
 
       <View className="p-[21px] mb-4">
-        <Button onPress={handleNext}>Proceed to Payment</Button>
+        <Button 
+          onPress={handleNext}
+          isLoading={isLoading}
+        >
+          Proceed to Payment
+        </Button>
       </View>
     </View>
   );

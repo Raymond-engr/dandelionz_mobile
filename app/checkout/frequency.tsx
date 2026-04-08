@@ -14,10 +14,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const FREQUENCIES = [
-  { id: "full", label: "One-time Payment", sub: "Pay full amount at once" },
+  { id: "full", label: "Buy Now", sub: "Pay full amount at once" },
   {
     id: "installment",
-    label: "Installment Plan",
+    label: "Installment Payment",
     sub: "Spread cost over several months",
   },
 ];
@@ -28,11 +28,10 @@ export default function CheckoutFrequency() {
   const [selected, setSelected] = useState("full");
 
   const handleNext = () => {
-    if (selected === "full") {
-      router.push("/checkout/shipping");
-    } else {
-      router.push("/checkout/installments");
-    }
+    router.push({
+      pathname: "/checkout/shipping",
+      params: { frequency: selected }
+    });
   };
 
   return (

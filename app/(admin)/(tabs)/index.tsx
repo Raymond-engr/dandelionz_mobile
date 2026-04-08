@@ -5,7 +5,6 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Pressable,
   RefreshControl,
   ScrollView,
   Text,
@@ -63,7 +62,6 @@ export default function AdminDashboard() {
   const user = useAppSelector((state) => state.auth.user);
   const unreadCount = useAppSelector((state) => state.notification.unreadCount);
 
-  // Default to "annual" to match the analytics page behaviour
   const [period, setPeriod] = useState<"weekly" | "monthly" | "annual">(
     "annual",
   );
@@ -116,29 +114,8 @@ export default function AdminDashboard() {
           </TouchableOpacity>
         </View>
 
-        {/* Top Filter Tabs */}
-        <View className="px-4 mb-6">
-          <View className="flex-row bg-gray-100 p-1 rounded-xl">
-            {(["weekly", "monthly", "annual"] as const).map((p) => (
-              <Pressable
-                key={p}
-                onPress={() => setPeriod(p)}
-                className={`flex-1 py-2.5 rounded-lg items-center ${
-                  period === p ? "bg-white shadow-sm" : ""
-                }`}
-              >
-                <Text
-                  className={`text-[13px] font-bold ${period === p ? "text-system-blue-dark" : "text-gray-500"}`}
-                >
-                  {p.charAt(0).toUpperCase() + p.slice(1)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
         {/* Stats Grid */}
-        <View className="px-4">
+        <View className="px-4 mt-2">
           <View className="flex-row flex-wrap justify-between">
             <StatCard
               label="Total Revenue"

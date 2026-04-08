@@ -15,6 +15,18 @@ export function formatCurrency(
   })}`;
 }
 
+export function getImageUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  
+  const baseUrl = process.env.EXPO_PUBLIC_API_URL || "https://api.dandelionz.com.ng";
+  // Ensure we don't have double slashes
+  const cleanBase = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  
+  return `${cleanBase}${cleanPath}`;
+}
+
 export function resolveNotificationUrl(
   url: string | null | undefined,
   role: string,

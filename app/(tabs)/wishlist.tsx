@@ -3,13 +3,13 @@ import { Button } from "@/components/ui/button";
 import { useGetWishlistQuery } from "@/lib/api/publicApi";
 import { useAppSelector } from "@/lib/hooks";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+// Imperative router — same reason as all other tab screens.
+import { router } from "expo-router";
 import React from "react";
 import { ActivityIndicator, FlatList, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function WishlistScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
 

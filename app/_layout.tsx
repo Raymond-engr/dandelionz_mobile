@@ -152,7 +152,6 @@ function AppWithProviders() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    // Restore auth on launch
     const restore = async () => {
       try {
         const saved = await AsyncStorage.getItem("auth");
@@ -161,12 +160,10 @@ function AppWithProviders() {
           store.dispatch(setCredentials(parsed));
         }
       } catch {}
-      // mark hydration complete regardless of result
       setHydrated(true);
     };
     restore();
 
-    // Persist auth changes
     const unsub = store.subscribe(async () => {
       const { auth } = store.getState();
       try {
@@ -187,7 +184,6 @@ function AppWithProviders() {
     return unsub;
   }, []);
 
-  // Always render tabs first (public home page), auth handled inside screens
   return (
     <>
       <NotificationProvider>
@@ -199,18 +195,36 @@ function AppWithProviders() {
             <ActivityIndicator size="large" color="#030482" />
           </View>
         ) : (
-          <Stack screenOptions={{ headerShown: false }}>
-            {/* Role tab groups */}
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              // KEY FIX: Freeze screens that leave the viewport.
+              //
+              // By default, React Navigation keeps ALL stack screens mounted
+              // even when a different screen is active. This means the customer
+              // screens (account, cart, orders) all remain mounted when admin
+              // or vendor navigates to their own area.
+              //
+              // These background screens re-render on every Redux dispatch
+              // (RTK Query cache updates, analytics fetches, etc.). In the new
+              // React Native architecture, useNavigation() / useRouter() called
+              // from these hidden screens can fail with "navigation context not
+              // found".
+              //
+              // Setting freezeOnBlur: true uses React Suspense to pause the
+              // React tree for inactive screens, preventing them from re-rendering
+              // and eliminating all background hook calls and crashes.
+              freezeOnBlur: true,
+            }}
+          >
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="vendor" options={{ headerShown: false }} />
             <Stack.Screen name="(admin)" options={{ headerShown: false }} />
 
-            {/* Public / shared screens */}
             <Stack.Screen name="category/[name]" />
             <Stack.Screen name="product/[slug]" />
 
-            {/* Checkout flow */}
             <Stack.Screen name="checkout/frequency" />
             <Stack.Screen name="checkout/installments" />
             <Stack.Screen name="checkout/shipping" />
@@ -221,18 +235,15 @@ function AppWithProviders() {
               options={{ presentation: "modal" }}
             />
 
-            {/* Orders */}
             <Stack.Screen name="order-tracking" />
             <Stack.Screen name="order-receipt" />
 
-            {/* Customer account sub-screens */}
             <Stack.Screen name="customer-profile" />
             <Stack.Screen name="account/delivery-address" />
             <Stack.Screen name="customer-notifications" />
             <Stack.Screen name="change-password" />
             <Stack.Screen name="account/delete-account" />
 
-            {/* Static pages */}
             <Stack.Screen name="contact" />
             <Stack.Screen name="faqs" />
             <Stack.Screen name="terms" />

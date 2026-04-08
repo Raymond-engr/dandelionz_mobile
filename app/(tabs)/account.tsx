@@ -3,7 +3,15 @@ import { Divider } from "@/components/ui/divider";
 import { useGetCustomerProfileQuery } from "@/lib/api/customerApi";
 import { useAppSelector, useLogout } from "@/lib/hooks";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+// Imperative router — NOT useRouter() hook.
+// This screen stays mounted in the background when admin/vendor is active
+// (React Navigation keeps inactive Stack screens alive by default with the
+// new architecture). If useRouter() is called during a background re-render
+// triggered by any Redux dispatch, it fails with "navigation context not found"
+// because the screen's navigation context may not be available when it is not
+// the active navigator. The imperative `router` uses a stable global ref that
+// always works regardless of which navigator is currently active.
+import { router } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
@@ -27,7 +35,6 @@ function SectionRow({
   last?: boolean;
   danger?: boolean;
 }) {
-  const router = useRouter();
   return (
     <View>
       <Pressable
@@ -53,7 +60,6 @@ function SectionRow({
 }
 
 export default function AccountScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const authUser = useAppSelector((s) => s.auth.user);
@@ -73,7 +79,6 @@ export default function AccountScreen() {
 
   const profile = profileResponse?.user ?? authUser;
 
-  // Not logged in state
   if (!isAuthenticated) {
     return (
       <View
@@ -153,7 +158,7 @@ export default function AccountScreen() {
         </View>
       </View>
 
-      {/* Group 1: Profile & Account */}
+      {/* Account links */}
       <View>
         <SectionRow label="My Profile" route="/customer-profile" />
         <SectionRow label="Notifications" route="/customer-notifications" />
@@ -164,7 +169,6 @@ export default function AccountScreen() {
 
       <Divider />
 
-      {/* Group 2: Settings & Referral */}
       <View>
         <SectionRow
           label="Delivery Address"
@@ -176,16 +180,14 @@ export default function AccountScreen() {
 
       <Divider />
 
-      {/* Group 3: Support & Information */}
       <View>
         <SectionRow label="Contact Us" route="/contact" />
         <SectionRow label="FAQs" route="/faqs" />
-        <SectionRow label="Terms & Conditions" route="/terms" last />
+        <SectionRow label="Terms &amp; Conditions" route="/terms" last />
       </View>
 
       <Divider />
 
-      {/* Group 4: Danger zone */}
       <View>
         <SectionRow
           label="Delete Account"
@@ -197,7 +199,6 @@ export default function AccountScreen() {
 
       <Divider />
 
-      {/* Logout */}
       <View className="px-[21px] mt-8">
         <Button
           variant="outline"

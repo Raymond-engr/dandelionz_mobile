@@ -4,7 +4,8 @@ import { Divider } from "@/components/ui/divider";
 import { useGetCustomerOrdersQuery } from "@/lib/api/publicApi";
 import { useAppSelector } from "@/lib/hooks";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+// Imperative router — same reason as all other tab screens.
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   FlatList,
@@ -34,7 +35,6 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 export default function OrdersScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const [activeTab, setActiveTab] = useState("All");

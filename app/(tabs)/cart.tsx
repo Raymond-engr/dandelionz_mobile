@@ -7,7 +7,8 @@ import {
 } from "@/lib/api/publicApi";
 import { useAppSelector } from "@/lib/hooks";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+// Imperative router — same reason as all other tab screens.
+import { router } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
@@ -19,7 +20,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function CartScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
 

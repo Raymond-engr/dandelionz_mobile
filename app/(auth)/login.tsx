@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useLoginMutation } from "@/lib/api/authApi";
 import { setCredentials } from "@/lib/features/auth/authSlice";
 import { useAppDispatch } from "@/lib/hooks";
+// Use imperative router everywhere — no useRouter() hook.
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -52,9 +53,18 @@ export default function LoginScreen() {
         } else if (userRole === "VENDOR") {
           router.replace("/vendor");
         } else {
-          // CUSTOMER (or any other role) — navigate to the root index screen
-          // explicitly rather than the group container "/(tabs)".
-          router.replace("/");
+          // CUSTOMER — critical fix:
+          //
+          // router.replace("/(tabs)") FAILS because (tabs) is already at
+          // index 0 of the root Stack (it's the initial screen). Calling
+          // replace() inserts ANOTHER (tabs) at index 1, creating a duplicate
+          // navigator — React Navigation enters an infinite reconciliation loop
+          // → "Maximum update depth exceeded".
+          //
+          // router.navigate("/") works differently: React Navigation sees that
+          // (tabs) is already in the stack at index 0, so it POPS back to it
+          // rather than pushing a duplicate. The auth screen is removed cleanly.
+          router.navigate("/");
         }
       }
     } catch (err: any) {

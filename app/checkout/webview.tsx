@@ -1,5 +1,5 @@
 import { Colors } from "@/constants/theme";
-import { useVerifyPaymentMutation } from "@/lib/api/publicApi";
+import { publicApi } from "@/lib/api/publicApi";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -8,14 +8,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView, WebViewNavigation } from "react-native-webview";
 
 /**
+ * Paystack WebView for payment.
+ *
+ * FIX: The previous code called `useVerifyPaymentMutation()` which does NOT
+ * exist in publicApi.ts (only `useVerifyPaymentQuery` does).  Calling an
+ * undefined hook crashed the screen on mount.
+ *
+ * Solution: use `useLazyVerifyPaymentQuery` — this is the correct on-demand
+ * version of the existing query and matches how the web app's success page
+ * works (it fires a GET request with the reference from URL params).
+ *
  * Paystack callback URL (set in Paystack dashboard):
  *   https://app.dandelionz.com.ng/checkout/success
- *
- * When Paystack completes payment, it redirects the WebView to that URL.
- * We detect it here and:
- *   1. Close the WebView
- *   2. Call the verify-payment endpoint with the reference
- *   3. Navigate to the app's success screen
  */
 
 const PAYSTACK_CALLBACK_HOST = "app.dandelionz.com.ng";
@@ -29,7 +33,6 @@ function isPaystackCallback(url: string): boolean {
       parsed.pathname === PAYSTACK_CALLBACK_PATH
     );
   } catch {
-    // Fallback for environments where URL constructor isn't available
     return (
       url.includes(PAYSTACK_CALLBACK_HOST) &&
       url.includes(PAYSTACK_CALLBACK_PATH)
@@ -40,7 +43,6 @@ function isPaystackCallback(url: string): boolean {
 function extractReference(url: string): string | null {
   try {
     const parsed = new URL(url);
-    // Paystack appends ?reference=xxx or ?trxref=xxx
     return (
       parsed.searchParams.get("reference") ||
       parsed.searchParams.get("trxref") ||
@@ -52,52 +54,78 @@ function extractReference(url: string): string | null {
   }
 }
 
+function extractPlanId(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    return parsed.searchParams.get("plan_id");
+  } catch {
+    const match = url.match(/[?&]plan_id=([^&]+)/);
+    return match ? match[1] : null;
+  }
+}
+
 export default function PaystackWebView() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { url, orderId } = useLocalSearchParams<{
+  const {
+    url,
+    orderId,
+    plan_id: planIdParam,
+  } = useLocalSearchParams<{
     url: string;
-    orderId: string;
+    orderId?: string;
+    plan_id?: string;
   }>();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verifyPayment] = useVerifyPaymentMutation();
   const hasHandled = useRef(false);
+
+  // ✅ Use the lazy version of the existing query — NOT a (non-existent) mutation.
+  const [triggerVerify] = publicApi.useLazyVerifyPaymentQuery();
+  // For installment plans we use the installment verify endpoint.
+  const [triggerInstallmentVerify] =
+    publicApi.useLazyVerifyInstallmentPaymentQuery();
 
   const handleNavigationChange = async (navState: WebViewNavigation) => {
     const currentUrl = navState.url;
     if (!currentUrl || hasHandled.current) return;
 
-    if (isPaystackCallback(currentUrl)) {
-      hasHandled.current = true;
-      setIsVerifying(true);
+    if (!isPaystackCallback(currentUrl)) return;
 
-      const reference = extractReference(currentUrl);
+    hasHandled.current = true;
+    setIsVerifying(true);
 
-      try {
-        if (reference) {
-          await verifyPayment({ reference, order_id: orderId }).unwrap();
+    const reference = extractReference(currentUrl);
+    // plan_id can come from the initial params (installment) OR from the
+    // callback URL that Paystack appends.
+    const planId = planIdParam || extractPlanId(currentUrl);
+
+    try {
+      if (reference) {
+        if (planId) {
+          await triggerInstallmentVerify({ reference }).unwrap();
+        } else {
+          await triggerVerify({ reference }).unwrap();
         }
-        // Navigate to success screen
-        router.replace({
-          pathname: "/checkout/success" as any,
-          params: { orderId, reference: reference ?? "" },
-        });
-      } catch (err: any) {
-        setIsVerifying(false);
-        Alert.alert(
-          "Payment Verification Failed",
-          err?.data?.message ||
-            "We could not confirm your payment. Please contact support.",
-          [
-            {
-              text: "OK",
-              onPress: () => router.replace("/(tabs)" as any),
-            },
-          ],
-        );
       }
+
+      router.replace({
+        pathname: "/checkout/success" as any,
+        params: {
+          orderId: orderId ?? "",
+          reference: reference ?? "",
+          ...(planId ? { plan_id: planId } : {}),
+        },
+      });
+    } catch (err: any) {
+      setIsVerifying(false);
+      Alert.alert(
+        "Payment Verification Failed",
+        err?.data?.message ||
+          "We could not confirm your payment. Please contact support.",
+        [{ text: "OK", onPress: () => router.replace("/(tabs)" as any) }],
+      );
     }
   };
 
@@ -107,11 +135,7 @@ export default function PaystackWebView() {
       "Are you sure you want to cancel this payment?",
       [
         { text: "Continue Payment", style: "cancel" },
-        {
-          text: "Cancel",
-          style: "destructive",
-          onPress: () => router.back(),
-        },
+        { text: "Cancel", style: "destructive", onPress: () => router.back() },
       ],
     );
   };
@@ -145,7 +169,7 @@ export default function PaystackWebView() {
         </View>
       </View>
 
-      {/* Loading overlay */}
+      {/* Loading / Verifying overlay */}
       {(isLoading || isVerifying) && (
         <View className="absolute inset-0 bg-white items-center justify-center z-50">
           <ActivityIndicator size="large" color="#030482" />
@@ -169,7 +193,7 @@ export default function PaystackWebView() {
         }}
         javaScriptEnabled
         domStorageEnabled
-        startInLoadingState={false} // we handle our own loader above
+        startInLoadingState={false}
         className="flex-1"
       />
     </View>

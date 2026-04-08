@@ -46,17 +46,21 @@ export default function LoginScreen() {
         }
 
         const userRole = res.data.user.role;
-        
+
         if (userRole === "BUSINESS_ADMIN") {
           router.replace("/(admin)/(tabs)");
         } else if (userRole === "VENDOR") {
           router.replace("/vendor");
         } else {
-          router.replace("/(tabs)");
+          // CUSTOMER (or any other role) — navigate to the root index screen
+          // explicitly rather than the group container "/(tabs)".
+          router.replace("/");
         }
       }
     } catch (err: any) {
-      setError(err?.data?.error || "Login failed. Please check your credentials.");
+      setError(
+        err?.data?.error || "Login failed. Please check your credentials.",
+      );
     }
   };
 
@@ -107,25 +111,25 @@ export default function LoginScreen() {
                 onPress={() => setShowPassword(!showPassword)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text className="text-[18px] px-1">{showPassword ? "🙈" : "👁"}</Text>
+                <Text className="text-[18px] px-1">
+                  {showPassword ? "🙈" : "👁"}
+                </Text>
               </TouchableOpacity>
             </View>
             <View className="h-[1px] bg-gray-300 w-full" />
           </View>
 
           <View className="items-end mb-[32px] -mt-4">
-            <TouchableOpacity onPress={() => router.push("/(auth)/forgot-password")}>
+            <TouchableOpacity
+              onPress={() => router.push("/(auth)/forgot-password")}
+            >
               <Text className="text-[14px] text-system-blue-light font-medium">
                 Forgot Password?
               </Text>
             </TouchableOpacity>
           </View>
 
-          <Button
-            onPress={handleLogin}
-            isLoading={isLoading}
-            className="mb-6"
-          >
+          <Button onPress={handleLogin} isLoading={isLoading} className="mb-6">
             Login
           </Button>
 

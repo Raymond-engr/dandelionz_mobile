@@ -2,7 +2,7 @@
 import { getCategoryImage } from "@/constants/categories";
 import { useGetCategoriesQuery } from "@/lib/api/publicApi";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+import { router } from "expo-router"; // imperative — no useNavigation() context needed
 import React, { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { CategorySliderSkeleton } from "./CategorySliderSkeleton";
@@ -18,7 +18,6 @@ import { CategorySliderSkeleton } from "./CategorySliderSkeleton";
  * there is always something to show.
  */
 export function CategorySlider() {
-  const router = useRouter();
   const { data: categories = [], isLoading } = useGetCategoriesQuery();
   // Track which categories had their primary source fail so we can fall back
   const [failedIds, setFailedIds] = useState<Set<number>>(new Set());

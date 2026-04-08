@@ -1,5 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+// Use the imperative router API instead of the useRouter() hook.
+// useRouter() is a React hook that requires an active navigation context.
+// When customer (tabs) screens remain mounted in the background while admin/vendor
+// screens are active, calling useRouter() inside useLogout() fails with:
+//   "Couldn't find a navigation context"
+// The imperative `router` works anywhere without requiring a context.
+import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { useLogoutMutation } from "./api/authApi";
@@ -11,7 +17,6 @@ export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 export const useLogout = () => {
   const dispatch = useAppDispatch();
-  const router = useRouter();
   const [logoutMutation] = useLogoutMutation();
   const refreshToken = useAppSelector((state) => state.auth.refreshToken);
 

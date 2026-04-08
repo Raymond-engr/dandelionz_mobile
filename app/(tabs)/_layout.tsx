@@ -1,12 +1,19 @@
 import { BottomTabBar } from "@/components/bottom-tab-bar";
 import { useAppSelector } from "@/lib/hooks";
-import { Tabs, useRouter } from "expo-router";
+import { router, Tabs } from "expo-router";
 import React, { useCallback, useEffect, useRef } from "react";
 
+/**
+ * Customer tabs layout.
+ *
+ * KEY RULES:
+ *  1. Use imperative `router`, NOT useRouter() hook.
+ *  2. Never return null — always render <Tabs>.
+ *  3. Wrap router.replace() in queueMicrotask.
+ *  4. Customer role: do nothing (they belong here).
+ */
 export default function TabsLayout() {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  const router = useRouter();
-
   const hasRedirected = useRef(false);
 
   useEffect(() => {
@@ -18,11 +25,12 @@ export default function TabsLayout() {
 
     if (user.role === "BUSINESS_ADMIN") {
       hasRedirected.current = true;
-      router.replace("/(admin)/(tabs)");
+      queueMicrotask(() => router.replace("/(admin)/(tabs)"));
     } else if (user.role === "VENDOR") {
       hasRedirected.current = true;
-      router.replace("/vendor"); // was "/vendor/(tabs)" — inconsistent with login.tsx
+      queueMicrotask(() => router.replace("/vendor"));
     }
+    // CUSTOMER: do nothing — they belong here.
   }, [isAuthenticated, user?.role, user?.uuid]);
 
   const renderTabBar = useCallback(
@@ -30,6 +38,7 @@ export default function TabsLayout() {
     [],
   );
 
+  // Always render — never return null from a layout.
   return (
     <Tabs tabBar={renderTabBar} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="index" />

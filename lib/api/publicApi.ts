@@ -108,7 +108,7 @@ export interface InstallmentPayment {
   id: number;
   payment_number: number;
   amount: string;
-  status: 'PAID' | 'PENDING' | 'FAILED';
+  status: "PAID" | "PENDING" | "FAILED";
   due_date: string;
   payment_date: string | null;
   reference: string;
@@ -128,7 +128,7 @@ export interface InstallmentPlan {
   number_of_installments: number;
   paid_installments_count: number;
   pending_installments_count: number;
-  status: 'ACTIVE' | 'COMPLETED' | 'DEFAULTED';
+  status: "ACTIVE" | "COMPLETED" | "DEFAULTED";
   is_fully_paid: boolean;
   start_date: string;
   created_at: string;
@@ -165,9 +165,9 @@ export const publicApi = baseApi.injectEndpoints({
     // Products
     getProducts: builder.query<
       GetProductsResponse,
-      { 
-        category?: string; 
-        search?: string; 
+      {
+        category?: string;
+        search?: string;
         page?: number;
         store?: string;
         min_price?: number;
@@ -183,7 +183,10 @@ export const publicApi = baseApi.injectEndpoints({
       providesTags: ["Product"],
     }),
 
-    getProductBySlug: builder.query<{ success: boolean; data: Product }, string>({
+    getProductBySlug: builder.query<
+      { success: boolean; data: Product },
+      string
+    >({
       query: (slug) => `/store/products/${slug}/`,
       providesTags: ["Product"],
     }),
@@ -202,7 +205,11 @@ export const publicApi = baseApi.injectEndpoints({
 
     addToCart: builder.mutation<
       { success: boolean; data: CartItem; message?: string },
-      { slug: string; quantity: number; selected_variants?: Record<string, string> }
+      {
+        slug: string;
+        quantity: number;
+        selected_variants?: Record<string, string>;
+      }
     >({
       query: (body) => ({
         url: "/store/cart/add/",
@@ -232,7 +239,11 @@ export const publicApi = baseApi.injectEndpoints({
 
     updateCartItem: builder.mutation<
       { success: boolean; data?: CartItem; message: string },
-      { slug: string; quantity: number; selected_variants?: Record<string, string> }
+      {
+        slug: string;
+        quantity: number;
+        selected_variants?: Record<string, string>;
+      }
     >({
       query: (body) => ({
         url: "/store/cart/update/",
@@ -272,10 +283,7 @@ export const publicApi = baseApi.injectEndpoints({
     }),
 
     // Orders
-    getCustomerOrders: builder.query<
-      Order[],
-      { status?: string }
-    >({
+    getCustomerOrders: builder.query<Order[], { status?: string }>({
       query: (params) => ({
         url: "/transactions/orders/",
         params,
@@ -327,12 +335,10 @@ export const publicApi = baseApi.injectEndpoints({
       invalidatesTags: ["Product"],
     }),
 
-    getProductReviews: builder.query<any[], string>(
-      {
-        query: (slug) => `/store/products/${slug}/reviews/`,
-        providesTags: ["Product"],
-      }
-    ),
+    getProductReviews: builder.query<any[], string>({
+      query: (slug) => `/store/products/${slug}/reviews/`,
+      providesTags: ["Product"],
+    }),
 
     // Payments
     initializeCheckout: builder.mutation<
@@ -438,18 +444,28 @@ export const publicApi = baseApi.injectEndpoints({
       }),
     }),
 
-    getInstallmentPlans: builder.query<{ success: boolean; data: InstallmentPlan[] }, void>({
+    getInstallmentPlans: builder.query<
+      { success: boolean; data: InstallmentPlan[] },
+      void
+    >({
       query: () => "/transactions/installment-plans/",
       providesTags: ["Order"],
     }),
 
-    getInstallmentPlanDetails: builder.query<{ success: boolean; data: InstallmentPlan }, number>({
+    getInstallmentPlanDetails: builder.query<
+      { success: boolean; data: InstallmentPlan },
+      number
+    >({
       query: (id) => `/transactions/installment-plans/${id}/`,
       providesTags: ["Order"],
     }),
 
-    getInstallmentPayments: builder.query<{ success: boolean; data: InstallmentPayment[] }, number>({
-      query: (plan_id) => `/transactions/installment-plans/${plan_id}/payments/`,
+    getInstallmentPayments: builder.query<
+      { success: boolean; data: InstallmentPayment[] },
+      number
+    >({
+      query: (plan_id) =>
+        `/transactions/installment-plans/${plan_id}/payments/`,
       providesTags: ["Order"],
     }),
   }),
@@ -476,7 +492,9 @@ export const {
   useInitializeCheckoutMutation,
   useInitializeInstallmentCheckoutMutation,
   useVerifyPaymentQuery,
+  useLazyVerifyPaymentQuery,
   useVerifyInstallmentPaymentQuery,
+  useLazyVerifyInstallmentPaymentQuery,
   useInitializeNextInstallmentMutation,
   useGetInstallmentPlansQuery,
   useGetInstallmentPlanDetailsQuery,

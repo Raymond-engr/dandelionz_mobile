@@ -1,23 +1,37 @@
 import { useAppSelector } from "@/lib/hooks";
-import { Redirect, Stack } from "expo-router";
-import React from "react";
+import { Stack, router } from "expo-router";
+import React, { useEffect, useRef } from "react";
 
+/**
+ * Vendor stack layout.
+ *
+ * Uses the same queueMicrotask pattern as admin/_layout.tsx to prevent
+ * "Couldn't find a navigation context" during mount-time redirects.
+ */
 export default function VendorLayout() {
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const hasRedirected = useRef(false);
 
-  // Hydration is handled in the root layout, so we only check user here
-  if (!user) {
-    return <Redirect href="/(auth)/login" />;
-  }
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      hasRedirected.current = false;
+      queueMicrotask(() => router.replace("/(auth)/login"));
+      return;
+    }
+    if (hasRedirected.current) return;
+    if (user.role !== "VENDOR") {
+      hasRedirected.current = true;
+      queueMicrotask(() => router.replace("/(tabs)"));
+    }
+  }, [isAuthenticated, user?.role, user?.uuid]);
 
-  if (user.role !== "VENDOR") {
-    return <Redirect href="/(tabs)" />;
+  if (!isAuthenticated || !user || user.role !== "VENDOR") {
+    return null;
   }
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
-      {/* Sub-screens in the vendor stack */}
       <Stack.Screen
         name="order/[id]"
         options={{ headerShown: false, title: "Order Details" }}

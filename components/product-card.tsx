@@ -1,18 +1,29 @@
 import { Colors } from "@/constants/theme";
 import {
-    Product,
-    useAddToCartMutation,
-    useAddToWishlistMutation,
-    useGetCartQuery,
-    useGetWishlistQuery,
-    useRemoveFromCartMutation,
-    useRemoveFromWishlistMutation,
+  Product,
+  useAddToCartMutation,
+  useAddToWishlistMutation,
+  useGetCartQuery,
+  useGetWishlistQuery,
+  useRemoveFromCartMutation,
+  useRemoveFromWishlistMutation,
 } from "@/lib/api/publicApi";
 import { useAppSelector } from "@/lib/hooks";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+// ✅ Use imperative router, NOT the useRouter() hook.
+//
+// useRouter() calls useNavigation() internally which requires the navigation
+// context to be fully committed. When dozens of ProductCards mount
+// simultaneously (e.g. right after customer login navigates to /(tabs)),
+// React's commit phase hasn't finished providing the context yet, causing
+// "Couldn't find a navigation context" errors. These errors kill tap handlers
+// silently, making the entire screen appear frozen.
+//
+// The imperative `router` uses a stable global NavigationRef and never needs
+// the context hook — safe to call from anywhere at any time.
+import { router } from "expo-router";
 import React from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import Toast from "react-native-toast-message";
 
@@ -22,7 +33,6 @@ interface Props {
 }
 
 export function ProductCard({ product, hideAddToCart = false }: Props) {
-  const router = useRouter();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
 
   const { data: cartResponse } = useGetCartQuery(undefined, {
@@ -40,7 +50,7 @@ export function ProductCard({ product, hideAddToCart = false }: Props) {
 
   const cartItems = cartResponse?.data?.items || [];
   const wishlistItems = wishlistResponse || [];
-  
+
   const isInCart = cartItems.some(
     (i: any) => i.product_details?.slug === product.slug,
   );
@@ -48,7 +58,8 @@ export function ProductCard({ product, hideAddToCart = false }: Props) {
     (i: any) => i.product_details?.slug === product.slug,
   );
 
-  const hasVariants = product.variants && Object.keys(product.variants).length > 0;
+  const hasVariants =
+    product.variants && Object.keys(product.variants).length > 0;
 
   const discount = product.discount ?? 0;
   const price = parseFloat(product.price || "0");
@@ -88,25 +99,26 @@ export function ProductCard({ product, hideAddToCart = false }: Props) {
 
     try {
       if (isInCart) {
-        // Find the item in cart to get its selected_variants
-        const cartItem = cartItems.find((i: any) => i.product_details?.slug === product.slug);
-        await removeFromCart({ 
-          slug: product.slug, 
-          selected_variants: cartItem?.selected_variants || {} 
+        const cartItem = cartItems.find(
+          (i: any) => i.product_details?.slug === product.slug,
+        );
+        await removeFromCart({
+          slug: product.slug,
+          selected_variants: cartItem?.selected_variants || {},
         }).unwrap();
         Toast.show({ type: "success", text1: "Removed from cart" });
       } else {
-        await addToCart({ 
-          slug: product.slug, 
+        await addToCart({
+          slug: product.slug,
           quantity: 1,
-          selected_variants: {} 
+          selected_variants: {},
         }).unwrap();
         Toast.show({ type: "success", text1: "Added to cart" });
       }
     } catch (err: any) {
-      Toast.show({ 
-        type: "error", 
-        text1: err?.data?.error || "Something went wrong" 
+      Toast.show({
+        type: "error",
+        text1: err?.data?.error || "Something went wrong",
       });
     }
   };
@@ -197,7 +209,9 @@ export function ProductCard({ product, hideAddToCart = false }: Props) {
                   ? "Removing..."
                   : isInCart
                     ? "Remove from Cart"
-                    : (hasVariants ? "Select Options" : "Add to Cart")}
+                    : hasVariants
+                      ? "Select Options"
+                      : "Add to Cart"}
             </Text>
           </Pressable>
         )}
@@ -238,7 +252,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   info: { padding: 12 },
-  name: { fontSize: 14, fontWeight: "500", color: "#111827", marginBottom: 4 },
+  name: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#111827",
+    marginBottom: 4,
+  },
   priceRow: {
     flexDirection: "row",
     alignItems: "flex-start",

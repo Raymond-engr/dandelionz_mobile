@@ -2,6 +2,16 @@ import { useAppSelector } from "@/lib/hooks";
 import { Stack, router } from "expo-router";
 import React, { useEffect, useRef } from "react";
 
+/**
+ * Admin stack layout.
+ *
+ * FIX: Wrap all `router.replace` calls in `queueMicrotask` so navigation
+ * dispatches happen after the current render frame is committed.
+ * Calling router synchronously inside a useEffect that fires during mount
+ * can produce "Couldn't find a navigation context" when the component tree
+ * is still being set up — this is the root cause of the error seen when
+ * switching Monthly/Weekly tabs on the admin dashboard.
+ */
 export default function AdminLayout() {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const hasRedirected = useRef(false);
@@ -9,18 +19,17 @@ export default function AdminLayout() {
   useEffect(() => {
     if (!isAuthenticated || !user) {
       hasRedirected.current = false;
-      router.replace("/(auth)/login");
+      queueMicrotask(() => router.replace("/(auth)/login"));
       return;
     }
     if (hasRedirected.current) return;
     if (user.role !== "BUSINESS_ADMIN") {
       hasRedirected.current = true;
-      router.replace("/(tabs)");
+      queueMicrotask(() => router.replace("/(tabs)"));
     }
   }, [isAuthenticated, user?.role, user?.uuid]);
 
-  // Return null or a loading state while redirecting to avoid
-  // rendering children that might depend on auth context
+  // Don't render the stack until auth is confirmed to avoid flashing protected screens.
   if (!isAuthenticated || !user || user.role !== "BUSINESS_ADMIN") {
     return null;
   }
@@ -28,8 +37,6 @@ export default function AdminLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
-
-      {/* Sub-screens in the admin stack */}
       <Stack.Screen
         name="analytics"
         options={{ headerShown: false, title: "Analytics" }}
@@ -90,7 +97,6 @@ export default function AdminLayout() {
         name="account/change-password"
         options={{ headerShown: false, title: "Change Password" }}
       />
-
       <Stack.Screen
         name="orders/[id]"
         options={{ headerShown: false, title: "Order Details" }}

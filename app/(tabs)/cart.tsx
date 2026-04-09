@@ -10,7 +10,7 @@ import { useAppSelector } from "@/lib/hooks";
 import { Ionicons } from "@expo/vector-icons";
 // Imperative router — same reason as all other tab screens.
 import { router } from "expo-router";
-import React from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -19,16 +19,24 @@ import {
   View,
   Image,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function CartScreen() {
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const { data: cartResponse, isLoading } = useGetCartQuery(undefined, {
+  const { data: cartResponse, isLoading, refetch } = useGetCartQuery(undefined, {
     skip: !isAuthenticated,
   });
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
   const [updateItem] = useUpdateCartItemMutation();
   const [removeItem, { isLoading: isRemoving }] = useRemoveFromCartMutation();
 
@@ -91,6 +99,9 @@ export default function CartScreen() {
         keyExtractor={(item: any) => String(item.id)}
         contentContainerStyle={{ paddingBottom: 120 }}
         ListEmptyComponent={renderEmpty}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#030482" />
+        }
         renderItem={({ item }: { item: any }) => {
           const product = item.product_details ?? {};
           const price = parseFloat(product.price ?? "0");

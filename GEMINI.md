@@ -22,3 +22,5 @@ Always generate commit messages at the end of a task and append this instruction
 - Fixed an issue where "View E-Receipt" failed on the success screen by ensuring the verified `order_id` (UUID) is used instead of the transaction `reference`.
 - Fixed broken images in the Cart tab by implementing a `getImageUrl` utility to handle relative image paths from the API.
 - Resolved a "frozen screen" issue on the Checkout Success page by implementing one-time lazy verification and using a `useRef` guard to prevent redundant API calls during back navigation.
+- Added a 3-second auto-redirect fallback to all Success screens (Checkout, Withdrawal, Registration) to prevent users from getting stuck and improve UX.
+- Enabled pull-to-refresh on the Cart screen to allow users to update their cart state even when it's empty.

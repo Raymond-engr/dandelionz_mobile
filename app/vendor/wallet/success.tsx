@@ -1,18 +1,33 @@
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
+import { useLocalSearchParams, router } from "expo-router";
+import React, { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 export default function WithdrawalSuccessScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams<{
     amount: string;
     accountName: string;
     accountNumber: string;
     bankName: string;
   }>();
+
+  const [countdown, setCountdown] = useState(3);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          router.replace("/vendor/(tabs)/wallet");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <View className="flex-1 bg-white items-center justify-between py-10">
@@ -37,8 +52,12 @@ export default function WithdrawalSuccessScreen() {
           Withdrawal Successful!
         </Text>
         
-        <Text className="text-[16px] text-[#6B7280] text-center mt-4 px-6 leading-6">
+        <Text className="text-[16px] text-[#6B7280] text-center mt-4 px-6 leading-6 mb-2">
           Your withdrawal request has been submitted. Funds will be transferred to your bank account shortly.
+        </Text>
+
+        <Text className="text-[14px] text-gray-500 text-center italic">
+          Redirecting to wallet in {countdown}s...
         </Text>
       </View>
 

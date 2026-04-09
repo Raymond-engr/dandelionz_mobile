@@ -21,10 +21,30 @@ export default function CheckoutSuccessScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [verifyData, setVerifyData] = useState<any>(null);
+  const [countdown, setCountdown] = useState(3);
   const hasVerified = useRef(false);
 
   const [triggerVerify] = useLazyVerifyPaymentQuery();
   const [triggerInstallmentVerify] = useLazyVerifyInstallmentPaymentQuery();
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (!isLoading && !isError) {
+      timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            router.replace("/(tabs)");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isLoading, isError]);
 
   useEffect(() => {
     async function verify() {
@@ -141,8 +161,11 @@ export default function CheckoutSuccessScreen() {
           </Svg>
         </View>
 
-        <Text className="text-[24px] font-semibold text-system-blue-light text-center px-4 mb-12">
+        <Text className="text-[24px] font-semibold text-system-blue-light text-center px-4 mb-4">
           {successMessage}
+        </Text>
+        <Text className="text-[14px] text-gray-500 text-center italic">
+          Redirecting to home in {countdown}s...
         </Text>
       </View>
 

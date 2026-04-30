@@ -5,12 +5,14 @@ import { Colors } from "@/constants/theme";
 import { useLazyVerifyPaymentQuery, useLazyVerifyInstallmentPaymentQuery } from "@/lib/api/publicApi";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import React, { useEffect, useState, useRef } from "react";
 import { Text, View, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
 export default function CheckoutSuccessScreen() {
+  const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const { reference, plan_id, status } = useLocalSearchParams<{ 
     reference: string; 
@@ -27,24 +29,28 @@ export default function CheckoutSuccessScreen() {
   const [triggerVerify] = useLazyVerifyPaymentQuery();
   const [triggerInstallmentVerify] = useLazyVerifyInstallmentPaymentQuery();
 
+  // Timer for redirect
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (!isLoading && !isError) {
-      timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            router.replace("/(tabs)");
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [isLoading, isError]);
+    if (isLoading || isError || !isFocused) return;
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          // Standard: redirect to root tab
+          queueMicrotask(() => {
+            if (isFocused) {
+               router.replace("/(tabs)");
+            }
+          });
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isLoading, isError, isFocused]);
 
   useEffect(() => {
     async function verify() {

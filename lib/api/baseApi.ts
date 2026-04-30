@@ -10,21 +10,17 @@ import { RootState } from "../store";
 const BASE_URL =
   process.env.EXPO_PUBLIC_API_URL || "https://api.dandelionz.com.ng";
 
-// Base query with auth token injection
 const baseQuery = fetchBaseQuery({
   baseUrl: BASE_URL,
   prepareHeaders: (headers, api) => {
     const args = (api as any).arg;
     const token = (api.getState() as RootState).auth.accessToken;
 
-    // Skip Authorization header for refresh token requests to avoid 401s from the refresh endpoint itself
     if (token && args?.url !== "/auth/token/refresh/") {
       headers.set("Authorization", `Bearer ${token}`);
     }
 
-    // Access the body from the arguments passed to the query
     const { body } = args || {};
-
     if (body instanceof FormData) {
       // let browser set Content-Type for FormData
     } else {
@@ -34,7 +30,6 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
-// A simple mutex to ensure we only refresh the token once.
 const mutex = {
   isLocked: false,
   resolveQueue: () => {},
@@ -52,20 +47,17 @@ const mutex = {
   },
 };
 
-// Base query with automatic token refresh
 const baseQueryWithReauth: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-  // wait until the mutex is available
   if (mutex.isLocked) {
     await mutex.wait();
   }
   let result = await baseQuery(args, api, extraOptions);
 
   if (result.error && result.error.status === 401) {
-    // Check if the mutex is locked again, in case another request refreshed the token while we were waiting
     if (!mutex.isLocked) {
       mutex.lock();
       const state = api.getState() as RootState;
@@ -73,7 +65,6 @@ const baseQueryWithReauth: BaseQueryFn<
 
       if (refreshToken) {
         try {
-          // Try to refresh token
           const refreshResult = await baseQuery(
             {
               url: "/auth/token/refresh/",
@@ -89,7 +80,6 @@ const baseQueryWithReauth: BaseQueryFn<
               refreshResult.data as any
             ).data;
 
-            // Update tokens in state
             api.dispatch({
               type: "auth/setTokens",
               payload: {
@@ -98,28 +88,44 @@ const baseQueryWithReauth: BaseQueryFn<
               },
             });
 
-            // Update cookies so middleware doesn't reject the next navigation
-            // Set max-age to 1 day (86400 seconds) or match server response if possible
             await SecureStore.setItemAsync("access_token", access_token);
-
-            // Retry the original query with the new token
             result = await baseQuery(args, api, extraOptions);
           } else {
-            // Refresh failed - logout user
-            api.dispatch({ type: "auth/logout" });
+            // Refresh endpoint returned an error — the session is truly expired.
+            // Only dispatch logout if the user was authenticated to begin with.
+            if (state.auth.isAuthenticated) {
+              api.dispatch({ type: "auth/logout" });
+            }
           }
         } catch (e) {
-          api.dispatch({ type: "auth/logout" });
+          if (state.auth.isAuthenticated) {
+            api.dispatch({ type: "auth/logout" });
+          }
         } finally {
           mutex.unlock();
         }
       } else {
-        // No refresh token - logout user and unlock
-        api.dispatch({ type: "auth/logout" });
+        // No refresh token.
+        //
+        // CRITICAL FIX: Only dispatch auth/logout when the user is actually
+        // authenticated. If isAuthenticated is already false (unauthenticated
+        // user hitting a 401 on a public-ish endpoint), dispatching logout is
+        // a no-op for Redux state values BUT Immer still creates a new state
+        // reference (it ran the reducer). This new reference triggers
+        // useAppSelector re-renders in frozen layout components like
+        // (admin)/_layout.tsx and vendor/_layout.tsx, whose useEffects check
+        // !isAuthenticated and call router.replace("/(auth)/login") —
+        // redirecting the user to login even when they're just browsing
+        // unauthenticated (e.g. viewing a product page).
+        if (state.auth.isAuthenticated) {
+          api.dispatch({ type: "auth/logout" });
+        }
+        // If not authenticated, simply let the 401 error propagate to the
+        // calling query. The screen can handle it (show "not found", etc.)
+        // without any navigation side-effect.
         mutex.unlock();
       }
     } else {
-      // Mutex was locked, so refresh was in-progress. Await it, then retry the request.
       await mutex.wait();
       result = await baseQuery(args, api, extraOptions);
     }
@@ -128,7 +134,6 @@ const baseQueryWithReauth: BaseQueryFn<
   return result;
 };
 
-// Base API slice
 export const baseApi = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
@@ -154,5 +159,4 @@ export const baseApi = createApi({
   endpoints: () => ({}),
 });
 
-// Export hooks
 export const { reducerPath, reducer, middleware } = baseApi;

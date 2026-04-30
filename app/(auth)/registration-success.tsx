@@ -1,26 +1,34 @@
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { router } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 export default function RegistrationSuccessScreen() {
+  const isFocused = useIsFocused();
   const [countdown, setCountdown] = useState(3);
 
   useEffect(() => {
+    if (!isFocused) return;
+
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          router.replace("/(auth)/login");
+          queueMicrotask(() => {
+            if (isFocused) {
+              router.replace("/(auth)/login");
+            }
+          });
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isFocused]);
 
   return (
     <View className="flex-1 bg-white items-center justify-between py-10">

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useRegisterMutation } from "@/lib/api/authApi";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { startTransition, useState } from "react";
+import React, { useState, useTransition } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,7 +20,19 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function RegisterScreen() {
+  // "use no memo" opts this component out of the React Compiler's automatic
+  // memoization. The React Compiler (reactCompiler: true in app.json) can
+  // incorrectly memoize hook calls when the component tree changes shape
+  // conditionally (e.g. Referral Code field appears/disappears based on role).
+  // This memoization causes expo-router's internal screen wrappers to read a
+  // stale/undefined NavigationContext → "Couldn't find a navigation context".
+  "use no memo";
+
   const [register, { isLoading }] = useRegisterMutation();
+  // useTransition marks the role state update as a non-urgent "transition".
+  // This tells React's concurrent renderer to flush all pending navigation
+  // context work before processing the update, preventing context tearing.
+  const [, startRoleTransition] = useTransition();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -35,13 +47,8 @@ export default function RegisterScreen() {
   const [rememberPassword, setRememberPassword] = useState(false);
   const [error, setError] = useState("");
 
-  // Wrap role changes in startTransition so React marks this state update as
-  // non-urgent (a "transition"). This prevents the re-render from interrupting
-  // an ongoing navigation commit and eliminates the
-  // "Couldn't find a navigation context" error that fires when a synchronous
-  // setState triggers a re-render cascade while React Navigation is mid-commit.
   const handleRoleChange = (newRole: "CUSTOMER" | "VENDOR") => {
-    startTransition(() => {
+    startRoleTransition(() => {
       setRole(newRole);
     });
   };

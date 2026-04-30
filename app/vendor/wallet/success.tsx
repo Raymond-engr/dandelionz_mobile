@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { useLocalSearchParams, router } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 export default function WithdrawalSuccessScreen() {
+  const isFocused = useIsFocused();
   const params = useLocalSearchParams<{
     amount: string;
     accountName: string;
@@ -16,18 +18,24 @@ export default function WithdrawalSuccessScreen() {
   const [countdown, setCountdown] = useState(3);
 
   useEffect(() => {
+    if (!isFocused) return;
+
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          router.replace("/vendor/(tabs)/wallet");
+          queueMicrotask(() => {
+            if (isFocused) {
+              router.replace("/vendor/(tabs)/wallet");
+            }
+          });
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isFocused]);
 
   return (
     <View className="flex-1 bg-white items-center justify-between py-10">

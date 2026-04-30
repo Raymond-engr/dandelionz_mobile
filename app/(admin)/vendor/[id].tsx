@@ -58,8 +58,11 @@ export default function VendorDetail() {
         await approveVendor({ user_uuid: id!, approve: true }).unwrap();
         Toast.show({ type: "success", text1: "Vendor approved successfully" });
       } else if (action === "Suspend Vendor") {
-        await suspendVendor({ uuid: id!, suspend: true }).unwrap();
+        await approveVendor({ user_uuid: id!, approve: false }).unwrap();
         Toast.show({ type: "success", text1: "Vendor suspended successfully" });
+      } else if (action === "Reject Vendor") {
+        await approveVendor({ user_uuid: id!, approve: false }).unwrap();
+        Toast.show({ type: "success", text1: "Vendor rejected successfully" });
       } else if (action === "Verify KYC") {
         await verifyKYC({ user_uuid: id!, approve: true }).unwrap();
         Toast.show({ type: "success", text1: "Vendor KYC verified successfully" });

@@ -1,41 +1,83 @@
-# 📱 Backend Integration Guide: Push Notifications
+# 📱 Backend Integration Guide: Notifications & Push
 
-This document outlines the requirements for the Dandelionz Backend to support Native Push Notifications for the Mobile App (iOS & Android).
+This document outlines the requirements for the Dandelionz Backend to support both **Live Notifications (WebSockets)** and **Native Push Notifications (Expo/FCM)**. The frontend (Mobile & Web) has already implemented calls to these endpoints.
 
-## 1. The Core Concept: The "Device Token"
-Every mobile device generates a unique **Push Token** (or Registration Token). Think of this like a temporary phone number for notifications.
-*   The Mobile App will send this token to the backend when a user logs in.
-*   The Backend **MUST** store this token in the database, linked to the `User` ID.
+## 1. Notification Data Model
+The frontend expects a standardized Notification object. Your database and API responses **MUST** match this structure:
 
-## 2. Required API Changes
-
-### A. Endpoint: Register/Update Token
-The app needs an endpoint to "hand over" its token.
-*   **Method:** `POST`
-*   **Path:** (e.g., `/api/notifications/register-token/`)
-*   **Payload:**
-    ```json
-    {
-      "token": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
-      "platform": "android" | "ios"
-    }
-    ```
-*   **Logic:**
-    *   If the token exists for another user, move it to the current user (one device = one user).
-    *   Store multiple tokens if a user logs in on an iPad and an Android phone.
-
-### B. Endpoint: Unregister Token (Logout)
-When a user logs out, the backend should delete that specific token so they stop receiving notifications on that device.
+```json
+{
+  "id": "uuid-string",
+  "title": "New Order Received! 🛍️",
+  "message": "Order #4432 has been placed. Tap to view details.",
+  "priority": "high", 
+  "category": "order",
+  "action_url": "/orders/4432", 
+  "action_text": "View Order",
+  "is_read": false,
+  "created_at": "2024-04-12T10:00:00Z",
+  "read_at": null,
+  "notification_type_display": "Order Update",
+  "notification_type_icon": "shopping-cart",
+  "notification_type_color": "#030482"
+}
+```
+*Note: `action_url` can be a relative path (e.g., `/orders/UUID`). The app includes logic to map these to the correct mobile screens.*
 
 ---
 
-## 3. Sending Notifications (Server-Side)
+## 2. API Endpoints
 
-Since we are using **Expo**, the backend doesn't need to talk directly to Google or Apple. You only need to send a simple `POST` request to Expo's server.
+### A. Push Token Management
+The app registers its unique device token to receive background notifications.
+*   **Register Token:** `POST /user/notifications/register-token/`
+    *   **Request:** `{ "token": "ExponentPushToken[xxx]", "platform": "android" | "ios" }`
+    *   **Response:** `{ "success": true, "message": "Token registered" }`
+*   **Unregister Token:** `POST /user/notifications/unregister-token/`
+    *   **Request:** `{ "token": "ExponentPushToken[xxx]" }`
+
+### B. Notification Management
+*   **Get List:** `GET /user/notifications/`
+    *   **Params:** `page`, `page_size`, `is_read` (boolean)
+    *   **Response:** `{ "success": true, "data": [ ...NotificationObjects ] }`
+*   **Mark as Read:** `POST /user/notifications/mark_as_read/`
+    *   **Request:** `{ "notification_id": "uuid-string" }`
+*   **Mark All as Read:** `POST /user/notifications/mark_all_as_read/`
+    *   **Request:** `{}`
+*   **Delete:** `DELETE /user/notifications/{id}/`
+*   **Stats:** `GET /user/notifications/stats/`
+    *   **Response:** 
+    ```json
+    { 
+      "success": true, 
+      "data": { 
+        "unread_count": 5, 
+        "total_notifications": 20,
+        "last_notification_time": "2024-04-12T10:00:00Z"
+      } 
+    }
+    ```
+
+---
+
+## 3. Real-Time Notifications (WebSockets)
+Used for live updates while the app is in the foreground.
+*   **URL:** `wss://dandelionz.net/ws/notifications/token=<access_token>`
+*   **Message Format (from Server to Client):**
+    ```json
+    {
+      "type": "notification",
+      "data": { ...NotificationObject }
+    }
+    ```
+
+---
+
+## 4. Native Push Notifications (Background/Killed State)
+When the app is closed, send a `POST` request to Expo's Push Service.
 
 *   **URL:** `https://exp.host/--/api/v2/push/send`
-*   **Headers:** `Content-Type: application/json`
-*   **Example Payload:**
+*   **Payload:**
     ```json
     {
       "to": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
@@ -44,22 +86,27 @@ Since we are using **Expo**, the backend doesn't need to talk directly to Google
       "data": { 
         "url": "dandelionz://receipt/4432" 
       },
-      "sound": "default"
+      "sound": "default",
+      "priority": "high"
     }
     ```
 
-### Important Field: `data`
-The `data` object is invisible to the user but critical for the app. 
-*   Always include a `url` field using our **Deep Link** scheme (defined in `app.json`).
-*   This allows the app to automatically "jump" to the correct screen when the user taps the notification.
+### CRITICAL: The `data.url` Field
+For Push Notifications, the `data.url` field **MUST** use the `dandelionz://` scheme. This triggers the app's deep-linking logic when the user taps the notification banner.
+
+**Recommended URL Patterns:**
+*   `dandelionz://receipt/:uuid` (View Order Receipt)
+*   `dandelionz://orders/:uuid` (Track Order)
+*   `dandelionz://account/notifications` (Open Inbox)
 
 ---
 
-## 4. When to Trigger Notifications
-The backend should trigger a push notification for the following events:
-1.  **Customer:** Order Status Change (Shipped/Delivered), New Promotion.
-2.  **Vendor:** New Order Received, Withdrawal Approved/Rejected.
-3.  **Admin:** New User Registration (Optional), Large Withdrawal Request.
+## 5. Trigger Events
+1.  **Customer:** `order_shipped`, `order_delivered`, `payment_success`, `low_stock_alert`.
+2.  **Vendor:** `new_order`, `settlement_completed`, `withdrawal_status_updated`.
+3.  **Admin:** `new_vendor_request`, `large_withdrawal_pending`.
 
-## 5. Testing Tools
-You can test your implementation without the mobile app using the **[Expo Push Tool](https://expo.dev/notifications)**. Just paste the token I send you from the app logs and hit "Send".
+## 6. Testing
+1.  **Local Test:** Use the **[Expo Push Tool](https://expo.dev/notifications)**.
+2.  **Live Test:** Send a message to the WebSocket while the user is logged in.
+3.  **Verification:** The app will automatically register its token on login. Check your `register-token` logs to find active tokens.

@@ -1,15 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
+import {
+  StackActions,
+  useIsFocused,
+  useNavigation,
+} from "@react-navigation/native";
 import { router } from "expo-router";
-import { useIsFocused } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 export default function RegistrationSuccessScreen() {
   const isFocused = useIsFocused();
+  const navigation = useNavigation();
   const [countdown, setCountdown] = useState(3);
 
+  // Effect 1: countdown only
   useEffect(() => {
     if (!isFocused) return;
 
@@ -17,11 +23,6 @@ export default function RegistrationSuccessScreen() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          queueMicrotask(() => {
-            if (isFocused) {
-              router.replace("/(auth)/login");
-            }
-          });
           return 0;
         }
         return prev - 1;
@@ -29,6 +30,14 @@ export default function RegistrationSuccessScreen() {
     }, 1000);
     return () => clearInterval(timer);
   }, [isFocused]);
+
+  // Navigation — fires when countdown reaches 0
+  useEffect(() => {
+    if (countdown === 0 && isFocused) {
+      // popToTop() unwinds the auth stack back to the login screen.
+      navigation.dispatch(StackActions.popToTop());
+    }
+  }, [countdown, isFocused, navigation]);
 
   return (
     <View className="flex-1 bg-white items-center justify-between py-10">
@@ -52,9 +61,10 @@ export default function RegistrationSuccessScreen() {
         <Text className="text-[24px] font-semibold text-system-blue-light text-center px-4">
           Registration Successful!
         </Text>
-        
+
         <Text className="text-[16px] text-[#6B7280] text-center mt-4 px-6 leading-6 mb-2">
-          Your account has been created successfully. Please check your email to verify your account.
+          Your account has been created successfully. Please check your email to
+          verify your account.
         </Text>
 
         <Text className="text-[14px] text-gray-500 text-center italic">
@@ -65,7 +75,7 @@ export default function RegistrationSuccessScreen() {
       <View className="w-full items-center">
         <Divider className="mb-6" />
         <View className="w-full px-6">
-          <Button onPress={() => router.replace("/(auth)/login")}>
+          <Button onPress={() => navigation.dispatch(StackActions.popToTop())}>
             Continue to Login
           </Button>
         </View>

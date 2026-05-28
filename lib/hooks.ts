@@ -31,7 +31,12 @@ export const useLogout = () => {
       dispatch(logoutAction());
       await AsyncStorage.removeItem("auth");
       await SecureStore.deleteItemAsync("access_token");
-      router.replace("/(auth)/login");
+      // Navigate to "/" first so (tabs) is mounted in the stack,
+      // then push login on top. This means router.back() from login
+      // always reveals an already-rendered (tabs) — no fresh mount,
+      // no white screen, for any role re-login.
+      router.replace("/");
+      requestAnimationFrame(() => router.push("/(auth)/login"));
     }
   };
 

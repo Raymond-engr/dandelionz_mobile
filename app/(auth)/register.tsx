@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useRegisterMutation } from "@/lib/api/authApi";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState, useTransition } from "react";
+import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -29,10 +29,6 @@ export default function RegisterScreen() {
   "use no memo";
 
   const [register, { isLoading }] = useRegisterMutation();
-  // useTransition marks the role state update as a non-urgent "transition".
-  // This tells React's concurrent renderer to flush all pending navigation
-  // context work before processing the update, preventing context tearing.
-  const [, startRoleTransition] = useTransition();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -48,9 +44,15 @@ export default function RegisterScreen() {
   const [error, setError] = useState("");
 
   const handleRoleChange = (newRole: "CUSTOMER" | "VENDOR") => {
-    startRoleTransition(() => {
-      setRole(newRole);
-    });
+    // Defer the state update by one macrotask.
+    // When the role changes, the referral code TextInput unmounts, which
+    // releases keyboard focus and fires a native keyboard event. React
+    // Navigation processes that keyboard event during the same render pass,
+    // briefly losing its navigation context. By deferring setRole to the
+    // next macrotask, the keyboard event and any resulting navigation
+    // re-renders complete first, and the context is stable when the
+    // component tree actually changes.
+    setTimeout(() => setRole(newRole), 0);
   };
 
   const handleRegister = async () => {

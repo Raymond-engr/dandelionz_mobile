@@ -1,39 +1,47 @@
+import { Button } from "@/components/ui/button";
+import { Divider } from "@/components/ui/divider";
+import {
+    useApproveProductAdminMutation,
+    useGetAdminProductDetailsQuery,
+    useRejectProductAdminMutation,
+} from "@/lib/api/adminApi";
+import { formatCurrency } from "@/lib/utils";
+import { Feather } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  ScrollView,
-  ActivityIndicator,
-  Image,
-  TouchableOpacity,
-  Alert,
-  TextInput,
+    ActivityIndicator,
+    Image,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-  useGetAdminProductDetailsQuery,
-  useApproveProductAdminMutation,
-  useRejectProductAdminMutation,
-} from "@/lib/api/adminApi";
-import { Ionicons, Feather } from "@expo/vector-icons";
-import { Divider } from "@/components/ui/divider";
-import { Button } from "@/components/ui/button";
-import { formatCurrency } from "@/lib/utils";
 import Toast from "react-native-toast-message";
 
 export default function ProductDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [action, setAction] = useState<"Approve Product" | "Reject Product">("Approve Product");
+  const [action, setAction] = useState<"Approve Product" | "Reject Product">(
+    "Approve Product",
+  );
   const [reason, setReason] = useState("");
 
-  const { data: productResponse, isLoading, error, refetch } = useGetAdminProductDetailsQuery(id!);
+  const {
+    data: productResponse,
+    isLoading,
+    error,
+    refetch,
+  } = useGetAdminProductDetailsQuery(id!);
   const product = productResponse?.data;
 
-  const [approveProduct, { isLoading: isApproving }] = useApproveProductAdminMutation();
-  const [rejectProduct, { isLoading: isRejecting }] = useRejectProductAdminMutation();
+  const [approveProduct, { isLoading: isApproving }] =
+    useApproveProductAdminMutation();
+  const [rejectProduct, { isLoading: isRejecting }] =
+    useRejectProductAdminMutation();
 
   const handleConfirmAction = async () => {
     if (!product) return;
@@ -41,17 +49,26 @@ export default function ProductDetail() {
     try {
       if (action === "Approve Product") {
         await approveProduct(id!).unwrap();
-        Toast.show({ type: "success", text1: "Product approved successfully!" });
+        Toast.show({
+          type: "success",
+          text1: "Product approved successfully!",
+        });
       } else {
-        await rejectProduct({ slug: id!, reason: reason || undefined }).unwrap();
-        Toast.show({ type: "success", text1: "Product rejected successfully!" });
+        await rejectProduct({
+          slug: id!,
+          reason: reason || undefined,
+        }).unwrap();
+        Toast.show({
+          type: "success",
+          text1: "Product rejected successfully!",
+        });
       }
       refetch();
     } catch (err: any) {
-      Toast.show({ 
-        type: "error", 
-        text1: "Error", 
-        text2: err?.data?.message || "Failed to perform action" 
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: err?.data?.message || "Failed to perform action",
       });
     }
   };
@@ -67,7 +84,9 @@ export default function ProductDetail() {
   if (error || !product) {
     return (
       <View className="flex-1 bg-white items-center justify-center p-6">
-        <Text className="text-system-red text-center mb-4">Failed to load product details.</Text>
+        <Text className="text-system-red text-center mb-4">
+          Failed to load product details.
+        </Text>
         <Button onPress={() => router.back()}>Go Back</Button>
       </View>
     );
@@ -92,22 +111,32 @@ export default function ProductDetail() {
         <View className="p-[21px]">
           <View className="aspect-square bg-gray-50 rounded-2xl overflow-hidden mb-6 items-center justify-center border border-gray-100">
             {product.image ? (
-              <Image source={{ uri: product.image }} className="w-full h-full" resizeMode="contain" />
+              <Image
+                source={{ uri: product.image }}
+                className="w-full h-full"
+                resizeMode="contain"
+              />
             ) : (
               <Feather name="image" size={64} color="#9ca3af" />
             )}
           </View>
 
-          <Text className="text-[22px] font-bold text-system-blue-dark mb-2">{product.name}</Text>
-          <Text className="text-[14px] text-[#6B7280] leading-[22px] mb-4">{product.description}</Text>
-          
+          <Text className="text-[22px] font-bold text-system-blue-dark mb-2">
+            {product.name}
+          </Text>
+          <Text className="text-[14px] text-[#6B7280] leading-[22px] mb-4">
+            {product.description}
+          </Text>
+
           <View className="flex-row items-center gap-3 mb-6">
             <Text className="text-[24px] font-bold text-system-blue-light">
               {formatCurrency(product.price)}
             </Text>
             {(product.discount ?? 0) > 0 && (
               <View className="bg-red-50 px-2 py-1 rounded-lg">
-                <Text className="text-system-red text-[12px] font-bold">-{product.discount}% OFF</Text>
+                <Text className="text-system-red text-[12px] font-bold">
+                  -{product.discount}% OFF
+                </Text>
               </View>
             )}
           </View>
@@ -115,15 +144,23 @@ export default function ProductDetail() {
           <View className="gap-4 bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6]">
             <View className="flex-row justify-between">
               <Text className="text-[14px] text-[#6B7280]">Category</Text>
-              <Text className="text-[14px] font-semibold text-system-blue-dark">{product.category_name || product.category}</Text>
+              <Text className="text-[14px] font-semibold text-system-blue-dark">
+                {product.category_name || product.category}
+              </Text>
             </View>
             <View className="flex-row justify-between">
-              <Text className="text-[14px] text-[#6B7280]">Stock Available</Text>
-              <Text className="text-[14px] font-semibold text-system-blue-dark">{product.stock} Units</Text>
+              <Text className="text-[14px] text-[#6B7280]">
+                Stock Available
+              </Text>
+              <Text className="text-[14px] font-semibold text-system-blue-dark">
+                {product.stock} Units
+              </Text>
             </View>
             <View className="flex-row justify-between">
               <Text className="text-[14px] text-[#6B7280]">Uploaded On</Text>
-              <Text className="text-[14px] font-semibold text-system-blue-dark">{new Date(product.uploadDate).toLocaleDateString()}</Text>
+              <Text className="text-[14px] font-semibold text-system-blue-dark">
+                {new Date(product.uploadDate).toLocaleDateString()}
+              </Text>
             </View>
           </View>
         </View>
@@ -131,20 +168,42 @@ export default function ProductDetail() {
         <Divider />
 
         <View className="p-[21px]">
-          <Text className="text-[16px] font-bold text-system-blue-dark mb-4">Vendor Info</Text>
+          <Text className="text-[16px] font-bold text-system-blue-dark mb-4">
+            Vendor Info
+          </Text>
           <View className="gap-2">
-            <Text className="text-[14px] text-[#6B7280]">Store: <Text className="font-semibold text-system-blue-dark">{product.vendor.store_name}</Text></Text>
-            <Text className="text-[14px] text-[#6B7280]">Email: <Text className="font-semibold text-system-blue-dark">{product.vendor.email}</Text></Text>
+            <Text className="text-[14px] text-[#6B7280]">
+              Store:{" "}
+              <Text className="font-semibold text-system-blue-dark">
+                {product.vendor.store_name}
+              </Text>
+            </Text>
+            <Text className="text-[14px] text-[#6B7280]">
+              Email:{" "}
+              <Text className="font-semibold text-system-blue-dark">
+                {product.vendor.email}
+              </Text>
+            </Text>
             <View className="flex-row items-center mt-2">
               <Text className="text-[14px] text-[#6B7280] mr-2">Status:</Text>
-              <View className={`px-3 py-1 rounded-full ${
-                product.status === 'APPROVED' ? 'bg-green-100' : 
-                product.status === 'REJECTED' ? 'bg-red-100' : 'bg-yellow-100'
-              }`}>
-                <Text className={`text-[12px] font-bold ${
-                  product.status === 'APPROVED' ? 'text-green-700' : 
-                  product.status === 'REJECTED' ? 'text-red-700' : 'text-yellow-700'
-                }`}>
+              <View
+                className={`px-3 py-1 rounded-full ${
+                  product.status === "APPROVED"
+                    ? "bg-green-100"
+                    : product.status === "REJECTED"
+                      ? "bg-red-100"
+                      : "bg-yellow-100"
+                }`}
+              >
+                <Text
+                  className={`text-[12px] font-bold ${
+                    product.status === "APPROVED"
+                      ? "text-green-700"
+                      : product.status === "REJECTED"
+                        ? "text-red-700"
+                        : "text-yellow-700"
+                  }`}
+                >
                   {product.status}
                 </Text>
               </View>
@@ -161,7 +220,9 @@ export default function ProductDetail() {
                   onPress={() => setAction(a as any)}
                   className={`flex-1 py-3 rounded-lg items-center ${action === a ? "bg-white shadow-sm" : ""}`}
                 >
-                  <Text className={`text-[13px] font-semibold ${action === a ? "text-system-blue-light" : "text-[#6B7280]"}`}>
+                  <Text
+                    className={`text-[13px] font-semibold ${action === a ? "text-system-blue-light" : "text-[#6B7280]"}`}
+                  >
                     {a}
                   </Text>
                 </TouchableOpacity>
@@ -177,10 +238,7 @@ export default function ProductDetail() {
               textAlignVertical="top"
             />
 
-            <Button
-              onPress={handleConfirmAction}
-              isLoading={isSubmitting}
-            >
+            <Button onPress={handleConfirmAction} isLoading={isSubmitting}>
               Confirm Action
             </Button>
           </View>

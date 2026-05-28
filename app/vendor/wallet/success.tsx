@@ -1,13 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
-import { useLocalSearchParams, router } from "expo-router";
-import { useIsFocused } from "@react-navigation/native";
+import {
+  StackActions,
+  useIsFocused,
+  useNavigation,
+} from "@react-navigation/native";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 export default function WithdrawalSuccessScreen() {
   const isFocused = useIsFocused();
+  const navigation = useNavigation();
   const params = useLocalSearchParams<{
     amount: string;
     accountName: string;
@@ -17,6 +22,7 @@ export default function WithdrawalSuccessScreen() {
 
   const [countdown, setCountdown] = useState(3);
 
+  // Effect 1: countdown only
   useEffect(() => {
     if (!isFocused) return;
 
@@ -24,11 +30,6 @@ export default function WithdrawalSuccessScreen() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          queueMicrotask(() => {
-            if (isFocused) {
-              router.replace("/vendor/(tabs)/wallet");
-            }
-          });
           return 0;
         }
         return prev - 1;
@@ -36,6 +37,16 @@ export default function WithdrawalSuccessScreen() {
     }, 1000);
     return () => clearInterval(timer);
   }, [isFocused]);
+
+  // Navigation — fires when countdown reaches 0
+  useEffect(() => {
+    if (countdown === 0 && isFocused) {
+      // popToTop() unwinds the withdrawal stack back to vendor/(tabs).
+      navigation.dispatch(StackActions.popToTop());
+      // Specifically target the wallet tab
+      router.push("/vendor/(tabs)/wallet");
+    }
+  }, [countdown, isFocused, navigation]);
 
   return (
     <View className="flex-1 bg-white items-center justify-between py-10">
@@ -59,9 +70,10 @@ export default function WithdrawalSuccessScreen() {
         <Text className="text-[24px] font-semibold text-system-blue-light text-center px-4">
           Withdrawal Successful!
         </Text>
-        
+
         <Text className="text-[16px] text-[#6B7280] text-center mt-4 px-6 leading-6 mb-2">
-          Your withdrawal request has been submitted. Funds will be transferred to your bank account shortly.
+          Your withdrawal request has been submitted. Funds will be transferred
+          to your bank account shortly.
         </Text>
 
         <Text className="text-[14px] text-gray-500 text-center italic">
@@ -71,21 +83,32 @@ export default function WithdrawalSuccessScreen() {
 
       <View className="w-full items-center gap-4">
         <View className="w-full px-6">
-          <Button variant="outline" onPress={() => router.push({
-            pathname: "/vendor/wallet/receipt",
-            params: { 
-              amount: params.amount,
-              accountName: params.accountName,
-              accountNumber: params.accountNumber,
-              bankName: params.bankName
-            }
-          } as any)}>
+          <Button
+            variant="outline"
+            onPress={() => {
+              navigation.dispatch(StackActions.popToTop());
+              router.push({
+                pathname: "/vendor/wallet/receipt",
+                params: {
+                  amount: params.amount,
+                  accountName: params.accountName,
+                  accountNumber: params.accountNumber,
+                  bankName: params.bankName,
+                },
+              } as any);
+            }}
+          >
             View Receipt
           </Button>
         </View>
         <Divider />
         <View className="w-full px-6 mb-6">
-          <Button onPress={() => router.replace("/vendor/(tabs)/wallet")}>
+          <Button
+            onPress={() => {
+              navigation.dispatch(StackActions.popToTop());
+              router.push("/vendor/(tabs)/wallet");
+            }}
+          >
             Back to Wallet
           </Button>
         </View>

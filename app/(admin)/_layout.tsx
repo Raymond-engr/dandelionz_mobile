@@ -1,6 +1,6 @@
 import { useAppSelector } from "@/lib/hooks";
-import { Stack, router } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import { Stack } from "expo-router";
+import React from "react";
 
 /**
  * Admin stack layout.
@@ -14,22 +14,13 @@ import React, { useEffect, useRef } from "react";
  */
 export default function AdminLayout() {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  const hasRedirected = useRef(false);
+  // NO useEffect / router.replace here.
+  // Background layout effects fire even when frozen (freezeOnBlur doesn't
+  // suspend hooks — only the UI). Multiple simultaneous router.replace calls
+  // from frozen backgrounds deadlock customer login and redirect unauthenticated
+  // users away from public pages like product detail.
+  // useLogout() and login.tsx own all navigation decisions.
 
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      hasRedirected.current = false;
-      queueMicrotask(() => router.replace("/(auth)/login"));
-      return;
-    }
-    if (hasRedirected.current) return;
-    if (user.role !== "BUSINESS_ADMIN") {
-      hasRedirected.current = true;
-      queueMicrotask(() => router.replace("/(tabs)"));
-    }
-  }, [isAuthenticated, user?.role, user?.uuid]);
-
-  // Don't render the stack until auth is confirmed to avoid flashing protected screens.
   if (!isAuthenticated || !user || user.role !== "BUSINESS_ADMIN") {
     return null;
   }
@@ -106,7 +97,7 @@ export default function AdminLayout() {
         options={{ headerShown: false, title: "Vendor Details" }}
       />
       <Stack.Screen
-        name="product/[id]"
+        name="products/[id]"
         options={{ headerShown: false, title: "Product Details" }}
       />
       <Stack.Screen

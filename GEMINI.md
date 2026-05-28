@@ -24,7 +24,6 @@ Always generate commit messages at the end of a task and append this instruction
 - Resolved a "frozen screen" issue on the Checkout Success page by implementing one-time lazy verification and using a `useRef` guard to prevent redundant API calls during back navigation.
 - Added a 3-second auto-redirect fallback to all Success screens (Checkout, Withdrawal, Registration) to prevent users from getting stuck and improve UX.
 - Enabled pull-to-refresh on the Cart screen to allow users to update their cart state even when it's empty.
-
 ## April 12, 2026 - Backend Push Guide Synchronization
 - Synchronized `BACKEND_PUSH_GUIDE.md` with the current mobile and web app frontend implementations.
 - Updated all endpoint paths to match `notificationApi.ts` and `customerApi.ts` (e.g., `/user/notifications/...`).
@@ -32,3 +31,11 @@ Always generate commit messages at the end of a task and append this instruction
 - Clarified the distinction between `action_url` (relative paths for the inbox) and `data.url` (deep links for push banners).
 - Added WebSocket connection details (`wss://dandelionz.net/ws/notifications/token=<access_token>`) for live foreground notifications.
 - Verified that all URL mapping logic (from `lib/utils.ts`) and notification models are accurately reflected in the guide.
+
+## April 15, 2026 - Success Page Stack Navigation Alignment
+- Synchronized all "Success" screens (`app/checkout/success.tsx`, `app/vendor/wallet/success.tsx`, `app/(auth)/registration-success.tsx`) with a robust navigation pattern.
+- Implemented `StackActions.popToTop()` across all success flows to ensure multi-step stacks (e.g., Shipping -> Payment -> Success) are cleared upon completion. This prevents "back-button loops" into finished processes.
+- Standardized the auto-redirect logic by separating the countdown timer from the navigation trigger into two independent `useEffect` hooks, eliminating race conditions and "frozen screen" issues during transitions.
+- Verified that roles using standard `Toast` feedback (like Admin withdrawal) remain unaffected while ensuring architectural consistency for all dedicated success pages.
+- Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.
+

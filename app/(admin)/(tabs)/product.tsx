@@ -17,7 +17,7 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -66,13 +66,16 @@ export default function AdminProduct() {
           onPress: async () => {
             try {
               await deleteCategory(slug).unwrap();
-              Toast.show({ type: "success", text1: "Category deleted successfully." });
+              Toast.show({
+                type: "success",
+                text1: "Category deleted successfully.",
+              });
               refetchCategories();
             } catch (err: any) {
-              Toast.show({ 
-                type: "error", 
-                text1: "Error", 
-                text2: err?.data?.message || "Failed to delete category" 
+              Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: err?.data?.message || "Failed to delete category",
               });
             }
           },
@@ -93,13 +96,16 @@ export default function AdminProduct() {
           onPress: async () => {
             try {
               await deleteProduct(slug).unwrap();
-              Toast.show({ type: "success", text1: "Product deleted successfully." });
+              Toast.show({
+                type: "success",
+                text1: "Product deleted successfully.",
+              });
               refetchProducts();
             } catch (err: any) {
-              Toast.show({ 
-                type: "error", 
-                text1: "Error", 
-                text2: err?.data?.message || "Failed to delete product" 
+              Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: err?.data?.message || "Failed to delete product",
               });
             }
           },
@@ -360,7 +366,9 @@ export default function AdminProduct() {
                           <View className="bg-gray-50 rounded-xl p-4 flex-row">
                             <TouchableOpacity
                               onPress={() =>
-                                router.push(`/(admin)/product/${item.slug}`)
+                                router.push(
+                                  `/(admin)/products/${item.slug}` as any,
+                                )
                               }
                               className="flex-1"
                             >

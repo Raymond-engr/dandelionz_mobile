@@ -19,18 +19,18 @@ export default function TabsLayout() {
   useEffect(() => {
     if (!isAuthenticated || !user) {
       hasRedirected.current = false;
-      return;
+      return; // No redirect — useLogout() already called router.replace
     }
     if (hasRedirected.current) return;
 
     if (user.role === "BUSINESS_ADMIN") {
       hasRedirected.current = true;
-      queueMicrotask(() => router.replace("/(admin)/(tabs)"));
+      setTimeout(() => router.replace("/(admin)/(tabs)"), 0);
     } else if (user.role === "VENDOR") {
       hasRedirected.current = true;
-      queueMicrotask(() => router.replace("/vendor"));
+      setTimeout(() => router.replace("/vendor"), 0);
     }
-    // CUSTOMER: do nothing — they belong here.
+    // CUSTOMER: belongs here, do nothing.
   }, [isAuthenticated, user?.role, user?.uuid]);
 
   const renderTabBar = useCallback(
@@ -38,7 +38,6 @@ export default function TabsLayout() {
     [],
   );
 
-  // Always render — never return null from a layout.
   return (
     <Tabs tabBar={renderTabBar} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="index" />

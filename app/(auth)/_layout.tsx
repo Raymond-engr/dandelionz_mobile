@@ -6,6 +6,7 @@ import React from "react";
 // Adding selector hooks here caused spurious re-renders that contributed to
 // the "Couldn't find a navigation context" errors on the register page.
 export default function AuthLayout() {
+  "use no memo";
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" />

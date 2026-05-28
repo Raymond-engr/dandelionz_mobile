@@ -52,27 +52,25 @@ export default function LoginScreen() {
         } else if (userRole === "VENDOR") {
           router.replace("/vendor");
         } else {
-          // CUSTOMER — two distinct stack states require different navigation:
+          // CUSTOMER — original canGoBack() logic is now safe because
+          // the background admin/vendor layout effects that caused the
+          // simultaneous triple-navigate deadlock are removed.
           //
-          // Case A — Initial launch: stack is [(tabs), (auth)/login]
-          //   canGoBack() = true  →  router.back() pops (auth), reveals (tabs).
-          //   ✓ No duplicate.
+          // Case A (from within tabs): stack = [(tabs)/cart, (auth)/login]
+          //   canGoBack() = true → back() pops login, reveals the tab ✓
           //
-          // Case B — Post-logout: useLogout() called router.replace("/(auth)/login")
-          //   which REPLACED (tabs), leaving stack as just [(auth)/login].
-          //   canGoBack() = false.
-          //   router.navigate("/") spins forever in expo-router v6 — WRONG.
-          //   router.replace("/(tabs)") replaces login → stack becomes [(tabs)].
-          //   ✓ No duplicate because (tabs) is no longer in the stack.
-          //
-          // queueMicrotask defers until the Redux credential state has fully
-          // committed so (tabs) child screens re-render as authenticated before
-          // the navigation transition plays.
+          // Case B (post-logout): stack = [(auth)/login] only
+          //   canGoBack() = false → replace("/(tabs)") ✓
+          //   Replace is correct here — the old login screen is gone,
+          //   no duplicate tabs entry is created.
           queueMicrotask(() => {
             if (router.canGoBack()) {
               router.back();
             } else {
-              router.replace("/(tabs)");
+              // "/" is the app root — always valid, always resolves to (tabs)/index.
+              // "/(tabs)" caused blank screen (tabs group with no tab selected).
+              // "/(tabs)/index" caused unmatched route (index is implicit, not a path segment).
+              router.replace("/");
             }
           });
         }

@@ -1,6 +1,6 @@
 import { useAppSelector } from "@/lib/hooks";
-import { Stack, router } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import { Stack } from "expo-router";
+import React from "react";
 
 /**
  * Vendor stack layout.
@@ -10,20 +10,7 @@ import React, { useEffect, useRef } from "react";
  */
 export default function VendorLayout() {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  const hasRedirected = useRef(false);
-
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      hasRedirected.current = false;
-      queueMicrotask(() => router.replace("/(auth)/login"));
-      return;
-    }
-    if (hasRedirected.current) return;
-    if (user.role !== "VENDOR") {
-      hasRedirected.current = true;
-      queueMicrotask(() => router.replace("/(tabs)"));
-    }
-  }, [isAuthenticated, user?.role, user?.uuid]);
+  // NO useEffect / router.replace here — same reason as (admin)/_layout.tsx.
 
   if (!isAuthenticated || !user || user.role !== "VENDOR") {
     return null;

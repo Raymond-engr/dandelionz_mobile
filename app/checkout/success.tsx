@@ -1,22 +1,30 @@
+import { LoadingSpinner } from "@/components/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
-import { LoadingSpinner } from "@/components/loading-spinner";
 import { Colors } from "@/constants/theme";
-import { useLazyVerifyPaymentQuery, useLazyVerifyInstallmentPaymentQuery } from "@/lib/api/publicApi";
+import {
+  useLazyVerifyInstallmentPaymentQuery,
+  useLazyVerifyPaymentQuery,
+} from "@/lib/api/publicApi";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, router } from "expo-router";
-import { useIsFocused } from "@react-navigation/native";
-import React, { useEffect, useState, useRef } from "react";
-import { Text, View, Pressable } from "react-native";
+import {
+  StackActions,
+  useIsFocused,
+  useNavigation,
+} from "@react-navigation/native";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
+import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
 export default function CheckoutSuccessScreen() {
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
-  const { reference, plan_id, status } = useLocalSearchParams<{ 
-    reference: string; 
-    plan_id: string; 
+  const navigation = useNavigation();
+  const { reference, plan_id, status } = useLocalSearchParams<{
+    reference: string;
+    plan_id: string;
     status: string;
   }>();
 
@@ -29,7 +37,9 @@ export default function CheckoutSuccessScreen() {
   const [triggerVerify] = useLazyVerifyPaymentQuery();
   const [triggerInstallmentVerify] = useLazyVerifyInstallmentPaymentQuery();
 
-  // Timer for redirect
+  // Replace the single timer useEffect with these two:
+
+  // Effect 1: countdown only
   useEffect(() => {
     if (isLoading || isError || !isFocused) return;
 
@@ -37,12 +47,6 @@ export default function CheckoutSuccessScreen() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          // Standard: redirect to root tab
-          queueMicrotask(() => {
-            if (isFocused) {
-               router.replace("/(tabs)");
-            }
-          });
           return 0;
         }
         return prev - 1;
@@ -52,11 +56,21 @@ export default function CheckoutSuccessScreen() {
     return () => clearInterval(timer);
   }, [isLoading, isError, isFocused]);
 
+  // Navigation — fires when countdown reaches 0
+  useEffect(() => {
+    if (countdown === 0 && !isLoading && !isError && isFocused) {
+      // popToTop() unwinds the entire checkout stack back to (tabs)/index.
+      // router.replace/navigate cannot do this cleanly — they either
+      // duplicate (tabs) on top of the checkout screens or push new instances.
+      navigation.dispatch(StackActions.popToTop());
+    }
+  }, [countdown, isLoading, isError, isFocused]);
+
   useEffect(() => {
     async function verify() {
       if (hasVerified.current) return;
-      
-      const isCod = status === 'cod';
+
+      const isCod = status === "cod";
       if (isCod) {
         setIsLoading(false);
         hasVerified.current = true;
@@ -90,7 +104,7 @@ export default function CheckoutSuccessScreen() {
   }, [reference, plan_id, status]);
 
   const renderHeader = () => (
-    <View 
+    <View
       className="flex-row items-center justify-between px-4 py-4 bg-white"
       style={{ paddingTop: insets.top }}
     >
@@ -133,20 +147,21 @@ export default function CheckoutSuccessScreen() {
             Payment Failed
           </Text>
           <Text className="text-[16px] text-gray-500 text-center mb-12">
-            We were unable to verify your payment. Please contact support if the issue persists.
+            We were unable to verify your payment. Please contact support if the
+            issue persists.
           </Text>
-          <Button onPress={() => router.replace("/")}>
-            Back to Home
-          </Button>
+          <Button onPress={() => router.replace("/")}>Back to Home</Button>
         </View>
       </View>
     );
   }
 
-  const isCod = status === 'cod';
-  const successMessage = isCod 
-    ? 'Order Placed Successfully!' 
-    : (plan_id ? `Installment ${verifyData?.data?.payment_number || ''} Successful!` : 'Checkout Successful!');
+  const isCod = status === "cod";
+  const successMessage = isCod
+    ? "Order Placed Successfully!"
+    : plan_id
+      ? `Installment ${verifyData?.data?.payment_number || ""} Successful!`
+      : "Checkout Successful!";
 
   return (
     <View className="flex-1 bg-white">
@@ -178,13 +193,25 @@ export default function CheckoutSuccessScreen() {
       <View className="w-full items-center">
         <Divider className="mb-6" />
         <View className="w-full px-[21px] gap-4 pb-10">
-          <Button onPress={() => router.replace("/(tabs)/orders")}>
-            {plan_id ? 'View My Plans' : 'View Order'}
+          <Button
+            onPress={() => {
+              navigation.dispatch(StackActions.popToTop());
+              // popToTop first, then navigate to orders tab:
+              router.push("/(tabs)/orders");
+            }}
+          >
+            {plan_id ? "View My Plans" : "View Order"}
           </Button>
           {!plan_id && (
-            <Button 
-              variant="outline" 
-              onPress={() => router.push({ pathname: "/order-receipt" as any, params: { id: verifyData?.data?.order_id } })}
+            <Button
+              variant="outline"
+              onPress={() => {
+                navigation.dispatch(StackActions.popToTop());
+                router.push({
+                  pathname: "/order-receipt" as any,
+                  params: { id: verifyData?.data?.order_id },
+                });
+              }}
             >
               View E-Receipt
             </Button>

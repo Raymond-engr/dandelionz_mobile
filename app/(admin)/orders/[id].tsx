@@ -9,7 +9,7 @@ import {
   Alert,
   TextInput,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView , useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { 
   useGetAdminOrderDetailsQuery, 
@@ -18,7 +18,7 @@ import {
 } from "@/lib/api/adminApi";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { formatCurrency } from "@/lib/utils";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import Toast from "react-native-toast-message";
 
 export default function OrderDetails() {

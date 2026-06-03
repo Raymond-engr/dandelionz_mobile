@@ -1,50 +1,99 @@
-# Welcome to your Expo app 👋
+# Dandelionz Mobile 🌼
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Dandelionz is a comprehensive multi-role marketplace application built with Expo and React Native. It serves a diverse ecosystem of Customers, Vendors, and Administrators, providing a seamless shopping, selling, and management experience.
 
-## Get started
+## 🚀 Key Features
 
-1. Install dependencies
+### 👤 Customer Experience
+- **Smart Shopping:** Browse categories, search products, and manage a personalized wishlist.
+- **Flexible Checkout:** Support for both standard payments and installment plans.
+- **Order Management:** Real-time order tracking and digital e-receipts.
+- **Profile & Security:** Manage delivery addresses, change passwords, and handle account notifications.
 
-   ```bash
-   npm install
-   ```
+### 🏪 Vendor Portal
+- **Inventory Management:** Full CRUD operations for products with approval workflows.
+- **Sales Analytics:** Track orders and monitor business performance.
+- **Digital Wallet:** Secure withdrawal system with PIN protection and transaction history.
+- **Communication:** Integrated notification system for order updates and platform news.
 
-2. Start the app
+### 🛡️ Admin Dashboard
+- **Platform Oversight:** Monitor total users, vendors, and marketplace health.
+- **Approval System:** Review and approve/reject new products and vendor applications.
+- **Financial Management:** Oversee settlements and process withdrawal requests.
+- **User Management:** Detailed profiles for both customers and vendors.
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## 🛠 Tech Stack
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **Framework:** [Expo](https://expo.dev) (SDK 54) with [Expo Router](https://docs.expo.dev/router/introduction) (File-based routing)
+- **Language:** [TypeScript](https://www.typescriptlang.org/)
+- **State Management:** [Redux Toolkit](https://redux-toolkit.js.org/) with RTK Query for API interactions
+- **Styling:** [NativeWind](https://www.nativewind.dev/) (Tailwind CSS for React Native)
+- **Navigation:** Expo Router (Stack & Tab navigation)
+- **Storage:** [AsyncStorage](https://react-native-async-storage.github.io/async-storage/) & [Expo Secure Store](https://docs.expo.dev/versions/latest/sdk/secure-store/)
+- **Notifications:** [Expo Notifications](https://docs.expo.dev/versions/latest/sdk/notifications/) & [Toast Message](https://github.com/calintamas/react-native-toast-message)
+- **Networking:** Axios-based API client with authentication interceptors
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## 📂 Project Structure
 
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+├── app/                  # Expo Router directory (File-based routes)
+│   ├── (admin)/          # Admin-only dashboard and management screens
+│   ├── (auth)/           # Authentication flow (Login, Register, Password Reset)
+│   ├── (tabs)/           # Main Customer tab navigation (Shop, Cart, Orders, etc.)
+│   ├── vendor/           # Vendor-specific portal and wallet management
+│   └── checkout/         # Synchronized multi-step checkout flow
+├── components/           # Reusable UI components and skeletons
+├── constants/            # Theme, Colors, and configuration constants
+├── hooks/                # Custom React hooks (Theme, Color Scheme)
+├── lib/                  # Core logic, Redux store, and API services
+│   ├── api/              # Role-specific API definitions (RTK Query)
+│   ├── features/         # Redux slices (Auth, Notifications)
+│   └── utils.ts          # Helper functions and formatters
+└── assets/               # Branding, Icons, and local images
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## 🏁 Getting Started
 
-To learn more about developing your project with Expo, look at the following resources:
+### 1. Prerequisites
+- [Node.js](https://nodejs.org/) (LTS)
+- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
+- [Expo Go](https://expo.dev/go) app (for physical device testing)
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 2. Installation
+```bash
+npm install
+```
 
-## Join the community
+### 3. Environment Setup
+Create a `.env` file in the root (if required by your API configuration) and add the necessary environment variables:
+```env
+EXPO_PUBLIC_API_URL=https://api.dandelionz.com.ng
+```
 
-Join our community of developers creating universal apps.
+### 4. Running the Project
+```bash
+# Start the Expo development server
+npx expo start
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+# Run on specific platforms
+npm run android
+npm run ios
+npm run web
+```
+
+---
+
+## 🔒 Security & Architecture
+- **Role-Based Access Control (RBAC):** Screens and layouts are protected based on the user's role (CUSTOMER, VENDOR, ADMIN).
+- **Persistent Auth:** Session state is persisted securely using a combination of Redux and AsyncStorage.
+- **Deep Linking:** Configured for `dandelionz://` and `app.dandelionz.com.ng` to handle verification emails and push notification redirects.
+- **Navigation Safety:** Uses `freezeOnBlur` and `popToTop` patterns to prevent background re-renders and navigation stack bloat.
+
+## 📄 License
+This project is private and proprietary.

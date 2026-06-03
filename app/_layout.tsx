@@ -4,6 +4,7 @@ import { store } from "@/lib/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -13,6 +14,76 @@ import "../global.css";
 
 import { Ionicons } from "@expo/vector-icons";
 
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// ─── Root Error Boundary ──────────────────────────────────────────────────────
+//
+// In production, an unhandled JS error during rendering shows nothing at all —
+// no red overlay, just a permanent white screen. This class-based boundary
+// catches any such error and renders a readable message instead, which also
+// makes diagnosing production-only crashes much easier (screenshot the error,
+// fix it, ship an OTA update via expo-updates).
+class RootErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; message: string }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, message: "" };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, message: error?.message ?? String(error) };
+  }
+
+  componentDidCatch() {
+    // If an error occurs, ensure we hide the splash screen so the user 
+    // sees the error message instead of a permanent white screen.
+    SplashScreen.hideAsync().catch(() => {});
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 32,
+            backgroundColor: "#fff",
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: "600",
+              color: "#EF4444",
+              textAlign: "center",
+              marginBottom: 12,
+            }}
+          >
+            Something went wrong
+          </Text>
+          <Text
+            style={{
+              fontSize: 12,
+              color: "#6B7280",
+              textAlign: "center",
+              lineHeight: 20,
+            }}
+          >
+            {this.state.message}
+          </Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ─── Toast config (unchanged) ─────────────────────────────────────────────────
 const toastConfig = {
   success: ({ text1, text2 }: any) => (
     <View className="px-4 w-full items-center">
@@ -148,6 +219,7 @@ const toastConfig = {
   ),
 };
 
+// ─── AppWithProviders ─────────────────────────────────────────────────────────
 function AppWithProviders() {
   const [hydrated, setHydrated] = useState(false);
 
@@ -161,6 +233,8 @@ function AppWithProviders() {
         }
       } catch {}
       setHydrated(true);
+      // Hide splash screen once we are ready to show the app content
+      SplashScreen.hideAsync().catch(() => {});
     };
     restore();
 
@@ -184,82 +258,103 @@ function AppWithProviders() {
     return unsub;
   }, []);
 
+  // FIX: Stack is now ALWAYS rendered, immediately, on the first frame.
+  //
+  // The old pattern gated the Stack behind `hydrated` state, showing an
+  // ActivityIndicator in its place. In development this was fine because
+  // hydration finishes in < 16ms and the Stack appears before expo-router
+  // has a chance to check for a navigator. In production with Hermes,
+  // the JS bundle takes noticeably longer to parse and execute — expo-router
+  // initializes, looks for a navigator, finds none (it sees only a spinner),
+  // and fails to set up the navigation context. The result is a permanent
+  // white/blank screen.
+  //
+  // The fix: render the Stack unconditionally so expo-router always has a
+  // navigator from frame one. The loading state is now an absolute-position
+  // overlay that covers the Stack while auth is being restored from
+  // AsyncStorage. Once `hydrated` becomes true the overlay disappears and
+  // the correct screen (already rendered underneath) is visible immediately.
+  //
+  // The outer View with flex:1 is required so the absolute overlay
+  // has a correctly-sized parent to fill. Without it, position:absolute
+  // is relative to an unsized fragment and the overlay may not cover
+  // the full screen.
   return (
-    <>
+    <View style={{ flex: 1 }}>
       <NotificationProvider>
         <StatusBar style="auto" />
-        {!hydrated ? (
-          <View
-            style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
-          >
-            <ActivityIndicator size="large" color="#030482" />
-          </View>
-        ) : (
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              // KEY FIX: Freeze screens that leave the viewport.
-              //
-              // By default, React Navigation keeps ALL stack screens mounted
-              // even when a different screen is active. This means the customer
-              // screens (account, cart, orders) all remain mounted when admin
-              // or vendor navigates to their own area.
-              //
-              // These background screens re-render on every Redux dispatch
-              // (RTK Query cache updates, analytics fetches, etc.). In the new
-              // React Native architecture, useNavigation() / useRouter() called
-              // from these hidden screens can fail with "navigation context not
-              // found".
-              //
-              // Setting freezeOnBlur: true uses React Suspense to pause the
-              // React tree for inactive screens, preventing them from re-rendering
-              // and eliminating all background hook calls and crashes.
-              freezeOnBlur: true,
-            }}
-          >
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="vendor" options={{ headerShown: false }} />
-            <Stack.Screen name="(admin)" options={{ headerShown: false }} />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            freezeOnBlur: true,
+          }}
+        >
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="vendor" options={{ headerShown: false }} />
+          <Stack.Screen name="(admin)" options={{ headerShown: false }} />
 
-            <Stack.Screen name="category/[name]" />
-            <Stack.Screen name="product/[slug]" />
+          <Stack.Screen name="category/[name]" />
+          <Stack.Screen name="product/[slug]" />
 
-            <Stack.Screen name="checkout/frequency" />
-            <Stack.Screen name="checkout/installments" />
-            <Stack.Screen name="checkout/shipping" />
-            <Stack.Screen name="checkout/payment" />
-            <Stack.Screen name="checkout/success" />
-            <Stack.Screen
-              name="checkout/webview"
-              options={{ presentation: "modal" }}
-            />
+          <Stack.Screen name="checkout/frequency" />
+          <Stack.Screen name="checkout/installments" />
+          <Stack.Screen name="checkout/shipping" />
+          <Stack.Screen name="checkout/payment" />
+          <Stack.Screen name="checkout/success" />
+          <Stack.Screen
+            name="checkout/webview"
+            options={{ presentation: "modal" }}
+          />
 
-            <Stack.Screen name="order-tracking" />
-            <Stack.Screen name="order-receipt" />
+          <Stack.Screen name="order-tracking" />
+          <Stack.Screen name="order-receipt" />
 
-            <Stack.Screen name="customer-profile" />
-            <Stack.Screen name="account/delivery-address" />
-            <Stack.Screen name="customer-notifications" />
-            <Stack.Screen name="change-password" />
-            <Stack.Screen name="account/delete-account" />
+          <Stack.Screen name="customer-profile" />
+          <Stack.Screen name="account/delivery-address" />
+          <Stack.Screen name="customer-notifications" />
+          <Stack.Screen name="change-password" />
+          <Stack.Screen name="account/delete-account" />
 
-            <Stack.Screen name="contact" />
-            <Stack.Screen name="faqs" />
-            <Stack.Screen name="terms" />
-          </Stack>
-        )}
+          <Stack.Screen name="contact" />
+          <Stack.Screen name="faqs" />
+          <Stack.Screen name="terms" />
+        </Stack>
       </NotificationProvider>
+
       <Toast config={toastConfig} />
-    </>
+
+      {/* Auth hydration overlay — sits on top of the fully-mounted Stack,
+          vanishes the moment AsyncStorage is read. Typical duration on device
+          is < 50ms, so users rarely see the spinner at all. */}
+      {!hydrated && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "#ffffff",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ActivityIndicator size="large" color="#030482" />
+        </View>
+      )}
+    </View>
   );
 }
 
+// ─── Root layout ──────────────────────────────────────────────────────────────
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>
-        <AppWithProviders />
+        <RootErrorBoundary>
+          <AppWithProviders />
+        </RootErrorBoundary>
       </Provider>
     </GestureHandlerRootView>
   );

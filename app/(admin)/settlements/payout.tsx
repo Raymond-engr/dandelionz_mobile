@@ -39,7 +39,7 @@ export default function AdminPayoutManagement() {
       <Pressable onPress={() => router.back()} className="w-10">
         <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
       </Pressable>
-      <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
+      <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
         Payouts
       </Text>
       <View className="w-10" />
@@ -98,7 +98,7 @@ export default function AdminPayoutManagement() {
               
               <View className="items-end">
                 <Text className="text-[16px] font-bold text-system-blue-dark">
-                  ₦{formatCurrency(item.amount)}
+                  {formatCurrency(item.amount)}
                 </Text>
                 <View className={`mt-1 px-3 py-1 rounded-full ${activeTab === 'paid' ? 'bg-green-100' : 'bg-yellow-100'}`}>
                   <Text className={`text-[10px] font-bold uppercase ${activeTab === 'paid' ? 'text-green-700' : 'text-yellow-700'}`}>

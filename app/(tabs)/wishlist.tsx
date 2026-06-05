@@ -80,7 +80,11 @@ export default function WishlistScreen() {
         data={wishlistItems as any[]}
         keyExtractor={(item: any) => String(item.id)}
         numColumns={2}
-        columnWrapperStyle={{ paddingHorizontal: 16, gap: 12 }}
+        columnWrapperStyle={{
+          paddingHorizontal: 16,
+          gap: 12,
+          justifyContent: "space-between",
+        }}
         contentContainerStyle={{
           paddingVertical: 16,
           gap: 12,
@@ -100,7 +104,7 @@ export default function WishlistScreen() {
           };
 
           return (
-            <View className="flex-1">
+            <View style={{ flex: 1, maxWidth: "48%" }}>
               <ProductCard product={product as any} />
             </View>
           );

@@ -233,7 +233,7 @@ export default function AdminProduct() {
                               <Text className="text-[12px] text-[#6B7280]">
                                 Sales:{" "}
                                 <Text className="font-bold text-gray-700">
-                                  {formatCurrency(item.total_sales)}
+                                  {parseFloat(item.total_sales || "0").toLocaleString()}
                                 </Text>
                               </Text>
                             </View>

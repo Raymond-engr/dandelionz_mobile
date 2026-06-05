@@ -4,7 +4,6 @@ import { store } from "@/lib/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -14,16 +13,9 @@ import "../global.css";
 
 import { Ionicons } from "@expo/vector-icons";
 
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync().catch(() => {});
-
-// ─── Root Error Boundary ──────────────────────────────────────────────────────
-//
-// In production, an unhandled JS error during rendering shows nothing at all —
-// no red overlay, just a permanent white screen. This class-based boundary
-// catches any such error and renders a readable message instead, which also
-// makes diagnosing production-only crashes much easier (screenshot the error,
-// fix it, ship an OTA update via expo-updates).
+// ─── Root error boundary ──────────────────────────────────────────────────────
+// Catches synchronous render errors in production and shows a readable message
+// instead of a permanent white screen.
 class RootErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { hasError: boolean; message: string }
@@ -37,12 +29,6 @@ class RootErrorBoundary extends React.Component<
     return { hasError: true, message: error?.message ?? String(error) };
   }
 
-  componentDidCatch() {
-    // If an error occurs, ensure we hide the splash screen so the user 
-    // sees the error message instead of a permanent white screen.
-    SplashScreen.hideAsync().catch(() => {});
-  }
-
   render() {
     if (this.state.hasError) {
       return (
@@ -52,16 +38,15 @@ class RootErrorBoundary extends React.Component<
             alignItems: "center",
             justifyContent: "center",
             padding: 32,
-            backgroundColor: "#fff",
           }}
         >
           <Text
             style={{
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: "600",
               color: "#EF4444",
               textAlign: "center",
-              marginBottom: 12,
+              marginBottom: 8,
             }}
           >
             Something went wrong
@@ -219,7 +204,7 @@ const toastConfig = {
   ),
 };
 
-// ─── AppWithProviders ─────────────────────────────────────────────────────────
+// ─── App body ─────────────────────────────────────────────────────────────────
 function AppWithProviders() {
   const [hydrated, setHydrated] = useState(false);
 
@@ -231,10 +216,10 @@ function AppWithProviders() {
           const parsed = JSON.parse(saved);
           store.dispatch(setCredentials(parsed));
         }
-      } catch {}
+      } catch (_) {
+        // Corrupt storage — start fresh, still mark hydrated.
+      }
       setHydrated(true);
-      // Hide splash screen once we are ready to show the app content
-      SplashScreen.hideAsync().catch(() => {});
     };
     restore();
 
@@ -253,32 +238,27 @@ function AppWithProviders() {
         } else {
           await AsyncStorage.removeItem("auth");
         }
-      } catch {}
+      } catch (_) {}
     });
     return unsub;
   }, []);
 
-  // FIX: Stack is now ALWAYS rendered, immediately, on the first frame.
+  // ── Stack is ALWAYS rendered from the very first frame.
   //
-  // The old pattern gated the Stack behind `hydrated` state, showing an
-  // ActivityIndicator in its place. In development this was fine because
-  // hydration finishes in < 16ms and the Stack appears before expo-router
-  // has a chance to check for a navigator. In production with Hermes,
-  // the JS bundle takes noticeably longer to parse and execute — expo-router
-  // initializes, looks for a navigator, finds none (it sees only a spinner),
-  // and fails to set up the navigation context. The result is a permanent
-  // white/blank screen.
+  // Gating the Stack behind `hydrated` state (the old pattern) caused a
+  // white screen in production because expo-router initialises its navigation
+  // context on mount. With Hermes + a bundled APK the JS takes longer to
+  // evaluate; by the time React renders for the first time expo-router has
+  // already looked for a navigator, found none, and left the context in an
+  // incomplete state. The result is a blank screen that never recovers.
   //
-  // The fix: render the Stack unconditionally so expo-router always has a
-  // navigator from frame one. The loading state is now an absolute-position
-  // overlay that covers the Stack while auth is being restored from
-  // AsyncStorage. Once `hydrated` becomes true the overlay disappears and
-  // the correct screen (already rendered underneath) is visible immediately.
+  // Fix: the Stack mounts immediately. A plain white View covers it as an
+  // overlay while AsyncStorage is being read (usually < 50 ms on device) and
+  // disappears once `hydrated` is true. The navigator is always available to
+  // expo-router regardless of hydration timing.
   //
-  // The outer View with flex:1 is required so the absolute overlay
-  // has a correctly-sized parent to fill. Without it, position:absolute
-  // is relative to an unsized fragment and the overlay may not cover
-  // the full screen.
+  // The outer View with flex:1 is required so that the absolute-positioned
+  // overlay has a correctly sized parent to fill.
   return (
     <View style={{ flex: 1 }}>
       <NotificationProvider>
@@ -324,9 +304,8 @@ function AppWithProviders() {
 
       <Toast config={toastConfig} />
 
-      {/* Auth hydration overlay — sits on top of the fully-mounted Stack,
-          vanishes the moment AsyncStorage is read. Typical duration on device
-          is < 50ms, so users rarely see the spinner at all. */}
+      {/* Hydration overlay — disappears once AsyncStorage has been read.
+          Background matches the splash screen so there is no visual jump. */}
       {!hydrated && (
         <View
           style={{
@@ -339,6 +318,7 @@ function AppWithProviders() {
             alignItems: "center",
             justifyContent: "center",
           }}
+          pointerEvents="box-none"
         >
           <ActivityIndicator size="large" color="#030482" />
         </View>
@@ -347,7 +327,7 @@ function AppWithProviders() {
   );
 }
 
-// ─── Root layout ──────────────────────────────────────────────────────────────
+// ─── Root ─────────────────────────────────────────────────────────────────────
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

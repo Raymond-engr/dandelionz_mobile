@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { PinInput } from "@/components/ui/pin-input";
 import { Colors } from "@/constants/theme";
-import { useChangePaymentPinMutation } from "@/lib/api/adminApi";
+import { useChangePaymentPinMutation, useGetAdminPaymentSettingsQuery } from "@/lib/api/adminApi";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -19,16 +19,24 @@ export default function AdminChangePin() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   
+  const { data: settingsData } = useGetAdminPaymentSettingsQuery();
   const [changePin, { isLoading }] = useChangePaymentPinMutation();
 
   const [currentPin, setCurrentPin] = useState(["", "", "", ""]);
   const [newPin, setNewPin] = useState(["", "", "", ""]);
   const [confirmPin, setConfirmPin] = useState(["", "", "", ""]);
 
+  const hasPin = settingsData?.data?.has_pin ?? true;
+
   const handleUpdate = async () => {
     const oldP = currentPin.join("");
     const newP = newPin.join("");
     const confP = confirmPin.join("");
+
+    if (hasPin && oldP.length < 4) {
+      Toast.show({ type: "error", text1: "Please enter your current PIN." });
+      return;
+    }
 
     if (newP.length < 4 || confP.length < 4) {
       Toast.show({ type: "error", text1: "Please fill in all PIN fields." });
@@ -42,11 +50,11 @@ export default function AdminChangePin() {
 
     try {
       await changePin({ 
-        current_pin: oldP || undefined, 
+        current_pin: hasPin ? oldP : undefined, 
         new_pin: newP, 
         confirm_pin: confP 
       }).unwrap();
-      Toast.show({ type: "success", text1: "Payment PIN updated successfully." });
+      Toast.show({ type: "success", text1: hasPin ? "Payment PIN updated successfully." : "Payment PIN set successfully." });
       router.back();
     } catch (err: any) {
       Toast.show({ 
@@ -63,7 +71,7 @@ export default function AdminChangePin() {
         <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
       </Pressable>
       <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
-        Change Payment PIN
+        {hasPin ? "Change Payment PIN" : "Set Payment PIN"}
       </Text>
       <View className="w-10" />
     </View>
@@ -75,10 +83,12 @@ export default function AdminChangePin() {
       <Divider height={11} />
       
       <ScrollView className="flex-1 px-[21px] pt-6" showsVerticalScrollIndicator={false}>
-        <View className="mb-8">
-          <Text className="text-[14px] font-semibold text-system-blue-dark mb-4">Current PIN</Text>
-          <PinInput value={currentPin} onChange={setCurrentPin} />
-        </View>
+        {hasPin && (
+          <View className="mb-8">
+            <Text className="text-[14px] font-semibold text-system-blue-dark mb-4">Current PIN</Text>
+            <PinInput value={currentPin} onChange={setCurrentPin} />
+          </View>
+        )}
 
         <View className="mb-8">
           <Text className="text-[14px] font-semibold text-system-blue-dark mb-4">New 4-Digit PIN</Text>
@@ -92,7 +102,7 @@ export default function AdminChangePin() {
 
         <View className="gap-3">
           <Button onPress={handleUpdate} isLoading={isLoading}>
-            Update PIN
+            {hasPin ? "Update PIN" : "Set PIN"}
           </Button>
           <Button variant="outline" onPress={() => router.back()}>
             Discard

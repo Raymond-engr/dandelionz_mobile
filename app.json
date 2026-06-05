@@ -32,6 +32,7 @@
             "screens": {
               "login": "login",
               "register": "register",
+              "register-vendor": "register-vendor",
               "forgot-password": "forgot-password",
               "registration-success": "registration-success",
               "verify-notice": "verify-notice"

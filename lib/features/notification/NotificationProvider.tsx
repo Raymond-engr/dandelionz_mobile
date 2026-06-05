@@ -12,16 +12,25 @@ import {
   setUnreadCount,
 } from "./notificationSlice";
 
-// Configure how notifications behave when the app is in the foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// ─── CRITICAL FIX ─────────────────────────────────────────────────────────────
+//
+// The original file called Notifications.setNotificationHandler() at MODULE
+// EVALUATION TIME (top-level code, outside any component or function). In a
+// production / preview EAS build on Android, expo-notifications relies on
+// Firebase Cloud Messaging (FCM). If FCM has not fully initialised by the time
+// the JS bundle evaluates this module — which is common on first cold start
+// with Hermes, where module evaluation order can differ from development — the
+// call throws a native exception synchronously.
+//
+// Because this happens before React even begins rendering, neither an
+// ErrorBoundary nor a try/catch inside a component can catch it. The JS thread
+// crashes, React Native's canvas never paints, and the result is a permanent
+// white screen.
+//
+// Fix: move setNotificationHandler inside a useEffect with a try/catch so it
+// runs after the component mounts, inside the React lifecycle, and any failure
+// is contained and logged rather than crashing the whole app.
+// ─────────────────────────────────────────────────────────────────────────────
 
 const NotificationContext = createContext<void | undefined>(undefined);
 
@@ -31,37 +40,45 @@ export function NotificationProvider({
   children: React.ReactNode;
 }) {
   const dispatch = useAppDispatch();
-  const { isAuthenticated, accessToken, user } = useAppSelector(
+  const { isAuthenticated, accessToken } = useAppSelector(
     (state) => state.auth,
   );
-  
-  // Refs for WebSocket
-  const socketRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
 
-  // Refs for Push Notifications
+  const socketRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notificationListener = useRef<Notifications.Subscription | null>(null);
   const responseListener = useRef<Notifications.Subscription | null>(null);
 
-  // Stats can be triggered by any authenticated user using this hook
   const [triggerGetStats] = customerApi.useLazyCustomerGetNotificationStatsQuery();
   const [registerPushToken] = useRegisterPushTokenMutation();
 
-  // --- WebSocket Logic (Foreground Live Updates) ---
+  // ── Configure the notification handler inside an effect, never at module level
+  useEffect(() => {
+    try {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        }),
+      });
+    } catch (e) {
+      // Non-fatal: notifications simply won't show while the app is foregrounded.
+      console.warn("[NotificationProvider] setNotificationHandler failed:", e);
+    }
+  }, []);
+
+  // ── WebSocket helper (unchanged logic, errors already handled inside)
   const connectWebSocket = () => {
-    if (!accessToken || socketRef.current?.readyState === WebSocket.OPEN)
-      return;
+    if (!accessToken || socketRef.current?.readyState === WebSocket.OPEN) return;
     if (socketRef.current) {
-      try {
-        socketRef.current.close();
-      } catch (e) {}
+      try { socketRef.current.close(); } catch (_) {}
     }
 
-    // Match web app's URL structure: token= instead of ?token=
     const wsUrl = `wss://dandelionz.net/ws/notifications/token=${accessToken}`;
-    
+
     try {
       const socket = new WebSocket(wsUrl);
       socketRef.current = socket;
@@ -71,8 +88,7 @@ export function NotificationProvider({
         triggerGetStats()
           .unwrap()
           .then((response) => {
-            if (response.success)
-              dispatch(setUnreadCount(response.data.unread_count));
+            if (response.success) dispatch(setUnreadCount(response.data.unread_count));
           })
           .catch(() => {});
       };
@@ -83,7 +99,7 @@ export function NotificationProvider({
           if (payload.type === "notification") {
             dispatch(addNotification(payload.data));
           }
-        } catch {}
+        } catch (_) {}
       };
 
       socket.onclose = (event) => {
@@ -95,125 +111,116 @@ export function NotificationProvider({
       };
 
       socket.onerror = () => {
-        if (socketRef.current) {
-          try {
-            socketRef.current.close();
-          } catch (e) {}
-        }
+        try { socketRef.current?.close(); } catch (_) {}
       };
     } catch (e) {
-      console.error("WebSocket connection error:", e);
+      console.warn("[NotificationProvider] WebSocket init failed:", e);
     }
   };
 
-  // --- Push Notification Logic ---
+  // ── Push token registration — fully wrapped in try/catch
   async function registerForPushNotificationsAsync() {
-    if (!Device.isDevice) {
-      console.log('Push notifications require a physical device');
-      return;
-    }
+    if (!Device.isDevice) return;
 
     try {
-      // Restore Android Channel Setup
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('default', {
-          name: 'default',
+      if (Platform.OS === "android") {
+        await Notifications.setNotificationChannelAsync("default", {
+          name: "default",
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#FF231F7C',
+          lightColor: "#FF231F7C",
         });
       }
 
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
-      
-      if (existingStatus !== 'granted') {
+
+      if (existingStatus !== "granted") {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
 
-      if (finalStatus !== 'granted') {
-        console.log('Failed to get push token permission!');
-        return;
-      }
+      if (finalStatus !== "granted") return;
 
-      // getExpoPushTokenAsync can sometimes hang or fail in certain environments
-      // We wrap it in a timeout so it never blocks the login/app flow
       const tokenResponse = await Promise.race([
         Notifications.getExpoPushTokenAsync({
-          projectId: '95497ecd-0fd2-43d5-9078-c1a54f1f3aa4',
+          projectId: "95497ecd-0fd2-43d5-9078-c1a54f1f3aa4",
         }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Push token timeout')), 10000))
-      ]) as any;
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Push token timeout")), 10000),
+        ),
+      ]) as Awaited<ReturnType<typeof Notifications.getExpoPushTokenAsync>>;
 
-      const token = tokenResponse.data;
-      
-      if (token) {
-        await registerPushToken({ 
-          token, 
-          platform: Platform.OS 
+      if (tokenResponse?.data) {
+        await registerPushToken({
+          token: tokenResponse.data,
+          platform: Platform.OS,
         }).unwrap();
       }
-    } catch (err) {
-      console.log("Push notification registration error:", err);
+    } catch (e) {
+      // Non-fatal: app works fine without push tokens.
+      console.warn("[NotificationProvider] Push registration failed:", e);
     }
   }
 
+  // ── Main effect: WebSocket + push listeners
   useEffect(() => {
-    // 1. WebSocket Management & Push Registration
     if (isAuthenticated && accessToken) {
       connectWebSocket();
       registerForPushNotificationsAsync();
     } else {
       if (socketRef.current) {
-        try {
-          socketRef.current.close();
-        } catch (e) {}
+        try { socketRef.current.close(); } catch (_) {}
       }
-      if (reconnectTimeoutRef.current)
-        clearTimeout(reconnectTimeoutRef.current);
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       dispatch(setConnected(false));
       dispatch(setUnreadCount(0));
     }
 
-    // 2. Push Notification Listeners
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      // This runs when a notification is received while the app is foregrounded
-      console.log("Notification Received:", notification);
-    });
+    // Attach listeners inside try/catch — on some Android configurations
+    // (especially preview builds before FCM is fully ready) these can throw.
+    try {
+      notificationListener.current = Notifications.addNotificationReceivedListener(
+        (notification) => {
+          console.log("Notification received:", notification);
+        },
+      );
+    } catch (e) {
+      console.warn("[NotificationProvider] addNotificationReceivedListener failed:", e);
+    }
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      // This runs when the user TAPS the notification
-      const url = response.notification.request.content.data?.url as string | undefined;
-      if (url) {
-        // Example: dandelionz://receipt/123 -> /receipt/123
-        const path = url.replace('dandelionz://', '/');
-        router.push(path as any);
-      }
-    });
+    try {
+      responseListener.current = Notifications.addNotificationResponseReceivedListener(
+        (response) => {
+          const url = response.notification.request.content.data?.url as
+            | string
+            | undefined;
+          if (url) {
+            const path = url.replace("dandelionz://", "/");
+            router.push(path as any);
+          }
+        },
+      );
+    } catch (e) {
+      console.warn("[NotificationProvider] addNotificationResponseReceivedListener failed:", e);
+    }
 
     return () => {
-      socketRef.current?.close();
-      if (reconnectTimeoutRef.current)
-        clearTimeout(reconnectTimeoutRef.current);
-      
-      if (notificationListener.current) {
-        notificationListener.current.remove();
-        notificationListener.current = null;
-      }
-      if (responseListener.current) {
-        responseListener.current.remove();
-        responseListener.current = null;
-      }
+      try { socketRef.current?.close(); } catch (_) {}
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+      try { notificationListener.current?.remove(); } catch (_) {}
+      try { responseListener.current?.remove(); } catch (_) {}
+      notificationListener.current = null;
+      responseListener.current = null;
     };
   }, [isAuthenticated, accessToken]);
 
-  // Handle app state changes for WebSocket
+  // ── App-state handler to reconnect WebSocket on foreground
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active" && isAuthenticated) connectWebSocket();
       if (state === "background") {
-        socketRef.current?.close();
+        try { socketRef.current?.close(); } catch (_) {}
         dispatch(setConnected(false));
       }
     });

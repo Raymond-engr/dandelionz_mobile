@@ -35,7 +35,7 @@ export default function AdminTransactionHistory() {
       <Pressable onPress={() => router.back()} className="w-10">
         <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
       </Pressable>
-      <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
+      <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
         History
       </Text>
       <View className="w-10" />
@@ -74,18 +74,18 @@ export default function AdminTransactionHistory() {
                     <MaterialIcons name="receipt-long" size={16} color={Colors.primary} />
                   </View>
                   <Text className="text-[14px] font-bold text-system-blue-dark" numberOfLines={1}>
-                    {item.order_uuid.slice(0, 8)}...
+                    {item.order_uuid ? `${item.order_uuid.slice(0, 8)}...` : 'No UUID'}
                   </Text>
                 </View>
-                <Text className="text-[12px] text-gray-500">{item.payment_method}</Text>
+                <Text className="text-[12px] text-gray-500">{item.payment_method || 'Unknown Method'}</Text>
                 <Text className="text-[11px] text-gray-400 mt-1">
-                  {format(new Date(item.created_at), "MMM do, yyyy")}
+                  {item.created_at ? format(new Date(item.created_at), "MMM do, yyyy") : 'No Date'}
                 </Text>
               </View>
               
               <View className="items-end">
                 <Text className="text-[16px] font-bold text-system-blue-dark">
-                  ₦{formatCurrency(item.amount)}
+                  {formatCurrency(item.amount || "0")}
                 </Text>
                 <View className={`mt-1 px-2 py-0.5 rounded-full ${item.status === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
                   <Text className={`text-[10px] font-bold uppercase ${item.status === 'success' ? 'text-green-700' : 'text-red-700'}`}>

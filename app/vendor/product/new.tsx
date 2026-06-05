@@ -1,206 +1,161 @@
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
-import { Colors } from "@/constants/theme";
+import { useGetAllCategoriesQuery } from "@/lib/api/adminApi";
 import {
   useCreateDraftMutation,
-  useCreateStoreProductMutation,
+  useSubmitDraftMutation,
 } from "@/lib/api/vendorApi";
 import { formatCurrency } from "@/lib/utils";
-import { MaterialIcons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
-  Switch,
   Text,
   TextInput,
-  View
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
-const CATEGORIES = [
-  "Fashion",
-  "Electronics",
-  "Home & Garden",
-  "Beauty",
-  "Food & Beverages",
-  "Other",
-];
+type Step = "basic" | "inventory" | "preview";
 
-function StepIndicator({ current, total }: { current: number; total: number }) {
-  return (
-    <View className="flex-row items-center justify-center w-full px-10 mb-6">
-      {Array.from({ length: total }, (_, i) => (
-        <React.Fragment key={i}>
-          <View
-            className={`w-8 h-8 rounded-full items-center justify-center ${
-              i < current ? "bg-system-blue-light" : "bg-gray-200"
-            }`}
-          >
-            {i < current - 1 ? (
-              <MaterialIcons name="check" size={16} color="white" />
-            ) : (
-              <Text
-                className={`text-[12px] font-bold ${i === current - 1 ? "text-white" : "text-gray-500"}`}
-              >
-                {i + 1}
-              </Text>
-            )}
-          </View>
-          {i < total - 1 && (
-            <View
-              className={`flex-1 h-[2px] ${i < current - 1 ? "bg-system-blue-light" : "bg-gray-200"}`}
-            />
-          )}
-        </React.Fragment>
-      ))}
-    </View>
-  );
-}
-
-type FormData = {
-  name: string;
-  description: string;
-  category: string;
-  tags: string;
-  images: string[];
-  price: string;
-  discount_price: string;
-  stock_quantity: string;
-  is_in_store: boolean;
-};
-
-const EMPTY: FormData = {
-  name: "",
-  description: "",
-  category: "",
-  tags: "",
-  images: [],
-  price: "",
-  discount_price: "",
-  stock_quantity: "",
-  is_in_store: false,
-};
-
-export default function NewProductScreen() {
+export default function VendorNewProduct() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState<FormData>(EMPTY);
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const [createDraft, { isLoading: drafting }] = useCreateDraftMutation();
-  const [createProduct, { isLoading: publishing }] =
-    useCreateStoreProductMutation();
+  const { data: categories = [] } = useGetAllCategoriesQuery();
+  const [createDraft, { isLoading: isSavingDraft }] = useCreateDraftMutation();
+  const [submitDraft, { isLoading: isSubmitting }] = useSubmitDraftMutation();
 
-  const set = (key: keyof FormData, val: any) => {
-    setForm((p) => ({ ...p, [key]: val }));
-    setErrors((p) => ({ ...p, [key]: "" }));
-  };
+  const [step, setStep] = React.useState<Step>("basic");
+  const [form, setForm] = React.useState({
+    name: "",
+    description: "",
+    category: "",
+    brand: "",
+    images: [] as string[],
+    stock: "10",
+    price: "",
+    discount: "0",
+    tags: "",
+  });
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
-      quality: 0.8,
+      quality: 0.7,
     });
+
     if (!result.canceled) {
       const uris = result.assets.map((a) => a.uri);
-      set("images", [...form.images, ...uris].slice(0, 5));
+      setForm((f) => ({ ...f, images: [...f.images, ...uris].slice(0, 5) }));
     }
   };
 
-  const removeImage = (i: number) =>
-    set(
-      "images",
-      form.images.filter((_, idx) => idx !== i),
-    );
-
-  const validateStep1 = () => {
-    const e: Record<string, string> = {};
-    if (!form.name.trim()) e.name = "Product name is required.";
-    if (!form.description.trim()) e.description = "Description is required.";
-    if (!form.category) e.category = "Select a category.";
-    if (form.images.length === 0) e.images = "Add at least one image.";
-    setErrors(e);
-    return Object.keys(e).length === 0;
+  const removeImage = (index: number) => {
+    setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== index) }));
   };
 
-  const validateStep2 = () => {
-    const e: Record<string, string> = {};
-    if (!form.price || isNaN(parseFloat(form.price)))
-      e.price = "Enter a valid price.";
-    if (!form.stock_quantity || isNaN(parseInt(form.stock_quantity)))
-      e.stock_quantity = "Enter a valid quantity.";
-    setErrors(e);
-    return Object.keys(e).length === 0;
+  const handleProceed = () => {
+    if (step === "basic") {
+      if (!form.name || !form.category || form.images.length === 0) {
+        Toast.show({ 
+          type: "error", 
+          text1: "Error", 
+          text2: "Please fill name, category and add at least one image" 
+        });
+        return;
+      }
+      setStep("inventory");
+    } else if (step === "inventory") {
+      if (!form.price || !form.stock) {
+        Toast.show({ 
+          type: "error", 
+          text1: "Error", 
+          text2: "Please fill price and stock" 
+        });
+        return;
+      }
+      setStep("preview");
+    }
   };
 
-  const handleNext = () => {
-    if (step === 1 && !validateStep1()) return;
-    if (step === 2 && !validateStep2()) return;
-    setStep((s) => s + 1);
+  const buildFormData = () => {
+    const formData = new FormData();
+    formData.append("name", form.name);
+    formData.append("description", form.description);
+    formData.append("category", form.category);
+    formData.append("price", form.price);
+    formData.append("stock", form.stock);
+    formData.append("brand", form.brand);
+    formData.append("tags", form.tags);
+    formData.append("discount", form.discount);
+
+    form.images.forEach((uri, index) => {
+      const filename = uri.split("/").pop();
+      const match = /\.(\w+)$/.exec(filename || "");
+      const type = match ? `image/${match[1]}` : `image`;
+
+      formData.append(`images_data[${index}][image]`, {
+        uri,
+        name: filename,
+        type,
+      } as any);
+      formData.append(
+        `images_data[${index}][is_main]`,
+        (index === 0).toString(),
+      );
+    });
+
+    return formData;
   };
 
-  const handleSave = async (isPublish: boolean) => {
+  const handleSaveDraft = async () => {
     try {
-      const payload = new FormData();
-      payload.append("name", form.name);
-      payload.append("description", form.description);
-      payload.append("category", form.category);
-      payload.append("price", form.price);
-      payload.append("stock", form.stock_quantity);
-
-      if (form.discount_price) {
-        payload.append("discounted_price", form.discount_price);
-      }
-
-      form.images.forEach((uri) => {
-        const filename = uri.split("/").pop() || "product.jpg";
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : "image";
-        // @ts-ignore
-        payload.append("images", { uri, name: filename, type });
-      });
-
-      if (isPublish) {
-        await createProduct(payload).unwrap();
-      } else {
-        await createDraft(payload).unwrap();
-      }
-
-      Toast.show({
-        type: "success",
-        text1: isPublish ? "Product published!" : "Draft saved!",
-      });
+      await createDraft(buildFormData()).unwrap();
+      Toast.show({ type: "success", text1: "Product saved as draft" });
       router.replace("/vendor/(tabs)/products");
     } catch (err: any) {
-      setErrors({ submit: err?.data?.message ?? "Failed to save product." });
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || "Failed to save draft" 
+      });
     }
   };
 
-  const renderHeader = () => (
-    <View className="flex-row items-center justify-between px-4 py-4 bg-white">
-      <Pressable
-        onPress={() => (step === 1 ? router.back() : setStep(step - 1))}
-        className="w-10"
-      >
-        <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
-      </Pressable>
-      <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
-        {step === 1 ? "Add Product" : step === 2 ? "Pricing" : "Preview"}
-      </Text>
-      <View className="w-10" />
-    </View>
-  );
+  const handlePublish = async () => {
+    try {
+      const res = await createDraft(buildFormData()).unwrap();
+      const slug = (res as any).data?.slug;
+      if (slug) {
+        await submitDraft(slug).unwrap();
+        Toast.show({ type: "success", text1: "Product published successfully" });
+        router.replace("/vendor/(tabs)/products");
+      }
+    } catch (err: any) {
+      Toast.show({ 
+        type: "error", 
+        text1: "Error", 
+        text2: err?.data?.message || "Failed to publish product" 
+      });
+    }
+  };
 
-  const isBusy = drafting || publishing;
+  const handleDelete = () => {
+    Alert.alert("Discard", "Are you sure you want to discard this product?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Discard", style: "destructive", onPress: () => router.back() },
+    ]);
+  };
 
   return (
     <KeyboardAvoidingView
@@ -208,261 +163,267 @@ export default function NewProductScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
-        {renderHeader()}
+        {/* Header */}
+        <View className="flex-row items-center justify-between px-[21px] py-6">
+          <TouchableOpacity
+            onPress={() =>
+              step === "basic"
+                ? router.back()
+                : setStep(step === "preview" ? "inventory" : "basic")
+            }
+          >
+            <Feather name="chevron-left" size={32} color="#030482" />
+          </TouchableOpacity>
+          <Text className="text-[18px] font-semibold text-system-blue-light">
+            {step === "basic"
+              ? "Add New Product"
+              : step === "inventory"
+                ? "Inventory & Pricing"
+                : "Preview"}
+          </Text>
+          <View className="w-6" />
+        </View>
+
         <Divider />
 
+        {/* Progress Bar */}
+        <View className="flex-row h-1 bg-[#F5F7FA]">
+          <View
+            className="h-full bg-system-blue-light"
+            style={{
+              width:
+                step === "basic"
+                  ? "33%"
+                  : step === "inventory"
+                    ? "66%"
+                    : "100%",
+            }}
+          />
+        </View>
+
         <ScrollView
-          className="flex-1"
+          className="flex-1 px-[21px]"
           contentContainerStyle={{ paddingBottom: 100 }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
         >
-          <View className="pt-6">
-            <StepIndicator current={step} total={3} />
-          </View>
-
-          <View className="px-[21px]">
-            {errors.submit && (
-              <View className="bg-red-50 p-4 rounded-[12px] mb-6 border border-red-100">
-                <Text className="text-red-600 text-[13px]">
-                  {errors.submit}
+          {step === "basic" && (
+            <View className="mt-6 gap-6">
+              <View>
+                <Text className="text-[14px] font-semibold text-system-blue-dark mb-2">
+                  Product Name
                 </Text>
+                <TextInput
+                  className="bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6]"
+                  placeholder="Enter Product Name"
+                  value={form.name}
+                  onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
+                />
               </View>
-            )}
 
-            {/* STEP 1: Basic Info */}
-            {step === 1 && (
-              <>
-                <View className="mb-6">
-                  <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">
-                    Product Name *
-                  </Text>
-                  <TextInput
-                    className={`border-b border-gray-200 py-3 text-[16px] text-system-blue-dark ${errors.name ? "border-red-500" : ""}`}
-                    value={form.name}
-                    onChangeText={(v) => set("name", v)}
-                    placeholder="e.g. Summer Floral Dress"
-                  />
-                </View>
+              <View>
+                <Text className="text-[14px] font-semibold text-system-blue-dark mb-2">
+                  Description
+                </Text>
+                <TextInput
+                  className="bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6] h-32"
+                  placeholder="Describe your product..."
+                  multiline
+                  textAlignVertical="top"
+                  value={form.description}
+                  onChangeText={(v) =>
+                    setForm((f) => ({ ...f, description: v }))
+                  }
+                />
+              </View>
 
-                <View className="mb-6">
-                  <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">
-                    Description *
-                  </Text>
-                  <TextInput
-                    className={`border border-gray-200 rounded-[12px] p-4 text-[16px] text-system-blue-dark h-32 ${errors.description ? "border-red-500" : ""}`}
-                    value={form.description}
-                    onChangeText={(v) => set("description", v)}
-                    placeholder="Describe your product in detail..."
-                    multiline
-                    textAlignVertical="top"
-                  />
-                </View>
-
-                <View className="mb-6">
-                  <Text className="text-[12px] font-bold text-gray-400 uppercase mb-3">
-                    Category *
+              <View className="flex-row gap-4">
+                <View className="flex-1">
+                  <Text className="text-[14px] font-semibold text-system-blue-dark mb-2">
+                    Category
                   </Text>
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     className="flex-row"
                   >
-                    {CATEGORIES.map((cat) => (
-                      <Pressable
-                        key={cat}
-                        onPress={() => set("category", cat)}
-                        className={`px-4 py-2 rounded-full mr-2 border ${
-                          form.category === cat
-                            ? "bg-system-blue-light border-system-blue-light"
-                            : "bg-gray-50 border-gray-200"
-                        }`}
+                    {categories.map((cat: any) => (
+                      <TouchableOpacity
+                        key={cat.id}
+                        onPress={() =>
+                          setForm((f) => ({ ...f, category: cat.slug }))
+                        }
+                        className={`mr-2 px-4 py-2 rounded-full border ${form.category === cat.slug ? "bg-system-blue-light border-system-blue-light" : "bg-white border-gray-200"}`}
                       >
                         <Text
-                          className={`text-[13px] ${form.category === cat ? "text-white font-bold" : "text-gray-600"}`}
+                          className={`text-[12px] ${form.category === cat.slug ? "text-white" : "text-gray-600"}`}
                         >
-                          {cat}
+                          {cat.name}
                         </Text>
-                      </Pressable>
+                      </TouchableOpacity>
                     ))}
                   </ScrollView>
                 </View>
+              </View>
 
-                <View className="mb-6">
-                  <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">
-                    Images * (Max 5)
-                  </Text>
-                  <View className="flex-row flex-wrap gap-3 mt-2">
-                    {form.images.map((uri, i) => (
-                      <View key={i} className="relative">
-                        <Image
-                          source={{ uri }}
-                          className="w-20 h-20 rounded-[12px] bg-gray-100"
-                        />
-                        <Pressable
-                          onPress={() => removeImage(i)}
-                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 items-center justify-center border-2 border-white"
-                        >
-                          <MaterialIcons name="close" size={14} color="white" />
-                        </Pressable>
-                      </View>
-                    ))}
-                    {form.images.length < 5 && (
-                      <Pressable
-                        onPress={pickImage}
-                        className="w-20 h-20 rounded-[12px] border-2 border-dashed border-gray-200 bg-gray-50 items-center justify-center"
+              <View>
+                <Text className="text-[14px] font-semibold text-system-blue-dark mb-2">
+                  Images (Max 5)
+                </Text>
+                <View className="flex-row flex-wrap gap-3">
+                  {form.images.map((uri, idx) => (
+                    <View
+                      key={idx}
+                      className="w-20 h-20 rounded-lg overflow-hidden relative bg-gray-100"
+                    >
+                      <Image source={{ uri }} className="w-full h-full" />
+                      <TouchableOpacity
+                        onPress={() => removeImage(idx)}
+                        className="absolute top-1 right-1 bg-red-500 rounded-full w-5 h-5 items-center justify-center"
                       >
-                        <MaterialIcons
-                          name="add-a-photo"
-                          size={24}
-                          color="#9CA3AF"
-                        />
-                      </Pressable>
-                    )}
-                  </View>
+                        <Ionicons name="close" size={12} color="white" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  {form.images.length < 5 && (
+                    <TouchableOpacity
+                      onPress={pickImage}
+                      className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 items-center justify-center bg-gray-50"
+                    >
+                      <Ionicons
+                        name="camera-outline"
+                        size={24}
+                        color="#9CA3AF"
+                      />
+                      <Text className="text-[10px] text-[#9CA3AF] mt-1">
+                        Add
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
-              </>
-            )}
+              </View>
 
-            {/* STEP 2: Inventory */}
-            {step === 2 && (
-              <>
-                <View className="mb-6">
-                  <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">
-                    Base Price (₦) *
-                  </Text>
-                  <TextInput
-                    className={`border-b border-gray-200 py-3 text-[24px] font-bold text-system-blue-dark ${errors.price ? "border-red-500" : ""}`}
-                    value={form.price}
-                    onChangeText={(v) => set("price", v)}
-                    placeholder="0.00"
-                    keyboardType="numeric"
-                  />
-                </View>
+              <Button onPress={handleProceed} className="mt-4">
+                Proceed
+              </Button>
+            </View>
+          )}
 
-                <View className="mb-6">
-                  <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">
-                    Discount Price (Optional)
-                  </Text>
-                  <TextInput
-                    className="border-b border-gray-200 py-3 text-[18px] text-gray-500"
-                    value={form.discount_price}
-                    onChangeText={(v) => set("discount_price", v)}
-                    placeholder="₦ 0.00"
-                    keyboardType="numeric"
-                  />
-                </View>
+          {step === "inventory" && (
+            <View className="mt-6 gap-6">
+              <View>
+                <Text className="text-[14px] font-semibold text-system-blue-dark mb-2">
+                  Price (₦)
+                </Text>
+                <TextInput
+                  className="bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6]"
+                  placeholder="0.00"
+                  keyboardType="numeric"
+                  value={form.price}
+                  onChangeText={(v) => setForm((f) => ({ ...f, price: v }))}
+                />
+              </View>
 
-                <View className="mb-10">
-                  <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">
-                    Stock Quantity *
-                  </Text>
-                  <TextInput
-                    className={`border-b border-gray-200 py-3 text-[18px] text-system-blue-dark ${errors.stock_quantity ? "border-red-500" : ""}`}
-                    value={form.stock_quantity}
-                    onChangeText={(v) => set("stock_quantity", v)}
-                    placeholder="e.g. 100"
-                    keyboardType="numeric"
-                  />
-                </View>
+              <View>
+                <Text className="text-[14px] font-semibold text-system-blue-dark mb-2">
+                  Stock Quantity
+                </Text>
+                <TextInput
+                  className="bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6]"
+                  placeholder="10"
+                  keyboardType="numeric"
+                  value={form.stock}
+                  onChangeText={(v) => setForm((f) => ({ ...f, stock: v }))}
+                />
+              </View>
 
-                <View className="flex-row items-center justify-between bg-blue-50/30 p-4 rounded-[16px] border border-blue-100">
-                  <View className="flex-1 pr-4">
-                    <Text className="text-[16px] font-bold text-system-blue-dark">
-                      Visible in Store
-                    </Text>
-                    <Text className="text-[12px] text-gray-500 mt-1">
-                      Add this product to your live store immediately
-                    </Text>
-                  </View>
-                  <Switch
-                    value={form.is_in_store}
-                    onValueChange={(v) => set("is_in_store", v)}
-                    trackColor={{ false: "#D1D5DB", true: Colors.primary }}
-                    thumbColor="#fff"
-                  />
-                </View>
-              </>
-            )}
+              <View>
+                <Text className="text-[14px] font-semibold text-system-blue-dark mb-2">
+                  Discount (%)
+                </Text>
+                <TextInput
+                  className="bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6]"
+                  placeholder="0"
+                  keyboardType="numeric"
+                  value={form.discount}
+                  onChangeText={(v) => setForm((f) => ({ ...f, discount: v }))}
+                />
+              </View>
 
-            {/* STEP 3: Preview */}
-            {step === 3 && (
-              <View className="bg-gray-50/50 rounded-[20px] overflow-hidden border border-gray-100">
+              <Button onPress={handleProceed} className="mt-4">
+                Review Product
+              </Button>
+            </View>
+          )}
+
+          {step === "preview" && (
+            <View className="mt-6 gap-6">
+              <View className="bg-gray-50 rounded-2xl overflow-hidden border border-gray-100">
                 {form.images[0] ? (
                   <Image
                     source={{ uri: form.images[0] }}
-                    className="w-full h-64 bg-gray-200"
+                    className="w-full aspect-square"
                   />
                 ) : (
-                  <View className="w-full h-64 bg-gray-200 items-center justify-center">
-                    <MaterialIcons name="image" size={48} color="#9CA3AF" />
+                  <View className="w-full aspect-square bg-gray-200 items-center justify-center">
+                    <Ionicons name="image-outline" size={48} color="#9CA3AF" />
                   </View>
                 )}
-
-                <View className="p-6">
-                  <Text className="text-[22px] font-bold text-system-blue-dark mb-1">
+                <View className="p-4">
+                  <Text className="text-[20px] font-bold text-system-blue-dark">
                     {form.name}
                   </Text>
-                  <Text className="text-[14px] text-gray-500 mb-4">
+                  <Text className="text-[14px] text-[#6B7280] mt-1">
                     {form.category}
                   </Text>
-
-                  <View className="flex-row items-baseline gap-2 mb-6">
-                    <Text className="text-[24px] font-bold text-system-blue-light">
+                  <View className="flex-row items-center mt-3 gap-3">
+                    <Text className="text-[22px] font-bold text-system-blue-light">
                       {formatCurrency(form.price)}
                     </Text>
-                    {form.discount_price && (
-                      <Text className="text-[16px] text-gray-400 line-through">
-                        {formatCurrency(form.discount_price)}
-                      </Text>
+                    {parseFloat(form.discount || "0") > 0 && (
+                      <View className="bg-red-50 px-2 py-1 rounded-lg">
+                        <Text className="text-system-red text-[12px] font-bold">
+                          -{form.discount}%
+                        </Text>
+                      </View>
                     )}
-                  </View>
-
-                  <Text className="text-[14px] font-bold text-gray-400 uppercase mb-2">
-                    Description
-                  </Text>
-                  <Text className="text-[14px] text-gray-600 leading-5 mb-6">
-                    {form.description}
-                  </Text>
-
-                  <View className="flex-row justify-between py-3 border-t border-gray-100">
-                    <Text className="text-gray-500">Inventory Status</Text>
-                    <Text className="font-bold text-system-blue-dark">
-                      {form.stock_quantity} units
-                    </Text>
-                  </View>
-                  <View className="flex-row justify-between py-3 border-t border-gray-100">
-                    <Text className="text-gray-500">Initial Visibility</Text>
-                    <Text className="font-bold text-system-blue-dark">
-                      {form.is_in_store ? "Live in Store" : "Saved as Draft"}
-                    </Text>
                   </View>
                 </View>
               </View>
-            )}
 
-            <View className="mt-10 gap-4">
-              {step < 3 ? (
-                <Button onPress={handleNext}>Next Step</Button>
-              ) : (
-                <>
-                  <Button
-                    onPress={() => handleSave(true)}
-                    isLoading={publishing}
-                  >
-                    Publish to Store
-                  </Button>
+              <View className="bg-white p-4 rounded-xl border border-gray-100">
+                <Text className="text-[14px] font-bold text-system-blue-dark mb-2">
+                  Description
+                </Text>
+                <Text className="text-[14px] text-[#6B7280] leading-[22px]">
+                  {form.description}
+                </Text>
+              </View>
+
+              <View className="flex-row gap-4 mt-4">
+                <TouchableOpacity
+                  onPress={handleDelete}
+                  className="w-14 h-[55px] bg-red-50 rounded-[12px] items-center justify-center border border-red-100"
+                >
+                  <Ionicons name="trash-outline" size={24} color="#FF4D4D" />
+                </TouchableOpacity>
+                <View className="flex-1">
                   <Button
                     variant="outline"
-                    onPress={() => handleSave(false)}
-                    isLoading={drafting}
+                    onPress={handleSaveDraft}
+                    isLoading={isSavingDraft}
                   >
-                    Save as Draft
+                    Save Draft
                   </Button>
-                </>
-              )}
+                </View>
+              </View>
+
+              <Button
+                onPress={handlePublish}
+                isLoading={isSubmitting || isSavingDraft}
+              >
+                Publish Product
+              </Button>
             </View>
-          </View>
+          )}
         </ScrollView>
       </View>
     </KeyboardAvoidingView>

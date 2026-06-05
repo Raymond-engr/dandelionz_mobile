@@ -29,6 +29,32 @@ interface NominatimResult {
   display_name: string;
 }
 
+const InputField = ({
+  label,
+  value,
+  onChangeText,
+  disabled,
+  placeholder,
+  multiline,
+  keyboardType,
+  isEditing,
+}: any) => (
+  <View className="mb-6">
+    <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+      {label}
+    </Text>
+    <TextInput
+      className={`border-b border-gray-200 py-2 text-[16px] text-system-blue-dark ${disabled ? "text-gray-400" : ""}`}
+      value={value}
+      onChangeText={onChangeText}
+      editable={!disabled && isEditing}
+      placeholder={placeholder}
+      multiline={multiline}
+      keyboardType={keyboardType}
+    />
+  </View>
+);
+
 export default function VendorProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -133,6 +159,7 @@ export default function VendorProfileScreen() {
   const handleSave = async () => {
     try {
       await updateProfile({
+        full_name: formData.fullName,
         store_name: formData.storeName,
         store_description: formData.storeDescription,
         address: formData.address,
@@ -170,31 +197,6 @@ export default function VendorProfileScreen() {
         My Profile
       </Text>
       <View className="w-10" />
-    </View>
-  );
-
-  const InputField = ({
-    label,
-    value,
-    onChangeText,
-    disabled,
-    placeholder,
-    multiline,
-    keyboardType,
-  }: any) => (
-    <View className="mb-6">
-      <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-        {label}
-      </Text>
-      <TextInput
-        className={`border-b border-gray-200 py-2 text-[16px] text-system-blue-dark ${disabled ? "text-gray-400" : ""}`}
-        value={value}
-        onChangeText={onChangeText}
-        editable={!disabled && isEditing}
-        placeholder={placeholder}
-        multiline={multiline}
-        keyboardType={keyboardType}
-      />
     </View>
   );
 
@@ -254,8 +256,15 @@ export default function VendorProfileScreen() {
             </View>
           </View>
 
-          <InputField label="Full Name" value={formData.fullName} disabled />
-          <InputField label="Email Address" value={p?.user.email} disabled />
+          <InputField
+            label="Full Name"
+            value={formData.fullName}
+            onChangeText={(t: string) =>
+              setFormData({ ...formData, fullName: t })
+            }
+            isEditing={isEditing}
+          />
+          <InputField label="Email Address" value={p?.user.email} disabled isEditing={isEditing} />
 
           <InputField
             label="Store Name"
@@ -263,6 +272,7 @@ export default function VendorProfileScreen() {
             onChangeText={(t: string) =>
               setFormData({ ...formData, storeName: t })
             }
+            isEditing={isEditing}
           />
 
           <InputField
@@ -272,6 +282,7 @@ export default function VendorProfileScreen() {
               setFormData({ ...formData, storeDescription: t })
             }
             multiline
+            isEditing={isEditing}
           />
 
           <InputField
@@ -281,6 +292,7 @@ export default function VendorProfileScreen() {
               setFormData({ ...formData, phoneNumber: t })
             }
             keyboardType="phone-pad"
+            isEditing={isEditing}
           />
 
           <View className="mb-6">
@@ -343,6 +355,7 @@ export default function VendorProfileScreen() {
             onChangeText={(t: string) =>
               setFormData({ ...formData, bankName: t })
             }
+            isEditing={isEditing}
           />
 
           <InputField
@@ -352,6 +365,7 @@ export default function VendorProfileScreen() {
               setFormData({ ...formData, accountNumber: t })
             }
             keyboardType="numeric"
+            isEditing={isEditing}
           />
 
           <InputField
@@ -360,6 +374,7 @@ export default function VendorProfileScreen() {
             onChangeText={(t: string) =>
               setFormData({ ...formData, accountName: t })
             }
+            isEditing={isEditing}
           />
 
           <View className="mb-6">

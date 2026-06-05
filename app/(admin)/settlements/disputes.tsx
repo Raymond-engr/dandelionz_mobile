@@ -82,7 +82,7 @@ export default function AdminDisputesManagement() {
       <Pressable onPress={() => router.back()} className="w-10">
         <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
       </Pressable>
-      <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
+      <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
         Disputes
       </Text>
       <View className="w-10" />
@@ -160,7 +160,7 @@ export default function AdminDisputesManagement() {
                     </Text>
                   </View>
                   <Text className="text-[16px] font-bold text-system-blue-dark mt-1">
-                    ₦{formatCurrency(item.amount)}
+                    {formatCurrency(item.amount)}
                   </Text>
                 </View>
               </View>

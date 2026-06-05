@@ -123,7 +123,7 @@ export default function AdminProfileScreen() {
         <Pressable onPress={() => router.back()} className="w-10">
           <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
         </Pressable>
-        <Text className="text-[18px] font-bold text-system-blue-light text-center flex-1">
+        <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
           My Profile
         </Text>
         <View className="w-10" />

@@ -9,12 +9,14 @@ import {
   TouchableOpacity,
   View,
   Dimensions,
+  Pressable,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons, MaterialCommunityIcons, Feather, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import Svg, { Line, Polyline, Circle } from "react-native-svg";
 import { formatCurrency } from "@/lib/utils";
+import { Colors } from "@/constants/theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -48,6 +50,7 @@ function StatCard({ label, value, change, icon, iconBg, isLoading }: StatCardPro
 
 export default function AdminAnalyticsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [filters, setFilters] = useState<AnalyticsQueryParams>({ period: "annual" });
   const { data: analyticsResponse, isLoading, isError, refetch } = useGetDetailedAnalyticsQuery(filters);
 
@@ -72,23 +75,26 @@ export default function AdminAnalyticsScreen() {
 
   if (isError) {
     return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center p-4">
+      <View className="flex-1 bg-white items-center justify-center p-4" style={{ paddingTop: insets.top }}>
         <Text className="text-red-500 mb-4">Failed to load analytics</Text>
         <TouchableOpacity onPress={() => refetch()} className="bg-system-blue-light px-6 py-2 rounded-lg">
           <Text className="text-white font-medium">Retry</Text>
         </TouchableOpacity>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
       {/* Custom Header */}
-      <View className="flex-row items-center px-4 py-3 border-b border-gray-100">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4">
-          <Ionicons name="chevron-back" size={24} color="#000" />
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-gray-900">Analytics</Text>
+      <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
+        <Pressable onPress={() => router.back()} className="w-10">
+          <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
+        </Pressable>
+        <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
+          Analytics
+        </Text>
+        <View className="w-10" />
       </View>
 
       <ScrollView
@@ -264,6 +270,6 @@ export default function AdminAnalyticsScreen() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

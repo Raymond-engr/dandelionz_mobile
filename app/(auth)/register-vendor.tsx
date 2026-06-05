@@ -1,6 +1,6 @@
 import {
-  PasswordCriteria,
-  validatePassword,
+    PasswordCriteria,
+    validatePassword,
 } from "@/components/password-criteria";
 import { Button } from "@/components/ui/button";
 import { useRegisterMutation } from "@/lib/api/authApi";
@@ -8,29 +8,22 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// Customer-only registration screen.
-//
-// The old single screen had a Customer/Vendor tab switcher that conditionally
-// mounted and unmounted a TextInput when the role changed. On Android, that
-// unmount fires a native keyboard-cleanup event synchronously inside the React
-// render cycle. React Navigation reads its context at that exact moment, finds
-// it momentarily invalid, and throws "Couldn't find a navigation context."
-//
-// Every workaround (setTimeout, display:none, height:0) still ultimately
-// triggers some native view lifecycle event on Android. The only guaranteed
-// fix is to never change the component tree shape at all — meaning separate,
-// stable screens for each role. This screen is the customer path.
-export default function RegisterScreen() {
+// Vendor-only registration screen.
+// Identical structure to the customer screen but role is hardcoded to VENDOR
+// and there is no referral code field. Because the component tree never
+// changes shape during user interaction, the Android keyboard-cleanup /
+// navigation-context crash cannot occur here either.
+export default function RegisterVendorScreen() {
   const [register, { isLoading }] = useRegisterMutation();
 
   const [fullName, setFullName] = useState("");
@@ -38,7 +31,6 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [referralCode, setReferralCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
@@ -46,7 +38,13 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     setError("");
 
-    if (!fullName || !email || !phone || !password || !confirmPassword) {
+    if (
+      !fullName ||
+      !email ||
+      !phone ||
+      !password ||
+      !confirmPassword
+    ) {
       setError("Please fill in all required fields");
       return;
     }
@@ -69,7 +67,12 @@ export default function RegisterScreen() {
     }
 
     const criteria = validatePassword(password);
-    if (!criteria.length || !criteria.uppercase || !criteria.lowercase || !criteria.special) {
+    if (
+      !criteria.length ||
+      !criteria.uppercase ||
+      !criteria.lowercase ||
+      !criteria.special
+    ) {
       setError("Password does not meet all security requirements");
       return;
     }
@@ -80,8 +83,7 @@ export default function RegisterScreen() {
         email: email.trim(),
         phone_number: phone.trim(),
         password,
-        role: "CUSTOMER",
-        ...(referralCode ? { referral_code: referralCode.toUpperCase() } : {}),
+        role: "VENDOR",
       }).unwrap();
 
       if (res.success) {
@@ -112,10 +114,10 @@ export default function RegisterScreen() {
         >
           <View className="flex-1 px-[24px] pt-[20px] pb-[40px]">
             <Text className="text-[24px] font-bold text-system-blue-dark text-center mb-[4px]">
-              Create Account
+              Vendor Account
             </Text>
             <Text className="text-[14px] text-gray-500 text-center mb-[32px]">
-              Shopping on Dandelionz
+              Start selling on Dandelionz
             </Text>
 
             {error ? (
@@ -181,7 +183,7 @@ export default function RegisterScreen() {
               {password.length > 0 && <PasswordCriteria password={password} />}
             </View>
 
-            <View className="mb-[28px]">
+            <View className="mb-[32px]">
               <View className="relative">
                 <TextInput
                   className="text-[16px] text-system-blue-dark py-2 border-b border-gray-300 pr-10"
@@ -196,7 +198,9 @@ export default function RegisterScreen() {
                   className="absolute right-0 top-1/2 -translate-y-1/2 p-2"
                 >
                   <Ionicons
-                    name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                    name={
+                      showConfirmPassword ? "eye-off-outline" : "eye-outline"
+                    }
                     size={20}
                     color="#9CA3AF"
                   />
@@ -204,24 +208,18 @@ export default function RegisterScreen() {
               </View>
             </View>
 
-            {/* Referral code — always rendered, no conditional mounting */}
-            <View className="mb-[32px]">
-              <TextInput
-                className="text-[16px] text-system-blue-dark py-2 border-b border-gray-300"
-                placeholder="Referral Code (Optional)"
-                placeholderTextColor="#9CA3AF"
-                value={referralCode}
-                onChangeText={(val) => setReferralCode(val.toUpperCase())}
-                autoCapitalize="characters"
-              />
-            </View>
-
-            <Button onPress={handleRegister} isLoading={isLoading} className="mb-6">
-              Register
+            <Button
+              onPress={handleRegister}
+              isLoading={isLoading}
+              className="mb-6"
+            >
+              Register as Vendor
             </Button>
 
             <View className="flex-row justify-center mb-4">
-              <Text className="text-[#6B7280] text-[14px]">Already have an account? </Text>
+              <Text className="text-[#6B7280] text-[14px]">
+                Already have an account?{" "}
+              </Text>
               <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
                 <Text className="text-system-blue-light text-[14px] font-semibold">
                   Login
@@ -229,12 +227,14 @@ export default function RegisterScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Vendor registration link */}
+            {/* Customer registration link */}
             <View className="flex-row justify-center items-center mt-2 pt-4 border-t border-gray-100">
-              <Text className="text-[#6B7280] text-[14px]">Want to sell on Dandelionz? </Text>
-              <TouchableOpacity onPress={() => router.push("/(auth)/register-vendor")}>
+              <Text className="text-[#6B7280] text-[14px]">
+                Signing up as a customer?{" "}
+              </Text>
+              <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
                 <Text className="text-system-blue-light text-[14px] font-semibold">
-                  Vendor sign-up
+                  Customer sign-up
                 </Text>
               </TouchableOpacity>
             </View>

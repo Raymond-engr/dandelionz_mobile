@@ -22,10 +22,10 @@ function SummaryCard({ label, value, icon, color }: SummaryCardProps) {
   return (
     <View className="bg-white border border-gray-100 rounded-[12px] p-[21px] mb-4 shadow-sm">
       <View className="flex-row items-center justify-between mb-4">
+        <Text className="text-[14px] font-bold text-gray-400 uppercase tracking-widest">{label}</Text>
         <View className={`w-12 h-12 rounded-full items-center justify-center`} style={{ backgroundColor: `${color}15` }}>
           <MaterialIcons name={icon} size={24} color={color} />
         </View>
-        <Text className="text-[14px] font-bold text-gray-400 uppercase tracking-widest">{label}</Text>
       </View>
       <Text className="text-[28px] font-bold text-system-blue-dark">
         {displayValue}
@@ -54,7 +54,7 @@ export default function AdminSettlementSummary() {
       <Pressable onPress={() => router.back()} className="w-10">
         <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
       </Pressable>
-      <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
+      <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
         Summary
       </Text>
       <View className="w-10" />

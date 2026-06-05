@@ -40,7 +40,7 @@ export default function AdminWithdrawalList() {
       <Pressable onPress={() => router.back()} className="w-10">
         <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
       </Pressable>
-      <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
+      <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
         Withdrawals
       </Text>
       <View className="w-10" />
@@ -99,13 +99,13 @@ export default function AdminWithdrawalList() {
             >
               <View className="flex-1">
                 <Text className="text-[16px] font-bold text-system-blue-dark">
-                  {formatCurrency(item.amount)}
+                  {formatCurrency(item.amount || "0")}
                 </Text>
                 <Text className="text-[13px] text-gray-500 mt-1">
-                  {item.requestor_name} ({item.requestor_type})
+                  {item.requestor_name || 'Unknown'} ({item.requestor_type || 'N/A'})
                 </Text>
                 <Text className="text-[11px] text-gray-400 mt-1">
-                  {new Date(item.created_at).toLocaleDateString()} • {item.bank_name}
+                  {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'No Date'} • {item.bank_name || 'No Bank'}
                 </Text>
               </View>
               

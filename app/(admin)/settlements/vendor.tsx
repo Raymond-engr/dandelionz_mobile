@@ -44,7 +44,7 @@ export default function AdminVendorSettlements() {
       <Pressable onPress={() => router.back()} className="w-10">
         <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
       </Pressable>
-      <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
+      <Text className="text-[24px] font-semibold text-system-blue-light text-center flex-1">
         Vendor Settlements
       </Text>
       <View className="w-10" />
@@ -94,21 +94,21 @@ export default function AdminVendorSettlements() {
               <View className="flex-1">
                 <View className="flex-row items-center gap-3 mb-2">
                   <View className="w-10 h-10 bg-system-blue-light rounded-full items-center justify-center">
-                    <Text className="text-white font-bold">{item.requestor_name.substring(0, 2).toUpperCase()}</Text>
+                    <Text className="text-white font-bold">{(item.requestor_name || 'Vendor').substring(0, 2).toUpperCase()}</Text>
                   </View>
                   <View>
-                    <Text className="text-[14px] font-bold text-system-blue-dark">{item.requestor_name}</Text>
-                    <Text className="text-[11px] text-gray-400 font-mono">{item.reference}</Text>
+                    <Text className="text-[14px] font-bold text-system-blue-dark">{item.requestor_name || 'Unknown Vendor'}</Text>
+                    <Text className="text-[11px] text-gray-400 font-mono">{item.reference || 'No Ref'}</Text>
                   </View>
                 </View>
                 <Text className="text-[12px] text-gray-500">
-                  {format(new Date(item.created_at), "MMM do, yyyy")}
+                  {item.created_at ? format(new Date(item.created_at), "MMM do, yyyy") : 'No Date'}
                 </Text>
               </View>
               
               <View className="items-end">
                 <Text className="text-[16px] font-bold text-system-blue-dark">
-                  ₦{formatCurrency(item.amount)}
+                  {formatCurrency(item.amount || "0")}
                 </Text>
                 <View className={`mt-1 px-2 py-0.5 rounded-full ${
                   activeTab === 'successful' ? 'bg-green-100' : 

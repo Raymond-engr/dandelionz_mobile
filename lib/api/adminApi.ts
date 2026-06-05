@@ -218,6 +218,7 @@ export interface AdminPaymentSettings {
   bank_name: string;
   account_number: string;
   account_name: string;
+  has_pin: boolean;
 }
 
 export interface SettlementSummary {

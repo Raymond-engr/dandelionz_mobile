@@ -7,7 +7,7 @@ import {
 } from "@/lib/api/adminApi";
 import { formatCurrency } from "@/lib/utils";
 import { Feather } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, router } from "expo-router";
 import React, { useState } from "react";
 import {
     ActivityIndicator,
@@ -23,7 +23,6 @@ import Toast from "react-native-toast-message";
 
 export default function ProductDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [action, setAction] = useState<"Approve Product" | "Reject Product">(
     "Approve Product",
@@ -212,31 +211,39 @@ export default function ProductDetail() {
         </View>
 
         {product.status === "PENDING" && (
-          <View className="px-[21px] mt-4 gap-6">
-            <View className="flex-row bg-[#F5F7FA] p-1 rounded-xl">
-              {["Approve Product", "Reject Product"].map((a) => (
+          <View className="p-[21px]">
+            <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+              Choose Action
+            </Text>
+
+            <View className="flex-row flex-wrap gap-2 mb-6">
+              {["Approve Product", "Reject Product"].map((act) => (
                 <TouchableOpacity
-                  key={a}
-                  onPress={() => setAction(a as any)}
-                  className={`flex-1 py-3 rounded-lg items-center ${action === a ? "bg-white shadow-sm" : ""}`}
+                  key={act}
+                  onPress={() => setAction(act as any)}
+                  className={`px-4 py-2.5 rounded-lg border ${
+                    action === act 
+                      ? "bg-white border-system-blue-light" 
+                      : "bg-[#F5F7FA] border-transparent"
+                  }`}
                 >
-                  <Text
-                    className={`text-[13px] font-semibold ${action === a ? "text-system-blue-light" : "text-[#6B7280]"}`}
-                  >
-                    {a}
+                  <Text className={`text-[13px] font-bold ${action === act ? "text-system-blue-light" : "text-[#00001180]"}`}>
+                    {act}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <TextInput
-              placeholder="Add a reason (optional)..."
-              value={reason}
-              onChangeText={setReason}
-              className="bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6] min-h-[100px]"
-              multiline
-              textAlignVertical="top"
-            />
+            {action === "Reject Product" && (
+              <TextInput
+                placeholder="Add a reason (optional)..."
+                value={reason}
+                onChangeText={setReason}
+                className="bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6] min-h-[100px] mb-6"
+                multiline
+                textAlignVertical="top"
+              />
+            )}
 
             <Button onPress={handleConfirmAction} isLoading={isSubmitting}>
               Confirm Action

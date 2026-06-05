@@ -1,16 +1,16 @@
 import { Stack } from "expo-router";
 import React from "react";
 
-// Keep this layout SIMPLE — no useAppSelector, no useEffect, no redirect logic.
-// The login screen itself handles all post-login navigation.
-// Adding selector hooks here caused spurious re-renders that contributed to
-// the "Couldn't find a navigation context" errors on the register page.
+// Auth stack — includes both customer and vendor register screens.
+// Each is a self-contained screen with a fixed component tree, so no
+// role-switching UI exists anywhere in this stack.
 export default function AuthLayout() {
   "use no memo";
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" />
       <Stack.Screen name="register" />
+      <Stack.Screen name="register-vendor" />
       <Stack.Screen name="registration-success" />
       <Stack.Screen name="forgot-password" />
       <Stack.Screen name="forgot-password-confirm" />

@@ -69,7 +69,7 @@ The app registers its unique device token to receive background notifications.
 
 Used for live updates while the app is in the foreground.
 
-- **URL:** `wss://dandelionz.net/ws/notifications/token=<access_token>`
+- **URL:** `wss://api.dandelionz.com.ng/ws/notifications/token=<access_token>`
 - **Message Format (from Server to Client):**
   ```json
   {

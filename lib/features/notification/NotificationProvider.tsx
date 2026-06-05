@@ -77,7 +77,7 @@ export function NotificationProvider({
       try { socketRef.current.close(); } catch (_) {}
     }
 
-    const wsUrl = `wss://dandelionz.net/ws/notifications/token=${accessToken}`;
+    const wsUrl = `wss://api.dandelionz.com.ng/ws/notifications/token=${accessToken}`;
 
     try {
       const socket = new WebSocket(wsUrl);

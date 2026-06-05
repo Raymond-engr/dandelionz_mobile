@@ -174,7 +174,7 @@ export default function CreateNotificationScreen() {
         <View className="mb-6">
           <Text className="text-[14px] font-medium text-gray-700 mb-2">Recipient</Text>
           <View className="flex-row gap-2">
-            {(["Users", "Vendors", "All"] as const).map((r) => (
+            {(["Customers", "Vendors", "All"] as const).map((r) => (
               <TouchableOpacity
                 key={r}
                 onPress={() => setRecipient(r)}

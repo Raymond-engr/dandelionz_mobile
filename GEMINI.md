@@ -29,7 +29,7 @@ Always generate commit messages at the end of a task and append this instruction
 - Updated all endpoint paths to match `notificationApi.ts` and `customerApi.ts` (e.g., `/user/notifications/...`).
 - Provided detailed JSON request/response schemas for all notification management endpoints (Register/Unregister token, Mark as Read, Delete, Stats).
 - Clarified the distinction between `action_url` (relative paths for the inbox) and `data.url` (deep links for push banners).
-- Added WebSocket connection details (`wss://dandelionz.net/ws/notifications/token=<access_token>`) for live foreground notifications.
+- Added WebSocket connection details (`wss://api.dandelionz.com.ng/ws/notifications/token=<access_token>`) for live foreground notifications.
 - Verified that all URL mapping logic (from `lib/utils.ts`) and notification models are accurately reflected in the guide.
 
 ## April 15, 2026 - Success Page Stack Navigation Alignment

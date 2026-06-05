@@ -263,7 +263,7 @@ interface Notification {
   notification_type_icon?: string | null;
   notification_type_color?: string | null;
   recipient_type?: "USERS" | "VENDORS" | "ALL" | "ADMIN";
-  recipient_group?: string;
+  recipient_group?: "customer" | "vendor" | "admin" | "all";
   status?: string;
   priority: string;
   category?: string;

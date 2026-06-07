@@ -60,6 +60,7 @@ function SectionRow({
 }
 
 export default function AccountScreen() {
+  "use no memo";
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const authUser = useAppSelector((s) => s.auth.user);

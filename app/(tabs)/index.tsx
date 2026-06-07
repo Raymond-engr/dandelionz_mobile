@@ -6,7 +6,7 @@ import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
 import { SearchBar } from "@/components/search-bar";
 import { useGetProductsQuery } from "@/lib/api/publicApi";
 import React, { useCallback, useState } from "react";
-import { RefreshControl, ScrollView, View, Text } from "react-native";
+import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Filters {
@@ -18,6 +18,7 @@ interface Filters {
 }
 
 export default function ShopScreen() {
+  "use no memo";
   console.log("[Shop] Rendering ShopScreen");
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState("");
@@ -45,7 +46,11 @@ export default function ShopScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#030482" />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#030482"
+          />
         }
       >
         <View className="px-4 mb-6 pt-4">
@@ -61,7 +66,9 @@ export default function ShopScreen() {
         <CategorySlider />
 
         <View className="px-4 mb-4">
-           <Text className="text-[20px] font-bold text-system-blue-dark">New Arrivals</Text>
+          <Text className="text-[20px] font-bold text-system-blue-dark">
+            New Arrivals
+          </Text>
         </View>
 
         {isLoading && !refreshing ? (

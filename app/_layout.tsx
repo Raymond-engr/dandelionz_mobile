@@ -3,7 +3,7 @@ import { NotificationProvider } from "@/lib/features/notification/NotificationPr
 import { store } from "@/lib/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
-import { router, Stack } from "expo-router";
+import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
@@ -247,13 +247,6 @@ function AppWithProviders() {
         console.log("[Root] Hydration complete, hiding splash screen");
         setHydrated(true);
         SplashScreen.hideAsync().catch(() => {});
-
-        // Force the router to evaluate the correct starting page
-        // queueMicrotask ensures the Navigator is fully committed before we navigate
-        queueMicrotask(() => {
-          console.log("[Root] Triggering initial route replacement to /(tabs)");
-          router.replace("/(tabs)");
-        });
       }
     };
     restore();
@@ -315,10 +308,8 @@ function AppWithProviders() {
       <NotificationProvider>
         <StatusBar style="auto" />
         <Stack
-          initialRouteName="(tabs)"
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: "blue" },
           }}
         >
           <Stack.Screen name="(tabs)" />

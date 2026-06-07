@@ -5,8 +5,8 @@ import {
   useRemoveFromCartMutation,
   useUpdateCartItemMutation,
 } from "@/lib/api/publicApi";
-import { getImageUrl } from "@/lib/utils";
 import { useAppSelector } from "@/lib/hooks";
+import { getImageUrl } from "@/lib/utils";
 import { Ionicons } from "@expo/vector-icons";
 // Imperative router — same reason as all other tab screens.
 import { router } from "expo-router";
@@ -14,21 +14,26 @@ import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Pressable,
-  Text,
-  View,
   Image,
-  TouchableOpacity,
+  Pressable,
   RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function CartScreen() {
+  "use no memo";
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: cartResponse, isLoading, refetch } = useGetCartQuery(undefined, {
+  const {
+    data: cartResponse,
+    isLoading,
+    refetch,
+  } = useGetCartQuery(undefined, {
     skip: !isAuthenticated,
   });
 
@@ -100,7 +105,11 @@ export default function CartScreen() {
         contentContainerStyle={{ paddingBottom: 120 }}
         ListEmptyComponent={renderEmpty}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#030482" />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#030482"
+          />
         }
         renderItem={({ item }: { item: any }) => {
           const product = item.product_details ?? {};
@@ -139,7 +148,11 @@ export default function CartScreen() {
                     />
                   ) : (
                     <View className="w-full h-full items-center justify-center">
-                      <Ionicons name="image-outline" size={24} color="#9CA3AF" />
+                      <Ionicons
+                        name="image-outline"
+                        size={24}
+                        color="#9CA3AF"
+                      />
                     </View>
                   )}
                 </View>
@@ -153,12 +166,16 @@ export default function CartScreen() {
                       >
                         {product.name}
                       </Text>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         onPress={handleRemove}
                         disabled={isRemoving}
                         className="p-1"
                       >
-                        <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+                        <Ionicons
+                          name="close-circle"
+                          size={20}
+                          color="#9CA3AF"
+                        />
                       </TouchableOpacity>
                     </View>
                     {item.selected_variants &&

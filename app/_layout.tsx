@@ -289,27 +289,12 @@ function AppWithProviders() {
   // overlay has a correctly sized parent to fill.
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
-      {/* GLOBAL DEBUG INDICATOR */}
-      <View
-        style={{
-          position: "absolute",
-          top: 50,
-          left: 0,
-          right: 0,
-          alignItems: "center",
-          zIndex: 9999,
-        }}
-      >
-        <Text style={{ color: "red", fontWeight: "bold" }}>
-          [DEBUG] App Root Mounted
-        </Text>
-      </View>
-
       <NotificationProvider>
         <StatusBar style="auto" />
         <Stack
           screenOptions={{
             headerShown: false,
+            freezeOnBlur: true,
           }}
         >
           <Stack.Screen name="(tabs)" />

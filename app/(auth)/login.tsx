@@ -15,6 +15,7 @@ import {
 } from "react-native";
 
 export default function LoginScreen() {
+  console.log("[Login] Rendering LoginScreen");
   const dispatch = useAppDispatch();
   const [login, { isLoading }] = useLoginMutation();
 

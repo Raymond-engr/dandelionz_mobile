@@ -23,7 +23,7 @@ export default function CreateNotificationScreen() {
   
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [recipient, setRecipient] = useState<"Users" | "Vendors" | "All">("Users");
+  const [recipient, setRecipient] = useState<"Customers" | "Vendors" | "All">("Customers");
   
   const [showSchedule, setShowSchedule] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
@@ -115,8 +115,8 @@ export default function CreateNotificationScreen() {
         priority: 'normal',
         is_draft: isDraft,
         scheduled_for: scheduledDate ? scheduledDate.toISOString() : null,
-        recipient_type: recipient === "All" ? undefined : recipient.toUpperCase() as any,
-        recipient_group: recipient === "All" ? "all" : undefined,
+        recipient_type: (recipient === "All" ? "ALL" : (recipient === "Customers" ? "USERS" : "VENDORS")) as any,
+        recipient_group: (recipient === "All" ? "all" : (recipient === "Customers" ? "customer" : "vendor")) as any,
       };
 
       await createNotification(body).unwrap();

@@ -2,16 +2,25 @@ import { setCredentials } from "@/lib/features/auth/authSlice";
 import { NotificationProvider } from "@/lib/features/notification/NotificationProvider";
 import { store } from "@/lib/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Stack } from "expo-router";
+import * as Linking from "expo-linking";
+import { router, Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
 import { Provider } from "react-redux";
 import "../global.css";
 
 import { Ionicons } from "@expo/vector-icons";
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync().catch(() => {
+  /* reloading the app might cause this to error, safe to ignore */
+});
+
+console.log("[Root] Module evaluated");
 
 // ─── Root error boundary ──────────────────────────────────────────────────────
 // Catches synchronous render errors in production and shows a readable message
@@ -27,6 +36,10 @@ class RootErrorBoundary extends React.Component<
 
   static getDerivedStateFromError(error: Error) {
     return { hasError: true, message: error?.message ?? String(error) };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("[RootErrorBoundary] CAUGHT ERROR:", error, errorInfo);
   }
 
   render() {
@@ -209,17 +222,39 @@ function AppWithProviders() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    console.log("[Root] Initializing AppWithProviders");
     const restore = async () => {
       try {
+        console.log("[Root] Checking for initial URL (Deep Linking)");
+        const initialUrl = await Linking.getInitialURL();
+        console.log(
+          "[Root] App launched with URL:",
+          initialUrl || "None (Standard Launch)",
+        );
+
+        console.log("[Root] Attempting to restore auth from AsyncStorage");
         const saved = await AsyncStorage.getItem("auth");
         if (saved) {
+          console.log("[Root] Found saved auth data");
           const parsed = JSON.parse(saved);
           store.dispatch(setCredentials(parsed));
+        } else {
+          console.log("[Root] No saved auth data found");
         }
-      } catch (_) {
-        // Corrupt storage — start fresh, still mark hydrated.
+      } catch (e) {
+        console.warn("[Root] AsyncStorage error during restore:", e);
+      } finally {
+        console.log("[Root] Hydration complete, hiding splash screen");
+        setHydrated(true);
+        SplashScreen.hideAsync().catch(() => {});
+
+        // Force the router to evaluate the correct starting page
+        // queueMicrotask ensures the Navigator is fully committed before we navigate
+        queueMicrotask(() => {
+          console.log("[Root] Triggering initial route replacement to /(tabs)");
+          router.replace("/(tabs)");
+        });
       }
-      setHydrated(true);
     };
     restore();
 
@@ -260,17 +295,35 @@ function AppWithProviders() {
   // The outer View with flex:1 is required so that the absolute-positioned
   // overlay has a correctly sized parent to fill.
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: "white" }}>
+      {/* GLOBAL DEBUG INDICATOR */}
+      <View
+        style={{
+          position: "absolute",
+          top: 50,
+          left: 0,
+          right: 0,
+          alignItems: "center",
+          zIndex: 9999,
+        }}
+      >
+        <Text style={{ color: "red", fontWeight: "bold" }}>
+          [DEBUG] App Root Mounted
+        </Text>
+      </View>
+
       <NotificationProvider>
         <StatusBar style="auto" />
         <Stack
+          initialRouteName="(tabs)"
           screenOptions={{
             headerShown: false,
-            freezeOnBlur: true,
+            contentStyle: { backgroundColor: "blue" },
           }}
         >
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(auth)" />
+
           <Stack.Screen name="vendor" options={{ headerShown: false }} />
           <Stack.Screen name="(admin)" options={{ headerShown: false }} />
 
@@ -303,26 +356,6 @@ function AppWithProviders() {
       </NotificationProvider>
 
       <Toast config={toastConfig} />
-
-      {/* Hydration overlay — disappears once AsyncStorage has been read.
-          Background matches the splash screen so there is no visual jump. */}
-      {!hydrated && (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "#ffffff",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          pointerEvents="box-none"
-        >
-          <ActivityIndicator size="large" color="#030482" />
-        </View>
-      )}
     </View>
   );
 }

@@ -13,6 +13,7 @@ import React, { useCallback, useEffect, useRef } from "react";
  *  4. Customer role: do nothing (they belong here).
  */
 export default function TabsLayout() {
+  console.log("[Tabs] Rendering TabsLayout");
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const hasRedirected = useRef(false);
 

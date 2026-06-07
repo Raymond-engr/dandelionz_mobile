@@ -178,6 +178,17 @@ interface OrderSummary {
   canceled: number;
 }
 
+export interface VendorProfileUpdateRequest {
+  full_name?: string;
+  phone_number?: string;
+  store_name?: string;
+  store_description?: string;
+  address?: string;
+  bank_name?: string;
+  account_number?: string;
+  account_name?: string;
+}
+
 export const vendorApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // Profile Management
@@ -203,7 +214,7 @@ export const vendorApi = baseApi.injectEndpoints({
 
     updateVendorProfile: builder.mutation<
       { success: boolean; data: VendorProfile },
-      Partial<VendorProfile>
+      VendorProfileUpdateRequest
     >({
       query: (body) => ({
         url: "/user/vendor/profile/",

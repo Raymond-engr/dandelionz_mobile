@@ -160,6 +160,7 @@ export default function VendorProfileScreen() {
     try {
       await updateProfile({
         full_name: formData.fullName,
+        phone_number: formData.phoneNumber,
         store_name: formData.storeName,
         store_description: formData.storeDescription,
         address: formData.address,

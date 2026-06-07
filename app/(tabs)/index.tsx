@@ -18,6 +18,7 @@ interface Filters {
 }
 
 export default function ShopScreen() {
+  console.log("[Shop] Rendering ShopScreen");
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<Filters>({});

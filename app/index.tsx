@@ -1,11 +1,21 @@
-import ShopScreen from "./(tabs)/index";
+// app/index.tsx
+import { router, useRootNavigationState } from "expo-router";
+import React, { useEffect } from "react";
+import { View } from "react-native";
 
-/**
- * Root index.
- *
- * Re-exports the ShopScreen from the (tabs) group. This provides a
- * concrete physical file at the root path "/" for production builds,
- * fulfilling the expectations of "router.replace('/')" and standard
- * app launches without the ambiguity of nested group redirects.
- */
-export default ShopScreen;
+// Tell Expo Router this screen belongs to (tabs) for linking purposes
+export const unstable_settings = {
+  initialRouteName: "(tabs)",
+};
+
+export default function Index() {
+  const rootNavState = useRootNavigationState();
+
+  useEffect(() => {
+    if (!rootNavState?.key) return; // Navigator not ready yet
+    // Safe to navigate now — navigator is committed
+    router.replace("/(tabs)");
+  }, [rootNavState?.key]);
+
+  return <View style={{ flex: 1, backgroundColor: "white" }} />;
+}

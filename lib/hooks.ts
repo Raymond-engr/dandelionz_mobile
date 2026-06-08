@@ -36,7 +36,11 @@ export const useLogout = () => {
       // always reveals an already-rendered (tabs) — no fresh mount,
       // no white screen, for any role re-login.
       router.replace("/");
-      requestAnimationFrame(() => router.push("/(auth)/login"));
+      // requestAnimationFrame fires too soon — the native canvas hasn't committed
+      // app/index.tsx yet, so the login screen stacks before the shop is painted.
+      // A 60 ms gap gives the root frame one render cycle before login appears,
+      // meaning router.back() from login reveals a fully-painted shop screen.
+      setTimeout(() => router.push("/(auth)/login"), 60);
     }
   };
 

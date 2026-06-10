@@ -36,7 +36,7 @@ export const useLogout = () => {
       // always reveals an already-rendered (tabs) — no fresh mount,
       // no white screen, for any role re-login.
       router.replace("/");
-      requestAnimationFrame(() => router.push("/(auth)/login"));
+      setTimeout(() => router.push("/(auth)/login"), 50);
     }
   };
 

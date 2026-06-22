@@ -49,7 +49,7 @@
           "checkout/success": "checkout/success",
           "checkout/webview": "checkout/pay",
           "order-tracking": "orders/:id",
-          "order-receipt": "receipt/:id",
+          "order-receipt": "receipt",
           "(admin)/payment-settings/forgot-pin": "admin/forgot-pin",
           "(admin)/(tabs)/index": "admin",
           "(admin)/(tabs)/orders": "admin/orders",

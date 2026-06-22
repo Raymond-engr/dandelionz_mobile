@@ -1,12 +1,57 @@
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
-import { useRouter } from "expo-router";
-import React from "react";
-import { Text, View } from "react-native";
+import { useSendVerificationEmailMutation } from "@/lib/api/authApi";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useState } from "react";
+import { Text, View, ActivityIndicator, TouchableOpacity } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import Toast from "react-native-toast-message";
 
 export default function VerifyNoticeScreen() {
   const router = useRouter();
+  const { email: emailParam } = useLocalSearchParams<{ email: string }>();
+  const [sendVerification, { isLoading }] = useSendVerificationEmailMutation();
+  const [cooldown, setCooldown] = useState(0);
+
+  const handleResend = async () => {
+    if (cooldown > 0) return;
+    
+    if (!emailParam) {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Email address not found. Please try logging in again.",
+      });
+      return;
+    }
+
+    try {
+      const res = await sendVerification({ email: emailParam }).unwrap();
+      if (res.success) {
+        Toast.show({
+          type: "success",
+          text1: "Email Sent",
+          text2: "A new verification link has been sent to your inbox.",
+        });
+        setCooldown(60); // 60 seconds cooldown
+        const timer = setInterval(() => {
+          setCooldown((prev) => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }
+    } catch (err: any) {
+      Toast.show({
+        type: "error",
+        text1: "Failed to send email",
+        text2: err?.data?.message || "Please try again later.",
+      });
+    }
+  };
 
   return (
     <View className="flex-1 bg-white items-center justify-between py-10">
@@ -32,9 +77,20 @@ export default function VerifyNoticeScreen() {
         </Text>
         
         <Text className="text-[16px] text-[#6B7280] text-center mt-4 px-6 leading-6">
-          We&apos;ve sent a verification link to your email address. Please click the link to verify your account.
+          We&apos;ve sent a verification link to your email address{emailParam ? ` (${emailParam})` : ""}. Please click the link to verify your account.
         </Text>
-        <Text className="text-[14px] text-[#9CA3AF] text-center mt-4 px-6">
+        
+        <TouchableOpacity 
+          onPress={handleResend} 
+          disabled={isLoading || cooldown > 0}
+          className="mt-8"
+        >
+          <Text className={`text-[15px] font-semibold ${isLoading || cooldown > 0 ? "text-gray-400" : "text-system-blue-light"}`}>
+            {isLoading ? "Sending..." : cooldown > 0 ? `Resend in ${cooldown}s` : "Didn't receive email? Resend"}
+          </Text>
+        </TouchableOpacity>
+
+        <Text className="text-[14px] text-[#9CA3AF] text-center mt-6 px-6">
           If you don&apos;t see the email, please check your spam folder.
         </Text>
       </View>

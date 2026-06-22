@@ -216,9 +216,25 @@ export interface WalletTransaction {
 
 export interface AdminPaymentSettings {
   bank_name: string;
+  bank_code: string;
   account_number: string;
   account_name: string;
   has_pin: boolean;
+}
+
+export interface Bank {
+  name: string;
+  code: string;
+  active: boolean;
+}
+
+export interface BankVerificationResponse {
+  success: boolean;
+  data: {
+    account_name: string;
+    account_number: string;
+    bank_id: string;
+  };
 }
 
 export interface SettlementSummary {
@@ -990,6 +1006,18 @@ export const adminApi = baseApi.injectEndpoints({
       providesTags: ["Payment"],
     }),
 
+    getBanks: builder.query<{ success: boolean; data: Bank[] }, void>({
+      query: () => "/user/utility/banks/",
+    }),
+
+    verifyBankAccount: builder.mutation<BankVerificationResponse, { account_number: string; bank_code: string }>({
+      query: (body) => ({
+        url: "/user/utility/verify-account/",
+        method: "POST",
+        body,
+      }),
+    }),
+
     approveWithdrawal: builder.mutation<
       { success: boolean; message: string },
       { withdrawal_id: string | number; notes?: string }
@@ -1087,4 +1115,6 @@ export const {
   useChangePaymentPinMutation,
   useForgotPaymentPinMutation,
   useGetSettlementSummaryQuery,
+  useGetBanksQuery,
+  useVerifyBankAccountMutation,
 } = adminApi;

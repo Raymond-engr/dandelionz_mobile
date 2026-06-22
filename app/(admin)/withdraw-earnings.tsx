@@ -29,10 +29,13 @@ export default function AdminWithdrawEarnings() {
   const [pin, setPin] = useState(["", "", "", ""]);
 
   const walletStats = statsResponse?.data;
+  const MIN_WITHDRAWAL = 1000;
 
   const handleWithdraw = async () => {
     const fullPin = pin.join("");
-    if (!amount || fullPin.length < 4) {
+    const withdrawAmount = parseFloat(amount);
+    
+    if (!amount || fullPin.length < 4 || isNaN(withdrawAmount)) {
       Toast.show({ 
         type: "error", 
         text1: "Error", 
@@ -41,7 +44,16 @@ export default function AdminWithdrawEarnings() {
       return;
     }
 
-    if (parseFloat(amount) > parseFloat(walletStats?.withdrawable_balance || "0")) {
+    if (withdrawAmount < MIN_WITHDRAWAL) {
+      Toast.show({ 
+        type: "error", 
+        text1: "Invalid Amount", 
+        text2: `Minimum withdrawal is ₦${formatCurrency(MIN_WITHDRAWAL)}` 
+      });
+      return;
+    }
+
+    if (withdrawAmount > parseFloat(walletStats?.withdrawable_balance?.toString() || "0")) {
       Toast.show({ type: "error", text1: "Insufficient balance." });
       return;
     }
@@ -107,6 +119,7 @@ export default function AdminWithdrawEarnings() {
               onChangeText={setAmount}
             />
           </View>
+          <Text className="text-[12px] text-gray-400 mt-2 text-center">Minimum withdrawal: ₦{formatCurrency(MIN_WITHDRAWAL)}</Text>
         </View>
 
         <View className="mb-10 items-center">

@@ -130,10 +130,26 @@ interface PaginatedTransactionsResponse {
 
 interface PaymentSettings {
   bank_name: string;
+  bank_code: string;
   account_number: string;
   account_name: string;
   recipient_code: string;
   has_pin: boolean;
+}
+
+export interface Bank {
+  name: string;
+  code: string;
+  active: boolean;
+}
+
+export interface BankVerificationResponse {
+  success: boolean;
+  data: {
+    account_name: string;
+    account_number: string;
+    bank_id: string;
+  };
 }
 
 interface NotificationType {
@@ -505,6 +521,18 @@ export const vendorApi = baseApi.injectEndpoints({
       }),
     }),
 
+    getBanks: builder.query<{ success: boolean; data: Bank[] }, void>({
+      query: () => "/user/utility/banks/",
+    }),
+
+    verifyBankAccount: builder.mutation<BankVerificationResponse, { account_number: string; bank_code: string }>({
+      query: (body) => ({
+        url: "/user/utility/verify-account/",
+        method: "POST",
+        body,
+      }),
+    }),
+
     // Notifications
     getVendorNotifications: builder.query<
       { success: boolean; data: Notification[] },
@@ -625,6 +653,8 @@ export const {
   useSetPaymentPINMutation,
   useVerifyPaymentPINMutation,
   useRequestPINResetMutation,
+  useGetBanksQuery,
+  useVerifyBankAccountMutation,
   useGetVendorNotificationsQuery,
   useVendorMarkNotificationAsReadMutation,
   useVendorMarkAllNotificationsAsReadMutation,

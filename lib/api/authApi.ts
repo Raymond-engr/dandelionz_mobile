@@ -203,8 +203,6 @@ export const {
   useRegisterMutation,
   useLoginMutation,
   useRefreshTokenMutation,
-  useForgotPasswordMutation,
-  useResetPasswordMutation,
   useRequestPasswordResetMutation,
   useConfirmPasswordResetMutation,
   useCheckVerificationQuery,

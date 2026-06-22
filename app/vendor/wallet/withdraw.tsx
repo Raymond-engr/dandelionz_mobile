@@ -40,11 +40,17 @@ export default function WithdrawScreen() {
   const isLoading = walletLoading || paymentLoading;
   const payment = paymentData?.data;
 
+  const MIN_WITHDRAWAL = 1000;
+
   const handleProceed = () => {
     setError("");
     const val = parseFloat(amount);
     if (isNaN(val) || val <= 0) {
       setError("Please enter a valid amount.");
+      return;
+    }
+    if (val < MIN_WITHDRAWAL) {
+      setError(`Minimum withdrawal amount is ₦${formatCurrency(MIN_WITHDRAWAL)}.`);
       return;
     }
     if (!payment?.bank_name || !payment?.account_number) {
@@ -134,6 +140,7 @@ export default function WithdrawScreen() {
                 placeholder="0.00"
               />
             </View>
+            <Text className="text-[12px] text-gray-400 mt-2">Minimum withdrawal: ₦{formatCurrency(MIN_WITHDRAWAL)}</Text>
           </View>
 
           <Text className="text-[14px] font-bold text-gray-400 uppercase tracking-widest mb-4">Destination Bank</Text>

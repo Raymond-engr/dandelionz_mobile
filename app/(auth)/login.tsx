@@ -77,6 +77,15 @@ export default function LoginScreen() {
         }
       }
     } catch (err: any) {
+      // Handle unverified email error from backend (403 Forbidden)
+      if (err?.status === 403 && err?.data?.email_not_verified) {
+        router.replace({
+          pathname: "/(auth)/verify-notice",
+          params: { email }, // Pass email to the notice screen for resending
+        });
+        return;
+      }
+
       setError(
         err?.data?.error || "Login failed. Please check your credentials.",
       );

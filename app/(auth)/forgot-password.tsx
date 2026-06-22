@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { useForgotPasswordMutation } from "@/lib/api/authApi";
+import { useRequestPasswordResetMutation } from "@/lib/api/authApi";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -12,7 +12,7 @@ import {
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const [forgotPassword, { isLoading }] = useForgotPasswordMutation();
+  const [requestReset, { isLoading }] = useRequestPasswordResetMutation();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -24,7 +24,7 @@ export default function ForgotPasswordScreen() {
       return;
     }
     try {
-      const res = await forgotPassword({ email }).unwrap();
+      const res = await requestReset({ email }).unwrap();
       if (res.success) setSuccess(true);
     } catch (err: any) {
       setError(err?.data?.message || "Something went wrong. Please try again.");

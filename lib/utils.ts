@@ -93,6 +93,11 @@ export function resolveNotificationUrl(
 
   // Logic for Customer
   if (role === "customer") {
+    // Orders & Receipt priority
+    if (path.includes("/receipt") || path.includes("/order-tracking")) {
+      // Use existing ID matching logic below or return path as is if already formatted
+    }
+
     // Order detail mapping (must be before general transaction check)
     // Map /orders/UUID, /receipt?id=UUID, /order-tracking?id=UUID, /payments/UUID or /transactions/orders/UUID to /order-receipt?id=UUID
     const orderMatch = path.match(

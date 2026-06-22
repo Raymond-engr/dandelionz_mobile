@@ -39,3 +39,16 @@ Always generate commit messages at the end of a task and append this instruction
 - Verified that roles using standard `Toast` feedback (like Admin withdrawal) remain unaffected while ensuring architectural consistency for all dedicated success pages.
 - Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.
 
+## June 11, 2026 - Authentication Process & UX Audit Fixes
+- Synchronized `sendVerificationEmail` API endpoint with the backend path (`/auth/send-verification/`) across Mobile and Web applications.
+- Improved login error handling to detect unverified accounts (403 Forbidden) and automatically redirect users to the email verification notice screen.
+- Enhanced Mobile `verify-notice.tsx` with a "Resend Verification" feature, including a 60-second cooldown timer and Toast feedback.
+- Cleaned up redundant password reset mutations in the Mobile `authApi.ts` and updated `forgot-password.tsx` to use the standardized `requestPasswordReset` hook.
+- Verified that deep linking (Universal Links) is configured in `app.json` to support direct app opening from email verification links.
+- Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.
+
+## June 22, 2026 - TypeScript Syntax Error Fixes
+- Fixed syntax error in `app/(auth)/verify-notice.tsx` caused by trailing mismatched tags and duplicate import blocks.
+- Removed duplicated import sections at the top of `app/(admin)/payment-settings/bank.tsx` and `app/vendor/account/payment-settings/store-payment.tsx` which were causing duplicate identifier errors.
+- Confirmed a clean build without errors via `npx tsc --noEmit`.
+- Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.

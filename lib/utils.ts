@@ -171,3 +171,12 @@ export function resolveNotificationUrl(
 
   return path;
 }
+
+export const SYSTEM_NOTIFICATION_CATEGORIES = [
+  'order', 'product', 'payment', 'delivery', 'general',
+  'vendor_approval', 'product_rejection', 'order_update',
+];
+
+export function isSystemNotification(notification: { category?: string }): boolean {
+  return SYSTEM_NOTIFICATION_CATEGORIES.includes(notification?.category || '');
+}

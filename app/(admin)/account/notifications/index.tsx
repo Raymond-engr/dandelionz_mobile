@@ -10,7 +10,7 @@ import {
   useDeleteSystemNotificationMutation,
   usePublishNotificationMutation
 } from "@/lib/api/adminApi";
-import { resolveNotificationUrl } from "@/lib/utils";
+import { resolveNotificationUrl, isSystemNotification } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState, useMemo } from "react";
@@ -245,7 +245,7 @@ export default function AdminNotificationManagement() {
                   </View>
                 )}
                 
-                {activeTab === 'inbox' && (
+                {activeTab === 'inbox' && !isSystemNotification(item) && (
                   <TouchableOpacity 
                     onPress={() => handleDeleteInbox(item.id)}
                     className="mt-3"

@@ -175,7 +175,9 @@ export default function OrderDetails() {
 
         <View style={styles.actions}>
            <View style={styles.pickerContainer}>
-              {["cancel", "process", "complete"].map((a) => (
+              {["cancel", "process", "complete"]
+                .filter(a => order.payment_status?.toLowerCase() !== 'pending' || a === 'cancel')
+                .map((a) => (
                 <TouchableOpacity
                   key={a}
                   onPress={() => setAction(a as any)}

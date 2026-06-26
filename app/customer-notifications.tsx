@@ -5,7 +5,7 @@ import {
   useCustomerMarkNotificationAsReadMutation,
   useGetCustomerNotificationsQuery,
 } from "@/lib/api/customerApi";
-import { resolveNotificationUrl } from "@/lib/utils";
+import { resolveNotificationUrl, isSystemNotification } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState, useMemo } from "react";
@@ -230,17 +230,19 @@ export default function CustomerNotificationsScreen() {
                 </View>
 
                 {/* Delete button */}
-                <TouchableOpacity
-                  onPress={() => handleDelete(item.id)}
-                  className="ml-3 p-1 shrink-0"
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <MaterialIcons
-                    name="delete-outline"
-                    size={20}
-                    color="#9CA3AF"
-                  />
-                </TouchableOpacity>
+                {!isSystemNotification(item) && (
+                  <TouchableOpacity
+                    onPress={() => handleDelete(item.id)}
+                    className="ml-3 p-1 shrink-0"
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <MaterialIcons
+                      name="delete-outline"
+                      size={20}
+                      color="#9CA3AF"
+                    />
+                  </TouchableOpacity>
+                )}
               </Pressable>
               <View className="h-[1px] bg-gray-100 mx-[21px]" />
             </View>

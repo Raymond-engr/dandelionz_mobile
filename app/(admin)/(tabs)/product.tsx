@@ -18,6 +18,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -29,6 +30,7 @@ export default function AdminProduct() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabKey>("categories");
   const [search, setSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const {
@@ -132,10 +134,28 @@ export default function AdminProduct() {
         <Text className="text-[24px] font-semibold text-system-blue-dark">
           Products
         </Text>
-        <TouchableOpacity className="w-10 h-10 items-center justify-center bg-[#F5F7FA] rounded-full">
-          <Feather name="search" size={20} color="#030482" />
+        <TouchableOpacity 
+          onPress={() => {
+            setShowSearch((v) => !v);
+            if (showSearch) setSearch("");
+          }}
+          className="w-10 h-10 items-center justify-center bg-[#F5F7FA] rounded-full"
+        >
+          <Feather name={showSearch ? "x" : "search"} size={20} color="#030482" />
         </TouchableOpacity>
       </View>
+
+      {showSearch && (
+        <View className="px-[21px] pb-3">
+          <TextInput
+            autoFocus
+            value={search}
+            onChangeText={setSearch}
+            placeholder={activeTab === "products" ? "Search products..." : "Search categories..."}
+            className="bg-[#F5F7FA] px-4 py-3 rounded-xl text-[14px] text-system-blue-dark"
+          />
+        </View>
+      )}
 
       <Divider />
 

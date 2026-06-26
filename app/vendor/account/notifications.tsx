@@ -7,7 +7,7 @@ import {
   useVendorMarkAllNotificationsAsReadMutation,
   useVendorDeleteNotificationMutation
 } from "@/lib/api/vendorApi";
-import { resolveNotificationUrl } from "@/lib/utils";
+import { resolveNotificationUrl, isSystemNotification } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState, useMemo } from "react";
@@ -165,7 +165,7 @@ export default function VendorNotificationsScreen() {
             <Pressable 
               onPress={() => {
                 if (!item.is_read) markAsRead(item.id);
-                if (item.action_url) {
+                if (item.action_url && item.category !== 'product_rejection') {
                   const localPath = resolveNotificationUrl(item.action_url, "vendor");
                   if (localPath && localPath !== "#") {
                     router.push(localPath as any);
@@ -196,12 +196,14 @@ export default function VendorNotificationsScreen() {
                 </Text>
               </View>
 
-              <TouchableOpacity 
-                onPress={() => handleDelete(item.id)}
-                className="ml-2 p-1"
-              >
-                <MaterialIcons name="delete-outline" size={18} color="#D1D5DB" />
-              </TouchableOpacity>
+              {!isSystemNotification(item) && (
+                <TouchableOpacity 
+                  onPress={() => handleDelete(item.id)}
+                  className="ml-2 p-1"
+                >
+                  <MaterialIcons name="delete-outline" size={18} color="#D1D5DB" />
+                </TouchableOpacity>
+              )}
             </Pressable>
             <Divider height={1} className="opacity-50" />
           </View>

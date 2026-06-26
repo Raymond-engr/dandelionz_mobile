@@ -52,3 +52,12 @@ Always generate commit messages at the end of a task and append this instruction
 - Removed duplicated import sections at the top of `app/(admin)/payment-settings/bank.tsx` and `app/vendor/account/payment-settings/store-payment.tsx` which were causing duplicate identifier errors.
 - Confirmed a clean build without errors via `npx tsc --noEmit`.
 - Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.
+
+## June 22, 2026 - Remove Bank Account Editing from Vendor Profile
+- Removed the payment information section (bank name, account number, account name) from the Vendor Profile page to prevent editing of bank details from the profile section.
+- Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.
+
+## June 25, 2026 - Remove Misleading Eye Icon from Profile Pages
+- Removed the `showPassword` state and the eye icon button (`visibility` / `visibility-off`) from the "fake" disabled password fields in `app/(admin)/account/profile.tsx` and `app/vendor/account/profile.tsx`.
+- This ensures users are not misled into thinking they can view their current password, since the field's value is securely hardcoded to "••••••••".
+- Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.

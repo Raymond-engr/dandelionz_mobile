@@ -65,6 +65,7 @@ export interface Order {
   order_items?: OrderItem[];
   timeline?: OrderTimeline[];
   items_count?: number;
+  installment_plan?: any;
 }
 
 export interface Product {
@@ -322,6 +323,17 @@ export const publicApi = baseApi.injectEndpoints({
       invalidatesTags: ["Order", "Payment"],
     }),
 
+    cancelOrder: builder.mutation<
+      { success: boolean; data: { order_id: string; status: string; refund_pending: boolean }; message: string },
+      string // order_id
+    >({
+      query: (order_id) => ({
+        url: `/transactions/orders/${order_id}/cancel/`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Order'],
+    }),
+
     // Reviews
     addProductReview: builder.mutation<
       { success: boolean; data: any },
@@ -487,6 +499,7 @@ export const {
   useGetCustomerOrderDetailsQuery,
   useGetOrderReceiptQuery,
   usePayForOrderMutation,
+  useCancelOrderMutation,
   useAddProductReviewMutation,
   useGetProductReviewsQuery,
   useInitializeCheckoutMutation,

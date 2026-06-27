@@ -67,20 +67,20 @@ export default function VendorNewProduct() {
   const handleProceed = () => {
     if (step === "basic") {
       if (!form.name || !form.category || form.images.length === 0) {
-        Toast.show({ 
-          type: "error", 
-          text1: "Error", 
-          text2: "Please fill name, category and add at least one image" 
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: "Please fill name, category and add at least one image",
         });
         return;
       }
       setStep("inventory");
     } else if (step === "inventory") {
       if (!form.price || !form.stock) {
-        Toast.show({ 
-          type: "error", 
-          text1: "Error", 
-          text2: "Please fill price and stock" 
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: "Please fill price and stock",
         });
         return;
       }
@@ -115,6 +115,8 @@ export default function VendorNewProduct() {
       );
     });
 
+    formData.append("publish_status", "draft");
+
     return formData;
   };
 
@@ -124,10 +126,10 @@ export default function VendorNewProduct() {
       Toast.show({ type: "success", text1: "Product saved as draft" });
       router.replace("/vendor/(tabs)/products");
     } catch (err: any) {
-      Toast.show({ 
-        type: "error", 
-        text1: "Error", 
-        text2: err?.data?.message || "Failed to save draft" 
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: err?.data?.message || "Failed to save draft",
       });
     }
   };
@@ -138,14 +140,17 @@ export default function VendorNewProduct() {
       const slug = (res as any).data?.slug;
       if (slug) {
         await submitDraft(slug).unwrap();
-        Toast.show({ type: "success", text1: "Product published successfully" });
+        Toast.show({
+          type: "success",
+          text1: "Product published successfully",
+        });
         router.replace("/vendor/(tabs)/products");
       }
     } catch (err: any) {
-      Toast.show({ 
-        type: "error", 
-        text1: "Error", 
-        text2: err?.data?.message || "Failed to publish product" 
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: err?.data?.message || "Failed to publish product",
       });
     }
   };

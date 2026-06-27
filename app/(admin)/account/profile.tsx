@@ -11,7 +11,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -20,7 +19,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -38,7 +37,6 @@ export default function AdminProfileScreen() {
   const [uploadPhoto] = useUploadAdminPhotoMutation();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -214,24 +212,12 @@ export default function AdminProfileScreen() {
               <Text className="text-[12px] font-bold text-gray-400 mb-2 uppercase tracking-wider">
                 Password
               </Text>
-              <View className="relative">
-                <TextInput
-                  value="••••••••"
-                  editable={false}
-                  secureTextEntry={!showPassword}
-                  className="text-[16px] text-system-blue-dark py-2 border-b border-gray-100 pr-10"
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 p-2"
-                >
-                  <MaterialIcons
-                    name={showPassword ? "visibility-off" : "visibility"}
-                    size={20}
-                    color="#9CA3AF"
-                  />
-                </TouchableOpacity>
-              </View>
+              <TextInput
+                value="••••••••"
+                editable={false}
+                secureTextEntry={true}
+                className="text-[16px] text-system-blue-dark py-2 border-b border-gray-100 pr-10"
+              />
               <TouchableOpacity
                 onPress={() =>
                   router.push("/(admin)/account/change-password" as any)

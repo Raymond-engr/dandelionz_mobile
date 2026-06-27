@@ -65,7 +65,7 @@ export default function VendorProfileScreen() {
     useUploadVendorPhotoMutation();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+
   const [formData, setFormData] = useState({
     fullName: "",
     storeName: "",
@@ -345,61 +345,18 @@ export default function VendorProfileScreen() {
             )}
           </View>
 
-          <Divider height={1} className="my-4 opacity-30" />
-          <Text className="text-[14px] font-bold text-system-blue-light mb-6">
-            Payment Information
-          </Text>
 
-          <InputField
-            label="Bank Name"
-            value={formData.bankName}
-            onChangeText={(t: string) =>
-              setFormData({ ...formData, bankName: t })
-            }
-            isEditing={isEditing}
-          />
-
-          <InputField
-            label="Account Number"
-            value={formData.accountNumber}
-            onChangeText={(t: string) =>
-              setFormData({ ...formData, accountNumber: t })
-            }
-            keyboardType="numeric"
-            isEditing={isEditing}
-          />
-
-          <InputField
-            label="Account Name"
-            value={formData.accountName}
-            onChangeText={(t: string) =>
-              setFormData({ ...formData, accountName: t })
-            }
-            isEditing={isEditing}
-          />
 
           <View className="mb-6">
             <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-2">
               Password
             </Text>
-            <View className="relative">
-              <TextInput
-                value="••••••••"
-                editable={false}
-                secureTextEntry={!showPassword}
-                className="border-b border-gray-200 py-2 text-[16px] text-system-blue-dark pr-10"
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                className="absolute right-0 top-1/2 -translate-y-1/2 p-2"
-              >
-                <MaterialIcons
-                  name={showPassword ? "visibility-off" : "visibility"}
-                  size={20}
-                  color="#9CA3AF"
-                />
-              </TouchableOpacity>
-            </View>
+            <TextInput
+              value="••••••••"
+              editable={false}
+              secureTextEntry={true}
+              className="border-b border-gray-200 py-2 text-[16px] text-system-blue-dark pr-10"
+            />
             <TouchableOpacity
               onPress={() =>
                 router.push("/vendor/account/change-password" as any)

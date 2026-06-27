@@ -14,7 +14,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { 
   useGetAdminOrderDetailsQuery, 
   useCancelOrderWithReasonMutation, 
-  useUpdateOrderStatusMutation 
+  useUpdateOrderStatusMutation,
+  useGetAdminRefundsQuery
 } from "@/lib/api/adminApi";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { formatCurrency } from "@/lib/utils";
@@ -29,7 +30,18 @@ export default function OrderDetails() {
   const [reason, setReason] = useState("");
 
   const { data: orderResponse, isLoading, error, refetch } = useGetAdminOrderDetailsQuery(id!);
-  const order = orderResponse; // Based on adminApi it might be direct or wrapped
+  let order = orderResponse; // Based on adminApi it might be direct or wrapped
+
+  const { data: refundsData } = useGetAdminRefundsQuery(undefined, {
+    skip: !order || !['CANCELED', 'CANCELLED'].includes(order.current_status || order.status || ''),
+  });
+  
+  if (order && refundsData?.data) {
+    const orderRefund = refundsData.data.find((r: any) => r.order_id === order?.order_id);
+    if (orderRefund) {
+      order = { ...order, refund_request: orderRefund } as any;
+    }
+  }
 
   const [cancelOrder, { isLoading: isCancelling }] = useCancelOrderWithReasonMutation();
   const [updateOrderStatus, { isLoading: isUpdating }] = useUpdateOrderStatusMutation();
@@ -173,9 +185,51 @@ export default function OrderDetails() {
           ))}
         </View>
 
+        {order.refund_request && (
+          <View style={{ marginBottom: 20 }}>
+            <Text style={styles.sectionTitle}>Refund Status</Text>
+            <View style={{
+              padding: 16,
+              borderRadius: 12,
+              backgroundColor:
+                order.refund_request.status === 'APPROVED' ? '#D1FAE5'
+                : order.refund_request.status === 'REJECTED' ? '#FEE2E2'
+                : '#FEF3C7',
+              borderWidth: 1,
+              borderColor:
+                order.refund_request.status === 'APPROVED' ? '#6EE7B7'
+                : order.refund_request.status === 'REJECTED' ? '#FCA5A5'
+                : '#FDE68A',
+            }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ fontWeight: '700', fontSize: 14, color: '#111827' }}>
+                  {formatCurrency(order.refund_request.refunded_amount || order.refund_request.amount)}
+                </Text>
+                <Text style={{
+                  fontWeight: '700', fontSize: 12,
+                  color: order.refund_request.status === 'APPROVED' ? '#059669'
+                       : order.refund_request.status === 'REJECTED' ? '#DC2626'
+                       : '#D97706',
+                }}>
+                  {order.refund_request.status}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 13, color: '#6B7280' }}>
+                {order.refund_request.status === 'PENDING'
+                  ? 'Refund requested. Go to Refund Requests to process.'
+                  : order.refund_request.status === 'APPROVED'
+                  ? 'Refund approved — customer wallet credited.'
+                  : `Rejected: ${order.refund_request.rejection_reason || order.refund_request.reason || 'No reason provided'}`}
+              </Text>
+            </View>
+          </View>
+        )}
+
         <View style={styles.actions}>
            <View style={styles.pickerContainer}>
-              {["cancel", "process", "complete"].map((a) => (
+              {["cancel", "process", "complete"]
+                .filter(a => order.payment_status?.toLowerCase() !== 'pending' || a === 'cancel')
+                .map((a) => (
                 <TouchableOpacity
                   key={a}
                   onPress={() => setAction(a as any)}
@@ -213,6 +267,15 @@ export default function OrderDetails() {
           <TouchableOpacity onPress={() => router.back()} style={styles.discardBtn}>
             <Text style={styles.discardBtnText}>Discard</Text>
           </TouchableOpacity>
+
+          {order.status === "CANCELED" && (order.payment_status === "PAID" || order.current_status === "PAID") && (
+            <TouchableOpacity
+              onPress={() => router.push("/(admin)/settlements/disputes")}
+              style={[styles.confirmBtn, { backgroundColor: "#FEF3C7", marginTop: 8 }]}
+            >
+              <Text style={[styles.confirmBtnText, { color: "#D97706" }]}>Manage Refund Request</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </View>

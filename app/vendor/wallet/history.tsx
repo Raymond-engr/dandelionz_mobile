@@ -2,7 +2,7 @@ import { Divider } from "@/components/ui/divider";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Colors } from "@/constants/theme";
 import { useGetTransactionHistoryQuery } from "@/lib/api/vendorApi";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons, Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -39,7 +39,7 @@ export default function VendorTransactionHistory() {
   const renderHeader = () => (
     <View className="flex-row items-center justify-between px-4 py-4 bg-white">
       <Pressable onPress={() => router.back()} className="w-10">
-        <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
+        <Feather name="chevron-left" size={32} color={Colors.primary} />
       </Pressable>
       <Text className="text-[24px] font-semibold text-system-blue-dark text-center flex-1">
         History

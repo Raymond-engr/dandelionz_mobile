@@ -2,12 +2,19 @@ import { LoadingSpinner } from "@/components/loading-spinner";
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
-import { useGetCustomerOrderDetailsQuery } from "@/lib/api/publicApi";
+import {
+  useGetCustomerOrderDetailsQuery,
+  useGetInstallmentPlanDetailsQuery,
+  useInitializeNextInstallmentMutation,
+  useCancelOrderMutation
+} from "@/lib/api/publicApi";
+import { formatCurrency } from "@/lib/utils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert,
   Pressable,
   ScrollView,
   Text,
@@ -31,6 +38,72 @@ export default function OrderTrackingScreen() {
   } = useGetCustomerOrderDetailsQuery(id || "", {
     skip: !id,
   });
+
+  const planId = order?.installment_plan?.id;
+
+  const { data: planResponse, refetch: refetchPlan } = useGetInstallmentPlanDetailsQuery(
+    planId ?? 0,
+    { skip: !planId }
+  );
+  const plan = planResponse?.data;
+
+  const [initNextPayment, { isLoading: isInitingPayment }] = useInitializeNextInstallmentMutation();
+
+  const handlePayNextInstallment = async (installment: any) => {
+    try {
+      const res = await initNextPayment({
+        plan_id: plan!.id,
+        payment_number: installment.payment_number,
+      }).unwrap();
+
+      router.push({
+        pathname: '/checkout/webview' as any,
+        params: {
+          url: res.data.authorization_url,
+          reference: res.data.reference,
+          plan_id: String(plan!.id),
+        },
+      });
+    } catch (err: any) {
+      Toast.show({ type: 'error', text1: 'Failed to initialise payment', text2: err?.data?.error });
+    }
+  };
+
+  const [cancelOrder, { isLoading: isCancelling }] = useCancelOrderMutation();
+  const canCancel = order && ['PENDING', 'PAID'].includes(order.status) && order.status !== 'CANCELLED';
+
+  const handleCancelOrder = () => {
+    Alert.alert(
+      'Cancel Order',
+      order?.status === 'PAID'
+        ? 'This order has been paid. Cancelling will initiate a refund (3–5 business days). Are you sure?'
+        : 'Are you sure you want to cancel this order?',
+      [
+        { text: 'Keep Order', style: 'cancel' },
+        {
+          text: 'Cancel Order',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await cancelOrder(order!.order_id).unwrap();
+              Toast.show({
+                type: 'success',
+                text1: 'Order Cancelled',
+                text2: res.message,
+              });
+              router.back();
+            } catch (err: any) {
+              Toast.show({
+                type: 'error',
+                text1: 'Could not cancel order',
+                text2: err?.data?.error || 'Please try again.',
+              });
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleTrack = () => {
     if (inputId.trim()) {
@@ -208,6 +281,111 @@ export default function OrderTrackingScreen() {
         </View>
 
         <Divider height={11} className="my-4" />
+
+        {/* Installment Plan Section */}
+        {plan && plan.status !== 'COMPLETED' && (
+          <View className="px-6 pb-8">
+            <Divider height={1} className="mb-6" />
+
+            <Text className="text-[14px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+              Installment Plan
+            </Text>
+
+            {/* Progress bar */}
+            <View className="flex-row items-center mb-2">
+              <Text className="text-[13px] text-gray-500 flex-1">
+                {plan.paid_installments_count} of {plan.number_of_installments} paid
+              </Text>
+              <Text className="text-[13px] font-bold text-system-blue-light">
+                {formatCurrency(plan.installment_amount)} / month
+              </Text>
+            </View>
+            <View className="h-2 bg-gray-100 rounded-full mb-6">
+              <View
+                className="h-full bg-system-blue-light rounded-full"
+                style={{
+                  width: `${(plan.paid_installments_count / plan.number_of_installments) * 100}%`,
+                }}
+              />
+            </View>
+
+            {/* Individual installments */}
+            {plan.installments?.map((inst: any) => {
+              const isPaid = inst.status === 'PAID';
+              const isOverdue = !isPaid && new Date(inst.due_date) < new Date();
+              const isNext = !isPaid && plan.installments!.filter((i: any) => i.status !== 'PAID').indexOf(inst) === 0;
+
+              return (
+                <View
+                  key={inst.payment_number}
+                  className={`flex-row items-center justify-between p-4 mb-3 rounded-xl border ${
+                    isPaid ? 'border-green-100 bg-green-50'
+                    : isOverdue ? 'border-red-100 bg-red-50'
+                    : isNext ? 'border-blue-100 bg-blue-50'
+                    : 'border-gray-100 bg-gray-50'
+                  }`}
+                >
+                  <View>
+                    <Text className="text-[14px] font-bold text-system-blue-dark">
+                      Installment #{inst.payment_number}
+                    </Text>
+                    <Text className="text-[12px] text-gray-400 mt-0.5">
+                      Due {new Date(inst.due_date).toLocaleDateString('en-NG', {
+                        day: 'numeric', month: 'short', year: 'numeric',
+                      })}
+                    </Text>
+                  </View>
+                  <View className="items-end">
+                    <Text className="text-[14px] font-bold text-system-blue-dark mb-1">
+                      {formatCurrency(inst.amount)}
+                    </Text>
+                    {isPaid ? (
+                      <View className="bg-green-100 px-2 py-0.5 rounded-full">
+                        <Text className="text-[11px] text-green-700 font-bold">Paid</Text>
+                      </View>
+                    ) : isNext ? (
+                      <TouchableOpacity
+                        onPress={() => handlePayNextInstallment(inst)}
+                        disabled={isInitingPayment}
+                        className="bg-system-blue-light px-3 py-1.5 rounded-lg"
+                      >
+                        <Text className="text-white text-[12px] font-bold">
+                          {isInitingPayment ? 'Loading…' : 'Pay Now'}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View className={`px-2 py-0.5 rounded-full ${isOverdue ? 'bg-red-100' : 'bg-gray-100'}`}>
+                        <Text className={`text-[11px] font-bold ${isOverdue ? 'text-red-600' : 'text-gray-500'}`}>
+                          {isOverdue ? 'Overdue' : 'Upcoming'}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {/* Cancel Order Section */}
+        {canCancel && (
+          <View className="px-6 pb-8">
+            <TouchableOpacity
+              onPress={handleCancelOrder}
+              disabled={isCancelling}
+              className="border-2 border-red-200 rounded-xl p-4 items-center bg-red-50"
+            >
+              <Text className="text-red-600 font-bold text-[15px]">
+                {isCancelling ? 'Cancelling…' : 'Cancel Order'}
+              </Text>
+              {order?.status === 'PAID' && (
+                <Text className="text-red-400 text-[12px] mt-1">
+                  Refund will be processed in 3–5 business days
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </View>
   );

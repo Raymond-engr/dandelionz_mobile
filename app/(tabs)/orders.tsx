@@ -206,6 +206,14 @@ export default function OrdersScreen() {
                   })}
                 </Text>
 
+                {item.installment_plan && (
+                  <View className="bg-system-blue-light/10 self-start px-2 py-1 rounded mb-2">
+                    <Text className="text-[10px] font-bold text-system-blue-light">
+                      INSTALLMENT PLAN
+                    </Text>
+                  </View>
+                )}
+
                 {/* Total + CTA */}
                 <View className="flex-row justify-between items-center">
                   <Text className="text-[18px] font-bold text-system-blue-dark">

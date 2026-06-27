@@ -162,6 +162,7 @@ export default function AccountScreen() {
       {/* Account links */}
       <View>
         <SectionRow label="My Profile" route="/customer-profile" />
+        <SectionRow label="My Wallet" route="/account/wallet" />
         <SectionRow label="Notifications" route="/customer-notifications" />
         <SectionRow label="My Orders" route="/(tabs)/orders" />
         <SectionRow label="My Wishlist" route="/(tabs)/wishlist" />

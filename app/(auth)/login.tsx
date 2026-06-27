@@ -86,6 +86,14 @@ export default function LoginScreen() {
         return;
       }
 
+      if (err?.status === 403) {
+        setError(
+          err?.data?.error ||
+          "Your account has been suspended. Please contact support."
+        );
+        return;
+      }
+
       setError(
         err?.data?.error || "Login failed. Please check your credentials.",
       );

@@ -57,8 +57,70 @@ interface NotificationStats {
   last_notification_time: string | null;
 }
 
+export interface CustomerWalletBalance {
+  balance: number;
+  total_credits: number;
+  total_debits: number;
+  this_month_earnings: number;
+}
+
+export interface CustomerWalletTransaction {
+  id: number;
+  transaction_type: 'CREDIT' | 'DEBIT';
+  amount: string;
+  source: string;
+  created_at: string;
+}
+
 export const customerApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    // Wallet & Payments
+    getCustomerWallet: builder.query<{ success: boolean; data: CustomerWalletBalance }, void>({
+      query: () => '/user/customer/wallet/',
+      providesTags: ['CustomerWallet'],
+    }),
+
+    getCustomerWalletTransactions: builder.query<
+      { count: number; results: CustomerWalletTransaction[] },
+      { type?: 'credit' | 'debit'; limit?: number; offset?: number }
+    >({
+      query: (params = {}) => ({
+        url: '/user/customer/wallet/transactions/',
+        params,
+      }),
+      providesTags: ['CustomerWallet'],
+    }),
+
+    requestCustomerWithdrawal: builder.mutation<
+      { success: boolean; message: string; reference: string },
+      {
+        amount: number;
+        pin: string;
+        bank_name: string;
+        account_number: string;
+        account_name: string;
+        bank_code: string;
+      }
+    >({
+      query: (body) => ({
+        url: '/user/customer/wallet/withdraw/',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['CustomerWallet'],
+    }),
+
+    setCustomerPaymentPin: builder.mutation<
+      { success: boolean; message: string },
+      { pin: string; confirm_pin: string }
+    >({
+      query: (body) => ({
+        url: '/user/customer/payment-settings/pin/',
+        method: 'POST',
+        body,
+      }),
+    }),
+
     // Profile Management
     getCustomerProfile: builder.query<CustomerProfile, void>({
       query: () => "/user/customer/profile/",
@@ -201,6 +263,8 @@ export const {
   useCustomerDeleteNotificationMutation,
   useCustomerArchiveNotificationMutation,
   useCustomerGetNotificationStatsQuery,
+  useGetCustomerWalletQuery,
+  useGetCustomerWalletTransactionsQuery,
+  useRequestCustomerWithdrawalMutation,
+  useSetCustomerPaymentPinMutation,
 } = customerApi;
-
-

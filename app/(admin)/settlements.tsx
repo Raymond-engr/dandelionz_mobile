@@ -3,12 +3,17 @@ import { Colors } from "@/constants/theme";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { useGetAdminRefundsQuery } from "@/lib/api/adminApi";
 
 export default function AdminSettlementsMenu() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  
+  const { data: refundsData } = useGetAdminRefundsQuery({ status: 'PENDING' });
+  const pendingCount = refundsData?.pending_count || 0;
 
   const menuItems = [
     {
@@ -33,11 +38,6 @@ export default function AdminSettlementsMenu() {
       label: "Payout Management",
       icon: "payments",
       href: "/(admin)/settlements/payout",
-    },
-    {
-      label: "Disputes & Refunds",
-      icon: "gavel",
-      href: "/(admin)/settlements/disputes",
     },
   ];
 
@@ -89,6 +89,31 @@ export default function AdminSettlementsMenu() {
             Settlements & Payouts
           </Text>
           {paymentItems.map(renderItem)}
+          
+          <View className="px-4 mt-2">
+            <TouchableOpacity
+              onPress={() => router.push("/(admin)/settlements/disputes")}
+              className="bg-white rounded-2xl border border-gray-100 p-4 flex-row items-center justify-between"
+            >
+              <View className="flex-row items-center gap-3">
+                <View className="w-10 h-10 rounded-full bg-red-50 items-center justify-center">
+                  <MaterialIcons name="assignment-return" size={20} color="#DC2626" />
+                </View>
+                <View>
+                  <Text className="text-[15px] font-bold text-system-blue-dark">Refund Requests</Text>
+                  <Text className="text-[12px] text-gray-500">Review and process customer refunds</Text>
+                </View>
+              </View>
+              <View className="flex-row items-center gap-2">
+                {pendingCount > 0 && (
+                  <View className="bg-red-500 w-6 h-6 rounded-full items-center justify-center">
+                    <Text className="text-white text-[10px] font-bold">{pendingCount}</Text>
+                  </View>
+                )}
+                <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" />
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>

@@ -54,7 +54,7 @@ export default function AdminEditProduct() {
       setForm({
         name: product.name || "",
         description: (product as any).description || "",
-        category: String((product as any).category || ""),
+        category: String((product as any).category_slug || (product as any).category || ""),
         price: product.price || "",
         stock: String((product as any).stock || "0"),
         discount: String(product.discount || "0"),

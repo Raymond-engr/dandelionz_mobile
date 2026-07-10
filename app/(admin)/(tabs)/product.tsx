@@ -7,6 +7,11 @@ import {
   useGetAllCategoriesQuery,
   useGetAllProductsQuery,
 } from "@/lib/api/adminApi";
+import {
+  useGetDraftsQuery,
+  useSubmitDraftMutation,
+  useDeleteDraftMutation,
+} from "@/lib/api/vendorApi";
 import { formatCurrency } from "@/lib/utils";
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -23,7 +28,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
-type TabKey = "products" | "categories";
+type TabKey = "products" | "categories" | "drafts";
 
 export default function AdminProduct() {
   const router = useRouter();
@@ -47,12 +52,21 @@ export default function AdminProduct() {
   } = useGetAllProductsQuery({});
   const products = productsData?.data || [];
 
+  const {
+    data: draftsData,
+    isLoading: loadingDrafts,
+    refetch: refetchDrafts,
+  } = useGetDraftsQuery();
+  const drafts = draftsData?.data || [];
+
   const [deleteCategory] = useDeleteCategoryMutation();
   const [deleteProduct] = useDeleteProductMutation();
+  const [deleteDraft] = useDeleteDraftMutation();
+  const [submitDraft] = useSubmitDraftMutation();
 
   async function onRefresh() {
     setRefreshing(true);
-    await Promise.all([refetchProducts(), refetchCategories()]);
+    await Promise.all([refetchProducts(), refetchCategories(), refetchDrafts()]);
     setRefreshing(false);
   }
 
@@ -116,15 +130,67 @@ export default function AdminProduct() {
     );
   };
 
+  const handleDeleteDraft = (slug: string, name: string) => {
+    Alert.alert(
+      "Delete Draft",
+      `Are you sure you want to delete "${name}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDraft(slug).unwrap();
+              Toast.show({
+                type: "success",
+                text1: "Draft deleted successfully.",
+              });
+              refetchDrafts();
+            } catch (err: any) {
+              Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: err?.data?.error || "Failed to delete draft",
+              });
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleSubmitDraft = async (slug: string) => {
+    try {
+      await submitDraft(slug).unwrap();
+      Toast.show({
+        type: "success",
+        text1: "Draft submitted successfully",
+      });
+      refetchProducts();
+      refetchDrafts();
+    } catch (err: any) {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: err?.data?.error || "Failed to submit draft",
+      });
+    }
+  };
+
   const filteredProducts = products.filter((p: any) =>
     p.name?.toLowerCase().includes(search.toLowerCase()),
   );
   const filteredCategories = categories.filter((c: any) =>
     c.name?.toLowerCase().includes(search.toLowerCase()),
   );
+  const filteredDrafts = drafts.filter((d: any) =>
+    d.name?.toLowerCase().includes(search.toLowerCase()),
+  );
 
   const isLoading =
-    activeTab === "products" ? loadingProducts : loadingCategories;
+    activeTab === "products" ? loadingProducts : 
+    activeTab === "categories" ? loadingCategories : loadingDrafts;
 
   return (
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
@@ -179,6 +245,16 @@ export default function AdminProduct() {
             className={`text-[14px] font-semibold ${activeTab === "products" ? "text-white" : "text-[#6B7280]"}`}
           >
             Products
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setActiveTab("drafts")}
+          className={`flex-1 py-3 rounded-full items-center ${activeTab === "drafts" ? "bg-system-blue-light" : "bg-[#F5F7FA]"}`}
+        >
+          <Text
+            className={`text-[14px] font-semibold ${activeTab === "drafts" ? "text-white" : "text-[#6B7280]"}`}
+          >
+            Drafts
           </Text>
         </TouchableOpacity>
       </View>
@@ -475,6 +551,67 @@ export default function AdminProduct() {
                         </View>
                       );
                     })
+                  )}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Drafts Tab Content */}
+          {activeTab === "drafts" && (
+            <View>
+              {isLoading && !refreshing ? (
+                <ProductGridSkeleton columns={1} count={5} />
+              ) : (
+                <View>
+                  {filteredDrafts.length === 0 ? (
+                    <Text className="text-center text-gray-500 mt-10">
+                      No drafts found
+                    </Text>
+                  ) : (
+                    filteredDrafts.map((item: any) => (
+                      <View key={item.slug} className="mb-4">
+                        <View className="bg-gray-50 rounded-xl p-4 flex-row items-center">
+                          <View className="flex-1 pr-2">
+                            <Text
+                              className="text-[16px] font-bold text-system-blue-dark mb-1"
+                              numberOfLines={1}
+                            >
+                              {item.name}
+                            </Text>
+                            <Text className="text-[12px] text-[#6B7280] mb-1">
+                              Stock: {item.stock} • {item.category}
+                            </Text>
+                            <Text className="text-[16px] font-bold text-system-blue-light">
+                              {formatCurrency(parseFloat(item.price))}
+                            </Text>
+                          </View>
+
+                          <View className="flex-row items-center gap-2">
+                            <TouchableOpacity
+                              onPress={() =>
+                                router.push(`/(admin)/product/${item.slug}/edit?type=draft` as any)
+                              }
+                              className="p-2 bg-blue-100 rounded-lg"
+                            >
+                              <Feather name="edit-2" size={18} color="#030482" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => handleSubmitDraft(item.slug)}
+                              className="p-2 bg-green-100 rounded-lg"
+                            >
+                              <Feather name="check" size={18} color="#16a34a" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => handleDeleteDraft(item.slug, item.name)}
+                              className="p-2 bg-red-100 rounded-lg"
+                            >
+                              <Feather name="trash-2" size={18} color="#dc2626" />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </View>
+                    ))
                   )}
                 </View>
               )}

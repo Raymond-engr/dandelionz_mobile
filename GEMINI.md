@@ -109,3 +109,7 @@ Always generate commit messages at the end of a task and append this instruction
  -   U p d a t e d   A d m i n   N o t i f i c a t i o n   c r e a t i o n   f o r m   t o   e x p l i c i t l y   p a s s   \  e c i p i e n t _ t y p e \   a l o n g s i d e   \  e c i p i e n t _ g r o u p \   t o   b y p a s s   f l a w e d   b a c k e n d   m a p p i n g   d e p e n d e n c i e s . 
   
  
+ # #   J u l y   1 2 ,   2 0 2 6   -   F i x   S y s t e m   N o t i f i c a t i o n   C a t e g o r i e s 
+ -   U p d a t e d   \ S Y S T E M _ N O T I F I C A T I O N _ C A T E G O R I E S \   a r r a y   i n   \ l i b / u t i l s . t s \   t o   c o r r e c t l y   i n c l u d e   r e a l   b a c k e n d   c a t e g o r i e s   l i k e   ' w i t h d r a w a l '   a n d   ' s y s t e m ' ,   a n d   r e m o v e d   u n u s e d   f a l l b a c k   c a t e g o r i e s .   T h i s   p r o p e r l y   h i d e s   t h e   d e l e t e   b u t t o n   f o r   c r i t i c a l   s y s t e m   n o t i f i c a t i o n s   i n   t h e   i n b o x . 
+  
+ 

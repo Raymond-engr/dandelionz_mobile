@@ -58,7 +58,7 @@ export default function VendorEditProduct() {
       setForm({
         name: product.name || "",
         description: product.description || "",
-        category: product.category || "",
+        category: typeof product.category === "object" ? (product.category as any)?.slug : String((product as any).category_slug || product.category || ""),
         price: product.price?.toString() || "",
         stock: product.stock?.toString() || "0",
         discount: (product as any).discount?.toString() || "0",

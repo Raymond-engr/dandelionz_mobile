@@ -75,3 +75,15 @@ Always generate commit messages at the end of a task and append this instruction
 - Added useGetAdminRefundsQuery and useProcessAdminRefundMutation in dminApi.ts for Admin platforms.
 - Linked the 'Manage Refund Request' button on the Admin Order Details page when a cancelled order requires a refund.
 - Configured notifications via send_user_notification to alert customers and vendors on cancellation, and customers upon refund approval/rejection.
+
+## July 10, 2026 - Admin Drafts Management
+- Fixed a backend permission issue in VendorDraftProductsView, UpdateDraftProductView, and DeleteDraftProductView to allow Admins to manage drafts using IsAdminOrVendor.
+- Added Draft Products section to the Web Admin products page for viewing, editing, submitting, and deleting drafts.
+- Integrated Drafts tab and rendering logic into Mobile Admin products page.
+
+## July 12, 2026 - Admin Order Processing Restriction
+- Updated the condition for processing and completing orders in the Admin panel to strictly require the payment status to be 'PAID', replacing the previous 'not pending' check to prevent failed payments from being processed.
+
+## July 12, 2026 - Admin Dynamic Order Actions
+- Updated the 'Process Order' action to set the order status to 'SHIPPED' instead of 'PROCESSING'.
+- Conditionally filtered available admin actions based on the order's current status (e.g., hiding all actions for 'DELIVERED' or 'CANCELED' orders, and hiding 'Process Order' for 'SHIPPED' orders).

@@ -57,7 +57,7 @@ export default function OrderDetails() {
         }
         await cancelOrder({ order_id: order.order_id, reason }).unwrap();
       } else if (action === "process") {
-        await updateOrderStatus({ order_id: order.order_id, status: "PROCESSING" }).unwrap();
+        await updateOrderStatus({ order_id: order.order_id, status: "SHIPPED" }).unwrap();
       } else if (action === "complete") {
         await updateOrderStatus({ order_id: order.order_id, status: "DELIVERED" }).unwrap();
       }
@@ -226,47 +226,64 @@ export default function OrderDetails() {
         )}
 
         <View style={styles.actions}>
-           <View style={styles.pickerContainer}>
-              {["cancel", "process", "complete"]
-                .filter(a => order.payment_status?.toLowerCase() !== 'pending' || a === 'cancel')
-                .map((a) => (
+          {(() => {
+            const status = (order.status || order.current_status || '').toUpperCase();
+            const isTerminal = status === 'DELIVERED' || status === 'CANCELED' || status === 'CANCELLED';
+            const isPaid = order.payment_status?.toUpperCase() === 'PAID';
+            
+            if (isTerminal) return null;
+
+            return (
+              <>
+                <View style={styles.pickerContainer}>
+                  {["cancel", "process", "complete"]
+                    .filter(a => {
+                      if (a === 'cancel') return true;
+                      if (!isPaid) return false;
+                      if (a === 'process' && status === 'SHIPPED') return false;
+                      return true;
+                    })
+                    .map((a) => (
+                    <TouchableOpacity
+                      key={a}
+                      onPress={() => setAction(a as any)}
+                      style={[styles.actionTab, action === a && styles.actionTabActive]}
+                    >
+                      <Text style={[styles.actionTabText, action === a && styles.actionTabTextActive]}>
+                        {a.charAt(0).toUpperCase() + a.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {action === "cancel" && (
+                  <TextInput
+                    placeholder="Reason for action..."
+                    value={reason}
+                    onChangeText={setReason}
+                    style={styles.reasonInput}
+                    multiline
+                  />
+                )}
+
                 <TouchableOpacity
-                  key={a}
-                  onPress={() => setAction(a as any)}
-                  style={[styles.actionTab, action === a && styles.actionTabActive]}
+                  onPress={handleAction}
+                  disabled={isCancelling || isUpdating || (action === "cancel" && !reason.trim())}
+                  style={[styles.confirmBtn, (isCancelling || isUpdating || (action === "cancel" && !reason.trim())) && styles.disabledBtn]}
                 >
-                  <Text style={[styles.actionTabText, action === a && styles.actionTabTextActive]}>
-                    {a.charAt(0).toUpperCase() + a.slice(1)}
-                  </Text>
+                  {isCancelling || isUpdating ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.confirmBtnText}>Confirm Action</Text>
+                  )}
                 </TouchableOpacity>
-              ))}
-           </View>
 
-          {action === "cancel" && (
-            <TextInput
-              placeholder="Reason for action..."
-              value={reason}
-              onChangeText={setReason}
-              style={styles.reasonInput}
-              multiline
-            />
-          )}
-
-          <TouchableOpacity
-            onPress={handleAction}
-            disabled={isCancelling || isUpdating || (action === "cancel" && !reason.trim())}
-            style={[styles.confirmBtn, (isCancelling || isUpdating || (action === "cancel" && !reason.trim())) && styles.disabledBtn]}
-          >
-            {isCancelling || isUpdating ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.confirmBtnText}>Confirm Action</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => router.back()} style={styles.discardBtn}>
-            <Text style={styles.discardBtnText}>Discard</Text>
-          </TouchableOpacity>
+                <TouchableOpacity onPress={() => router.back()} style={styles.discardBtn}>
+                  <Text style={styles.discardBtnText}>Discard</Text>
+                </TouchableOpacity>
+              </>
+            );
+          })()}
 
           {order.status === "CANCELED" && (order.payment_status === "PAID" || order.current_status === "PAID") && (
             <TouchableOpacity

@@ -173,8 +173,7 @@ export function resolveNotificationUrl(
 }
 
 export const SYSTEM_NOTIFICATION_CATEGORIES = [
-  'order', 'product', 'payment', 'delivery', 'general',
-  'vendor_approval', 'product_rejection', 'order_update',
+  'order', 'product', 'payment', 'delivery', 'general', 'withdrawal', 'system',
 ];
 
 export function isSystemNotification(notification: { category?: string }): boolean {

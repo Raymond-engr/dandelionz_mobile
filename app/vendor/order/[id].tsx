@@ -13,6 +13,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatCurrency } from "@/lib/utils";
+import * as Clipboard from "expo-clipboard";
+import Toast from "react-native-toast-message";
 
 function StatusPill({ status }: { status: string }) {
   const s = status?.toUpperCase();
@@ -57,6 +59,15 @@ export default function VendorOrderDetailScreen() {
       date: step.timestamp ? new Date(step.timestamp).toLocaleDateString() : "",
       completed: step.completed,
     })) ?? [];
+
+  const copyToClipboard = async (text: string) => {
+    await Clipboard.setStringAsync(text);
+    Toast.show({
+      type: "success",
+      text1: "Copied to clipboard",
+      text2: "Order ID has been copied",
+    });
+  };
 
   const renderHeader = () => (
     <View className="flex-row items-center justify-between px-4 py-4 bg-white">
@@ -104,9 +115,17 @@ export default function VendorOrderDetailScreen() {
       >
         {/* Order Meta */}
         <View className="p-[21px] flex-row justify-between items-start bg-gray-50/30">
-          <View>
+          <View className="flex-1 pr-4">
             <Text className="text-[13px] text-gray-400 font-bold uppercase tracking-wider mb-1">Order ID</Text>
-            <Text className="text-[18px] font-bold text-system-blue-dark">{order.order_id}</Text>
+            <Pressable 
+              onPress={() => copyToClipboard(order.order_id)}
+              className="flex-row items-center active:opacity-70"
+            >
+              <Text className="text-[18px] font-bold text-system-blue-dark flex-shrink-1" numberOfLines={1} ellipsizeMode="middle">
+                {order.order_id}
+              </Text>
+              <MaterialIcons name="content-copy" size={16} color={Colors.primary} style={{ marginLeft: 6 }} />
+            </Pressable>
             <Text className="text-[13px] text-gray-500 mt-1">
               {new Date(order.created_at).toLocaleString()}
             </Text>

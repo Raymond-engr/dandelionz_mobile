@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { useGetTransactionHistoryQuery } from "@/lib/api/vendorApi";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import {
@@ -55,7 +56,7 @@ export default function WithdrawalReceiptScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Pressable onPress={handleBack} hitSlop={8}>
-          <Text style={styles.backArrow}>←</Text>
+          <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Receipt</Text>
         <View style={{ width: 24 }} />

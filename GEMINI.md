@@ -87,3 +87,6 @@ Always generate commit messages at the end of a task and append this instruction
 ## July 12, 2026 - Admin Dynamic Order Actions
 - Updated the 'Process Order' action to set the order status to 'SHIPPED' instead of 'PROCESSING'.
 - Conditionally filtered available admin actions based on the order's current status (e.g., hiding all actions for 'DELIVERED' or 'CANCELED' orders, and hiding 'Process Order' for 'SHIPPED' orders).
+
+## July 12, 2026 - Consistency Fix
+- Updated the back arrow in `app/vendor/wallet/receipt.tsx` to use the `chevron-left` MaterialIcons instead of a raw text arrow, ensuring consistency with other vendor-wallet screens.

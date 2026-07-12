@@ -104,9 +104,9 @@ export default function VendorOrderDetailScreen() {
       >
         {/* Order Meta */}
         <View className="p-[21px] flex-row justify-between items-start bg-gray-50/30">
-          <View>
+          <View className="flex-1 pr-4">
             <Text className="text-[13px] text-gray-400 font-bold uppercase tracking-wider mb-1">Order ID</Text>
-            <Text className="text-[18px] font-bold text-system-blue-dark">{order.order_id}</Text>
+            <Text className="text-[18px] font-bold text-system-blue-dark" numberOfLines={1} ellipsizeMode="middle">{order.order_id}</Text>
             <Text className="text-[13px] text-gray-500 mt-1">
               {new Date(order.created_at).toLocaleString()}
             </Text>

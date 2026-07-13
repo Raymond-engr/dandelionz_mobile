@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
 import {
+  useCancelOrderMutation,
   useGetCustomerOrderDetailsQuery,
   useGetInstallmentPlanDetailsQuery,
   useInitializeNextInstallmentMutation,
-  useCancelOrderMutation
 } from "@/lib/api/publicApi";
 import { formatCurrency } from "@/lib/utils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
@@ -41,13 +41,12 @@ export default function OrderTrackingScreen() {
 
   const planId = order?.installment_plan?.id;
 
-  const { data: planResponse, refetch: refetchPlan } = useGetInstallmentPlanDetailsQuery(
-    planId ?? 0,
-    { skip: !planId }
-  );
+  const { data: planResponse, refetch: refetchPlan } =
+    useGetInstallmentPlanDetailsQuery(planId ?? 0, { skip: !planId });
   const plan = planResponse?.data;
 
-  const [initNextPayment, { isLoading: isInitingPayment }] = useInitializeNextInstallmentMutation();
+  const [initNextPayment, { isLoading: isInitingPayment }] =
+    useInitializeNextInstallmentMutation();
 
   const handlePayNextInstallment = async (installment: any) => {
     try {
@@ -57,7 +56,7 @@ export default function OrderTrackingScreen() {
       }).unwrap();
 
       router.push({
-        pathname: '/checkout/webview' as any,
+        pathname: "/checkout/webview" as any,
         params: {
           url: res.data.authorization_url,
           reference: res.data.reference,
@@ -65,43 +64,50 @@ export default function OrderTrackingScreen() {
         },
       });
     } catch (err: any) {
-      Toast.show({ type: 'error', text1: 'Failed to initialise payment', text2: err?.data?.error });
+      Toast.show({
+        type: "error",
+        text1: "Failed to initialise payment",
+        text2: err?.data?.error,
+      });
     }
   };
 
   const [cancelOrder, { isLoading: isCancelling }] = useCancelOrderMutation();
-  const canCancel = order && ['PENDING', 'PAID'].includes(order.status) && order.status !== 'CANCELLED';
+  const canCancel =
+    order &&
+    ["PENDING", "PAID"].includes(order.status) &&
+    order.status !== "CANCELLED";
 
   const handleCancelOrder = () => {
     Alert.alert(
-      'Cancel Order',
-      order?.status === 'PAID'
-        ? 'This order has been paid. Cancelling will initiate a refund (3–5 business days). Are you sure?'
-        : 'Are you sure you want to cancel this order?',
+      "Cancel Order",
+      order?.status === "PAID"
+        ? "This order has been paid. Cancelling will initiate a refund (1–3 business days). Are you sure?"
+        : "Are you sure you want to cancel this order?",
       [
-        { text: 'Keep Order', style: 'cancel' },
+        { text: "Keep Order", style: "cancel" },
         {
-          text: 'Cancel Order',
-          style: 'destructive',
+          text: "Cancel Order",
+          style: "destructive",
           onPress: async () => {
             try {
               const res = await cancelOrder(order!.order_id).unwrap();
               Toast.show({
-                type: 'success',
-                text1: 'Order Cancelled',
+                type: "success",
+                text1: "Order Cancelled",
                 text2: res.message,
               });
               router.back();
             } catch (err: any) {
               Toast.show({
-                type: 'error',
-                text1: 'Could not cancel order',
-                text2: err?.data?.error || 'Please try again.',
+                type: "error",
+                text1: "Could not cancel order",
+                text2: err?.data?.error || "Please try again.",
               });
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -283,7 +289,7 @@ export default function OrderTrackingScreen() {
         <Divider height={11} className="my-4" />
 
         {/* Installment Plan Section */}
-        {plan && plan.status !== 'COMPLETED' && (
+        {plan && plan.status !== "COMPLETED" && (
           <View className="px-6 pb-8">
             <Divider height={1} className="mb-6" />
 
@@ -294,7 +300,8 @@ export default function OrderTrackingScreen() {
             {/* Progress bar */}
             <View className="flex-row items-center mb-2">
               <Text className="text-[13px] text-gray-500 flex-1">
-                {plan.paid_installments_count} of {plan.number_of_installments} paid
+                {plan.paid_installments_count} of {plan.number_of_installments}{" "}
+                paid
               </Text>
               <Text className="text-[13px] font-bold text-system-blue-light">
                 {formatCurrency(plan.installment_amount)} / month
@@ -311,18 +318,25 @@ export default function OrderTrackingScreen() {
 
             {/* Individual installments */}
             {plan.installments?.map((inst: any) => {
-              const isPaid = inst.status === 'PAID';
+              const isPaid = inst.status === "PAID";
               const isOverdue = !isPaid && new Date(inst.due_date) < new Date();
-              const isNext = !isPaid && plan.installments!.filter((i: any) => i.status !== 'PAID').indexOf(inst) === 0;
+              const isNext =
+                !isPaid &&
+                plan
+                  .installments!.filter((i: any) => i.status !== "PAID")
+                  .indexOf(inst) === 0;
 
               return (
                 <View
                   key={inst.payment_number}
                   className={`flex-row items-center justify-between p-4 mb-3 rounded-xl border ${
-                    isPaid ? 'border-green-100 bg-green-50'
-                    : isOverdue ? 'border-red-100 bg-red-50'
-                    : isNext ? 'border-blue-100 bg-blue-50'
-                    : 'border-gray-100 bg-gray-50'
+                    isPaid
+                      ? "border-green-100 bg-green-50"
+                      : isOverdue
+                        ? "border-red-100 bg-red-50"
+                        : isNext
+                          ? "border-blue-100 bg-blue-50"
+                          : "border-gray-100 bg-gray-50"
                   }`}
                 >
                   <View>
@@ -330,8 +344,11 @@ export default function OrderTrackingScreen() {
                       Installment #{inst.payment_number}
                     </Text>
                     <Text className="text-[12px] text-gray-400 mt-0.5">
-                      Due {new Date(inst.due_date).toLocaleDateString('en-NG', {
-                        day: 'numeric', month: 'short', year: 'numeric',
+                      Due{" "}
+                      {new Date(inst.due_date).toLocaleDateString("en-NG", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
                       })}
                     </Text>
                   </View>
@@ -341,7 +358,9 @@ export default function OrderTrackingScreen() {
                     </Text>
                     {isPaid ? (
                       <View className="bg-green-100 px-2 py-0.5 rounded-full">
-                        <Text className="text-[11px] text-green-700 font-bold">Paid</Text>
+                        <Text className="text-[11px] text-green-700 font-bold">
+                          Paid
+                        </Text>
                       </View>
                     ) : isNext ? (
                       <TouchableOpacity
@@ -350,13 +369,17 @@ export default function OrderTrackingScreen() {
                         className="bg-system-blue-light px-3 py-1.5 rounded-lg"
                       >
                         <Text className="text-white text-[12px] font-bold">
-                          {isInitingPayment ? 'Loading…' : 'Pay Now'}
+                          {isInitingPayment ? "Loading…" : "Pay Now"}
                         </Text>
                       </TouchableOpacity>
                     ) : (
-                      <View className={`px-2 py-0.5 rounded-full ${isOverdue ? 'bg-red-100' : 'bg-gray-100'}`}>
-                        <Text className={`text-[11px] font-bold ${isOverdue ? 'text-red-600' : 'text-gray-500'}`}>
-                          {isOverdue ? 'Overdue' : 'Upcoming'}
+                      <View
+                        className={`px-2 py-0.5 rounded-full ${isOverdue ? "bg-red-100" : "bg-gray-100"}`}
+                      >
+                        <Text
+                          className={`text-[11px] font-bold ${isOverdue ? "text-red-600" : "text-gray-500"}`}
+                        >
+                          {isOverdue ? "Overdue" : "Upcoming"}
                         </Text>
                       </View>
                     )}
@@ -376,11 +399,11 @@ export default function OrderTrackingScreen() {
               className="border-2 border-red-200 rounded-xl p-4 items-center bg-red-50"
             >
               <Text className="text-red-600 font-bold text-[15px]">
-                {isCancelling ? 'Cancelling…' : 'Cancel Order'}
+                {isCancelling ? "Cancelling…" : "Cancel Order"}
               </Text>
-              {order?.status === 'PAID' && (
+              {order?.status === "PAID" && (
                 <Text className="text-red-400 text-[12px] mt-1">
-                  Refund will be processed in 3–5 business days
+                  Refund will be processed in 1–3 business days
                 </Text>
               )}
             </TouchableOpacity>

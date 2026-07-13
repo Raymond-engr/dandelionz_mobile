@@ -81,11 +81,12 @@ export default function CustomerWithdrawScreen() {
         text1: "Account verified ✓",
         text2: res.data?.account_name,
       });
-    } catch {
+    } catch (err: any) {
       setAccountName("");
       Toast.show({
         type: "error",
-        text1: "Could not verify account. Check your details.",
+        text1: "Verification Failed",
+        text2: err?.data?.message || "Could not verify account. Check your details.",
       });
     }
   };

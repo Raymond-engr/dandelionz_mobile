@@ -32,6 +32,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   shipped: { bg: "#EDE9FE", text: "#7C3AED" },
   delivered: { bg: "#D1FAE5", text: "#059669" },
   cancelled: { bg: "#FEE2E2", text: "#DC2626" },
+  canceled: { bg: "#FEE2E2", text: "#DC2626" }, // American spelling from backend
 };
 
 export default function OrdersScreen() {
@@ -56,7 +57,16 @@ export default function OrdersScreen() {
     activeTab === "All"
       ? allOrders
       : allOrders.filter(
-          (item) => item.status?.toLowerCase() === activeTab.toLowerCase(),
+          (item) => {
+            const apiStatus = item.status?.toLowerCase() || "";
+            const tabStatus = activeTab.toLowerCase();
+            
+            if (tabStatus === "cancelled" && apiStatus === "canceled") {
+              return true;
+            }
+            
+            return apiStatus === tabStatus;
+          }
         );
 
   const onRefresh = async () => {

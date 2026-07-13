@@ -21,6 +21,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   shipped: { bg: "#EDE9FE", text: "#7C3AED" },
   delivered: { bg: "#D1FAE5", text: "#059669" },
   cancelled: { bg: "#FEE2E2", text: "#DC2626" },
+  canceled: { bg: "#FEE2E2", text: "#DC2626" },
 };
 
 export default function AdminOrders() {

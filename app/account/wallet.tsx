@@ -49,7 +49,7 @@ export default function CustomerWalletScreen() {
   };
 
   const renderTxn = ({ item }: { item: CustomerWalletTransaction }) => {
-    const isCredit = item.transaction_type === "CREDIT";
+    const isCredit = item.type === "CREDIT";
     return (
       <View className="flex-row items-center justify-between py-4 px-[21px]">
         <View className="flex-row items-center gap-3 flex-1">
@@ -69,7 +69,7 @@ export default function CustomerWalletScreen() {
               className="text-[14px] font-semibold text-system-blue-dark"
               numberOfLines={1}
             >
-              {item.source || (isCredit ? "Credit" : "Debit")}
+              {item.description || (isCredit ? "Credit" : "Debit")}
             </Text>
             <Text className="text-[12px] text-gray-400 mt-0.5">
               {new Date(item.created_at).toLocaleDateString("en-NG", {

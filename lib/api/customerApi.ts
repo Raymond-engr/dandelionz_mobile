@@ -66,9 +66,9 @@ export interface CustomerWalletBalance {
 
 export interface CustomerWalletTransaction {
   id: number;
-  transaction_type: 'CREDIT' | 'DEBIT';
+  type: 'CREDIT' | 'DEBIT';
   amount: string;
-  source: string;
+  description: string;
   created_at: string;
 }
 

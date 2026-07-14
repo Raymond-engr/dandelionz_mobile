@@ -1,5 +1,5 @@
 import { customerApi } from "@/lib/api/customerApi";
-import { useRegisterPushTokenMutation } from "@/lib/api/notificationApi";
+import { useRegisterPushTokenMutation, useUnregisterPushTokenMutation } from "@/lib/api/notificationApi";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import React, { createContext, useContext, useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
@@ -51,6 +51,10 @@ export function NotificationProvider({
 
   const [triggerGetStats] = customerApi.useLazyCustomerGetNotificationStatsQuery();
   const [registerPushToken] = useRegisterPushTokenMutation();
+  const [unregisterPushToken] = useUnregisterPushTokenMutation();
+
+  // Track last registered token so we can unregister on logout
+  const lastRegisteredTokenRef = useRef<string | null>(null);
 
   // ── Configure the notification handler inside an effect, never at module level
   useEffect(() => {
@@ -77,7 +81,7 @@ export function NotificationProvider({
       try { socketRef.current.close(); } catch (_) {}
     }
 
-    const wsUrl = `wss://api.dandelionz.com.ng/ws/notifications/token=${accessToken}`;
+    const wsUrl = `wss://api.dandelionz.com.ng/ws/notifications/?token=${accessToken}`;
 
     try {
       const socket = new WebSocket(wsUrl);
@@ -152,6 +156,7 @@ export function NotificationProvider({
       ]) as Awaited<ReturnType<typeof Notifications.getExpoPushTokenAsync>>;
 
       if (tokenResponse?.data) {
+        lastRegisteredTokenRef.current = tokenResponse.data;
         await registerPushToken({
           token: tokenResponse.data,
           platform: Platform.OS,
@@ -169,6 +174,11 @@ export function NotificationProvider({
       connectWebSocket();
       registerForPushNotificationsAsync();
     } else {
+      // Unregister push token on logout so stale sessions don't receive pushes
+      if (lastRegisteredTokenRef.current) {
+        unregisterPushToken({ token: lastRegisteredTokenRef.current }).catch(() => {});
+        lastRegisteredTokenRef.current = null;
+      }
       if (socketRef.current) {
         try { socketRef.current.close(); } catch (_) {}
       }
@@ -182,7 +192,27 @@ export function NotificationProvider({
     try {
       notificationListener.current = Notifications.addNotificationReceivedListener(
         (notification) => {
-          console.log("Notification received:", notification);
+          // Dispatch the incoming push notification into Redux so the
+          // unread count badge and in-app notification list update immediately
+          // even when the WebSocket is not connected.
+          const { title, body, data } = notification.request.content;
+          dispatch(addNotification({
+            id: notification.request.identifier,
+            title: title ?? "",
+            message: body ?? "",
+            is_read: false,
+            created_at: new Date().toISOString(),
+            category: (data?.category as string) ?? "general",
+            action_url: (data?.url as string) ?? null,
+            metadata: data ?? {},
+          } as any));
+          // Also refresh the unread count from the server
+          triggerGetStats()
+            .unwrap()
+            .then((response) => {
+              if (response.success) dispatch(setUnreadCount(response.data.unread_count));
+            })
+            .catch(() => {});
         },
       );
     } catch (e) {

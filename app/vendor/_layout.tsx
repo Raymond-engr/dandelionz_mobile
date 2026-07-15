@@ -1,5 +1,5 @@
 import { useAppSelector } from "@/lib/hooks";
-import { Stack } from "expo-router";
+import { Redirect, Stack } from "expo-router";
 import React from "react";
 
 /**
@@ -13,7 +13,7 @@ export default function VendorLayout() {
   // NO useEffect / router.replace here — same reason as (admin)/_layout.tsx.
 
   if (!isAuthenticated || !user || user.role !== "VENDOR") {
-    return null;
+    return <Redirect href="/" />;
   }
 
   return (

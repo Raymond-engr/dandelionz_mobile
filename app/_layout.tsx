@@ -301,7 +301,7 @@ function AppWithProviders() {
           <Stack.Screen name="(auth)" />
 
           <Stack.Screen name="vendor" options={{ headerShown: false }} />
-          <Stack.Screen name="(admin)" options={{ headerShown: false }} />
+          <Stack.Screen name="admin" options={{ headerShown: false }} />
 
           <Stack.Screen name="category/[name]" />
           <Stack.Screen name="product/[slug]" />

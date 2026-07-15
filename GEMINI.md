@@ -128,3 +128,7 @@ Always generate commit messages at the end of a task and append this instruction
 ## July 14, 2026 - Remove Shadowing Index Workaround
 - Removed app/index.tsx and components/standalone-bottom-tab-bar.tsx since the routing collision is fixed and the root route naturally resolves to the (tabs) group.
 - Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.
+
+## July 14, 2026 - Fix Bottom Tab Bar Squashing
+- Updated components/bottom-tab-bar.tsx to use minHeight: 64 instead of height: 64 to prevent safe area padding from squashing the tab icons on devices with edge-to-edge navigation.
+- Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.

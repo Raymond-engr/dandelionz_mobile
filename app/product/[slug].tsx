@@ -10,6 +10,7 @@ import {
   useRemoveFromCartMutation,
   useRemoveFromWishlistMutation,
 } from "@/lib/api/publicApi";
+import { apiError } from "@/lib/utils";
 import { useAppSelector } from "@/lib/hooks";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -24,7 +25,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -45,6 +46,7 @@ export default function ProductDetailScreen() {
   // "use no memo" opts it out entirely.
   "use no memo";
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
@@ -169,7 +171,7 @@ export default function ProductDetailScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err.data?.error || "Failed to update cart",
+        text2: apiError(err, "Failed to update cart"),
       });
     }
   };
@@ -221,7 +223,7 @@ export default function ProductDetailScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err.data?.message || "Failed to submit review",
+        text2: apiError(err, "Failed to submit review"),
       });
     }
   };
@@ -287,7 +289,7 @@ export default function ProductDetailScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
       >
         {/* ── Images ─────────────────────────────────────────────────────────── */}

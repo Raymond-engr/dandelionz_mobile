@@ -172,6 +172,26 @@ export function resolveNotificationUrl(
   return path;
 }
 
+const prettify = (f: string) =>
+  f.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+
+export function apiError(err: any, fallback = "Something went wrong"): string {
+  const e = err?.data?.error ?? err?.data?.message ?? err?.error;
+  if (typeof e === "string") return e;
+  if (Array.isArray(e)) return e.join("\n");
+  if (e && typeof e === "object") {
+    return Object.entries(e)
+      .map(([field, msgs]) => {
+        const text = Array.isArray(msgs) ? msgs.join(" ") : String(msgs);
+        return field === "non_field_errors" ? text : `${prettify(field)}: ${text}`;
+      })
+      .join("\n");
+  }
+  if (err?.status === "FETCH_ERROR") return "Network error. Check your connection and try again.";
+  if (err?.status === 413) return "Your images are too large. Try fewer or smaller photos.";
+  return fallback;
+}
+
 export const SYSTEM_NOTIFICATION_CATEGORIES = [
   'order', 'product', 'payment', 'delivery', 'general', 'withdrawal', 'system',
 ];

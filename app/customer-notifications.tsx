@@ -152,7 +152,7 @@ export default function CustomerNotificationsScreen() {
         <FlatList
           data={filtered}
           keyExtractor={(item: any) => item.id}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

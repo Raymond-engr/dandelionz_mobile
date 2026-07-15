@@ -8,10 +8,12 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
 export default function WithdrawalSuccessScreen() {
   const isFocused = useIsFocused();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const params = useLocalSearchParams<{
     amount: string;
@@ -49,7 +51,7 @@ export default function WithdrawalSuccessScreen() {
   }, [countdown, isFocused, navigation]);
 
   return (
-    <View className="flex-1 bg-white items-center justify-between py-10">
+    <View className="flex-1 bg-white items-center justify-between" style={{ paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }}>
       <View className="w-full items-center px-6">
         <Text className="text-[24px] font-semibold text-system-blue-light text-center mb-12">
           Confirmation

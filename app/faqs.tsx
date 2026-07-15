@@ -97,7 +97,7 @@ export default function FAQsScreen() {
         contentContainerStyle={{
           paddingHorizontal: 20,
           paddingTop: 24,
-          paddingBottom: 40,
+          paddingBottom: insets.bottom + 40,
         }}
         showsVerticalScrollIndicator={false}
       >

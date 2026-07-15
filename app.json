@@ -109,7 +109,10 @@
               "pathPrefix": "/"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -137,12 +140,22 @@
         "expo-build-properties",
         {
           "android": {
-            "extraMavenRepos": ["https://maven.google.com"]
+            "extraMavenRepos": [
+              "https://maven.google.com"
+            ]
           }
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "dandelionz",
+          "organization": "rayweb"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

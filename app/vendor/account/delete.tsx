@@ -1,6 +1,7 @@
 import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
 import { useDeleteAccountMutation } from "@/lib/api/vendorApi";
+import { apiError } from "@/lib/utils";
 import { useLogout } from "@/lib/hooks";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -52,7 +53,7 @@ export default function VendorDeleteAccountScreen() {
               Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: err?.data?.message || "Failed to delete account.",
+                text2: apiError(err, "Failed to delete account."),
               });
             }
           },
@@ -78,7 +79,7 @@ export default function VendorDeleteAccountScreen() {
       {renderHeader()}
       <Divider />
 
-      <View className="flex-1 px-[21px] justify-center pb-20">
+      <View className="flex-1 px-[21px] justify-center" style={{ paddingBottom: insets.bottom + 80 }}>
         <View className="w-20 h-20 bg-system-red rounded-full items-center justify-center mx-auto mb-8">
           <MaterialIcons name="close" size={48} color="white" />
         </View>

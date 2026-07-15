@@ -115,7 +115,7 @@ export default function WithdrawScreen() {
 
         <ScrollView
           className="flex-1 px-[21px]"
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
           keyboardShouldPersistTaps="handled"
         >
           {error && (

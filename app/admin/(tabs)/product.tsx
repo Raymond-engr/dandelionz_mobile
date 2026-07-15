@@ -12,8 +12,8 @@ import {
   useSubmitDraftMutation,
   useDeleteDraftMutation,
 } from "@/lib/api/vendorApi";
-import { formatCurrency } from "@/lib/utils";
-import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { apiError, formatCurrency } from "@/lib/utils";
+import { Feather, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -91,7 +91,7 @@ export default function AdminProduct() {
               Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: err?.data?.message || "Failed to delete category",
+                text2: apiError(err, "Failed to delete category"),
               });
             }
           },
@@ -121,7 +121,7 @@ export default function AdminProduct() {
               Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: err?.data?.message || "Failed to delete product",
+                text2: apiError(err, "Failed to delete product"),
               });
             }
           },
@@ -151,7 +151,7 @@ export default function AdminProduct() {
               Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: err?.data?.error || "Failed to delete draft",
+                text2: apiError(err, "Failed to delete draft"),
               });
             }
           },
@@ -173,7 +173,7 @@ export default function AdminProduct() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.data?.error || "Failed to submit draft",
+        text2: apiError(err, "Failed to submit draft"),
       });
     }
   };
@@ -311,7 +311,7 @@ export default function AdminProduct() {
                           <TouchableOpacity
                             onPress={() =>
                               router.push(
-                                `/(admin)/product/category/${item.slug}/edit`,
+                                `/(admin)/product/category/${item.slug}/edit` as any,
                               )
                             }
                             className="flex-1"
@@ -339,7 +339,7 @@ export default function AdminProduct() {
                             <TouchableOpacity
                               onPress={() =>
                                 router.push(
-                                  `/(admin)/product/category/${item.slug}/edit`,
+                                  `/(admin)/product/category/${item.slug}/edit` as any,
                                 )
                               }
                               className="p-2 bg-blue-100 rounded-lg"
@@ -598,9 +598,9 @@ export default function AdminProduct() {
                             </TouchableOpacity>
                             <TouchableOpacity
                               onPress={() => handleSubmitDraft(item.slug)}
-                              className="p-2 bg-green-100 rounded-lg"
+                              className="w-10 h-10 rounded-full bg-green-50 items-center justify-center"
                             >
-                              <Feather name="check" size={18} color="#16a34a" />
+                              <MaterialIcons name="publish" size={20} color="#16a34a" />
                             </TouchableOpacity>
                             <TouchableOpacity
                               onPress={() => handleDeleteDraft(item.slug, item.name)}

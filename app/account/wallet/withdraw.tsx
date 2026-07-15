@@ -9,7 +9,7 @@ import {
     useGetBanksQuery,
     useVerifyBankAccountMutation,
 } from "@/lib/api/vendorApi";
-import { formatCurrency } from "@/lib/utils";
+import { apiError, formatCurrency } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -86,7 +86,7 @@ export default function CustomerWithdrawScreen() {
       Toast.show({
         type: "error",
         text1: "Verification Failed",
-        text2: err?.data?.message || "Could not verify account. Check your details.",
+        text2: apiError(err, "Could not verify account. Check your details."),
       });
     }
   };
@@ -136,7 +136,7 @@ export default function CustomerWithdrawScreen() {
               Toast.show({
                 type: "error",
                 text1: "Withdrawal failed",
-                text2: err?.data?.message || "Please try again.",
+                text2: apiError(err, "Please try again."),
               });
             }
           },
@@ -163,7 +163,7 @@ export default function CustomerWithdrawScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: 21, paddingBottom: 60 }}
+        contentContainerStyle={{ padding: 21, paddingBottom: insets.bottom + 60 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

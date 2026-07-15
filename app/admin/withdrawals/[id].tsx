@@ -14,7 +14,7 @@ import {
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { formatCurrency } from "@/lib/utils";
+import { apiError, formatCurrency } from "@/lib/utils";
 import Toast from "react-native-toast-message";
 
 export default function AdminWithdrawalDetail() {
@@ -50,7 +50,7 @@ export default function AdminWithdrawalDetail() {
               Toast.show({ 
                 type: "error", 
                 text1: "Error", 
-                text2: err?.data?.message || "Failed to approve withdrawal." 
+                text2: apiError(err, "Failed to approve withdrawal.")
               });
             }
           }
@@ -80,7 +80,7 @@ export default function AdminWithdrawalDetail() {
               Toast.show({ 
                 type: "error", 
                 text1: "Error", 
-                text2: err?.data?.message || "Failed to reject withdrawal." 
+                text2: apiError(err, "Failed to reject withdrawal.")
               });
             }
           }
@@ -134,7 +134,7 @@ export default function AdminWithdrawalDetail() {
       {renderHeader()}
       <Divider />
       
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}>
         {/* Summary Card */}
         <View className="px-[21px] py-8 items-center bg-gray-50/30">
           <Text className="text-[14px] text-gray-500 uppercase tracking-widest mb-2">Amount</Text>

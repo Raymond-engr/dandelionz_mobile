@@ -74,7 +74,7 @@ export default function AdminSettlementsMenu() {
 
       <Divider />
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
         <View className="py-4">
           <Text className="px-[21px] text-[14px] font-bold text-gray-400 mb-2 uppercase tracking-wider">
             Overview
@@ -92,7 +92,7 @@ export default function AdminSettlementsMenu() {
           
           <View className="px-4 mt-2">
             <TouchableOpacity
-              onPress={() => router.push("/(admin)/settlements/disputes")}
+              onPress={() => router.push("/(admin)/settlements/disputes" as any)}
               className="bg-white rounded-2xl border border-gray-100 p-4 flex-row items-center justify-between"
             >
               <View className="flex-row items-center gap-3">

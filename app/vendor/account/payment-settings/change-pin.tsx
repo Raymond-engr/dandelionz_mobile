@@ -3,6 +3,7 @@ import { Divider } from "@/components/ui/divider";
 import { PinInput } from "@/components/ui/pin-input";
 import { Colors } from "@/constants/theme";
 import { useSetPaymentPINMutation } from "@/lib/api/vendorApi";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -50,7 +51,7 @@ export default function VendorChangePin() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.data?.message || "Failed to update PIN.",
+        text2: apiError(err, "Failed to update PIN."),
       });
     }
   };
@@ -74,6 +75,7 @@ export default function VendorChangePin() {
 
       <ScrollView
         className="flex-1 px-[21px] pt-6"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
         showsVerticalScrollIndicator={false}
       >
         <View className="mb-8">

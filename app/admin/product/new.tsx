@@ -5,7 +5,7 @@ import {
   useCreateDraftMutation,
   useSubmitDraftMutation,
 } from "@/lib/api/vendorApi"; // Shared with Admin
-import { formatCurrency } from "@/lib/utils";
+import { apiError, formatCurrency } from "@/lib/utils";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -45,7 +45,29 @@ export default function AdminNewProduct() {
     price: "",
     discount: "0",
     tags: "",
+    variants: { colors: [] as string[], sizes: [] as string[] },
+    variant_stock: { colors: {} as Record<string, number>, sizes: {} as Record<string, number> },
   });
+
+  const COLORS = ['White', 'Black', 'Green', 'Blue', 'Red', 'Yellow'];
+  const CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const SHOE_SIZES = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45'];
+
+  const toggleColor = (color: string) => {
+    const isSelected = form.variants.colors.includes(color);
+    const newColors = isSelected ? form.variants.colors.filter(c => c !== color) : [...form.variants.colors, color];
+    const newColorStock = { ...form.variant_stock.colors };
+    if (isSelected) delete newColorStock[color];
+    setForm(f => ({ ...f, variants: { ...f.variants, colors: newColors }, variant_stock: { ...f.variant_stock, colors: newColorStock } }));
+  };
+
+  const toggleSize = (size: string) => {
+    const isSelected = form.variants.sizes.includes(size);
+    const newSizes = isSelected ? form.variants.sizes.filter(s => s !== size) : [...form.variants.sizes, size];
+    const newSizeStock = { ...form.variant_stock.sizes };
+    if (isSelected) delete newSizeStock[size];
+    setForm(f => ({ ...f, variants: { ...f.variants, sizes: newSizes }, variant_stock: { ...f.variant_stock, sizes: newSizeStock } }));
+  };
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -66,11 +88,17 @@ export default function AdminNewProduct() {
 
   const handleProceed = () => {
     if (step === "basic") {
-      if (!form.name || !form.category || form.images.length === 0) {
+      if (!form.name || !form.description || !form.category || form.images.length === 0) {
         Toast.show({
           type: "error",
           text1: "Error",
-          text2: "Please fill name, category and add at least one image",
+          text2: !form.name
+            ? "Please enter a product name"
+            : !form.description
+              ? "Please add a product description"
+              : !form.category
+                ? "Please select a category"
+                : "Please add at least one image",
         });
         return;
       }
@@ -97,7 +125,7 @@ export default function AdminNewProduct() {
     formData.append("stock", form.stock);
     formData.append("brand", form.brand);
     formData.append("tags", form.tags);
-    formData.append("discount", form.discount);
+    formData.append("discount", String(parseInt(form.discount || "0", 10) || 0));
 
     form.images.forEach((uri, index) => {
       const filename = uri.split("/").pop();
@@ -117,6 +145,16 @@ export default function AdminNewProduct() {
 
     formData.append("publish_status", "draft");
 
+    if (form.variants.colors.length > 0 || form.variants.sizes.length > 0) {
+      formData.append("variants", JSON.stringify(form.variants));
+    }
+    const hasVariantStock =
+      Object.keys(form.variant_stock.colors).length > 0 ||
+      Object.keys(form.variant_stock.sizes).length > 0;
+    if (hasVariantStock) {
+      formData.append("variant_stock", JSON.stringify(form.variant_stock));
+    }
+
     return formData;
   };
 
@@ -124,34 +162,41 @@ export default function AdminNewProduct() {
     try {
       await createDraft(buildFormData()).unwrap();
       Toast.show({ type: "success", text1: "Product saved as draft" });
-      router.replace("/(admin)/(tabs)/product");
+      router.replace("/(admin)/(tabs)/product" as any);
     } catch (err: any) {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.data?.message || "Failed to save draft",
+        text2: apiError(err, "Failed to save draft"),
       });
     }
   };
 
   const handlePublish = async () => {
+    let draftSlug: string | null = null;
     try {
       const res = await createDraft(buildFormData()).unwrap();
-      const slug = (res as any).data?.slug;
-      if (slug) {
-        await submitDraft(slug).unwrap();
-        Toast.show({
-          type: "success",
-          text1: "Product published successfully",
-        });
-        router.replace("/(admin)/(tabs)/product");
-      }
+      const slug = (res as any)?.data?.slug;
+      if (!slug) throw new Error("Server did not return a product slug");
+      draftSlug = slug;
+      await submitDraft(slug).unwrap();
+      Toast.show({ type: "success", text1: "Product published successfully" });
+      router.replace("/(admin)/(tabs)/product" as any);
     } catch (err: any) {
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: err?.data?.message || "Failed to publish product",
-      });
+      if (draftSlug) {
+        Toast.show({
+          type: "error",
+          text1: "Saved as draft",
+          text2: `Could not publish: ${apiError(err, "Please try again")}`,
+        });
+        router.replace("/(admin)/(tabs)/product" as any);
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Could not publish",
+          text2: apiError(err, "Failed to publish product"),
+        });
+      }
     }
   };
 
@@ -208,7 +253,7 @@ export default function AdminNewProduct() {
 
         <ScrollView
           className="flex-1 px-[21px]"
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         >
           {step === "basic" && (
             <View className="mt-6 gap-6">
@@ -347,10 +392,113 @@ export default function AdminNewProduct() {
                 <TextInput
                   className="bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6]"
                   placeholder="0"
-                  keyboardType="numeric"
+                  keyboardType="number-pad"
+                  maxLength={3}
                   value={form.discount}
-                  onChangeText={(v) => setForm((f) => ({ ...f, discount: v }))}
+                  onChangeText={(v) => {
+                    const digits = v.replace(/[^0-9]/g, "");
+                    if (digits === "") return setForm((f) => ({ ...f, discount: "" }));
+                    const n = Math.min(100, parseInt(digits, 10));
+                    setForm((f) => ({ ...f, discount: String(n) }));
+                  }}
                 />
+              </View>
+
+              {/* Variants */}
+              <View>
+                <Text className="text-[14px] font-semibold text-system-blue-dark mb-3">
+                  Variants (Optional)
+                </Text>
+
+                <Text className="text-[12px] text-gray-500 mb-2">Colors</Text>
+                <View className="flex-row flex-wrap gap-2 mb-3">
+                  {COLORS.map(color => (
+                    <TouchableOpacity
+                      key={color}
+                      onPress={() => toggleColor(color)}
+                      className={`px-4 py-2 rounded-full border ${form.variants.colors.includes(color) ? 'bg-system-blue-light border-system-blue-light' : 'bg-white border-gray-200'}`}
+                    >
+                      <Text className={`text-[12px] ${form.variants.colors.includes(color) ? 'text-white' : 'text-gray-600'}`}>{color}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {form.variants.colors.length > 0 && (
+                  <View className="mb-4 gap-2">
+                    <Text className="text-[12px] text-gray-500">Stock per Color (Optional)</Text>
+                    {form.variants.colors.map(color => (
+                      <View key={color} className="flex-row items-center gap-3">
+                        <Text className="text-[13px] text-gray-700 w-16">{color}</Text>
+                        <TextInput
+                          className="flex-1 bg-[#F9FAFB] px-3 py-2 rounded-xl border border-[#F3F4F6]"
+                          keyboardType="numeric"
+                          value={form.variant_stock.colors[color]?.toString() ?? ''}
+                          onChangeText={(v) => {
+                            const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
+                            setForm(f => ({ ...f, variant_stock: { ...f.variant_stock, colors: { ...f.variant_stock.colors, [color]: Number.isNaN(n) ? 0 : n } } }));
+                          }}
+                          placeholder="0"
+                        />
+                        <Text className="text-[12px] text-gray-400">units</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                <Text className="text-[12px] text-gray-500 mb-0.5">Clothing Sizes</Text>
+                <Text className="text-[11px] text-gray-400 mb-2">For apparel like shirts, dresses, trousers</Text>
+                <View className="flex-row flex-wrap gap-2 mb-4">
+                  {CLOTHING_SIZES.map(size => (
+                    <TouchableOpacity
+                      key={size}
+                      onPress={() => toggleSize(size)}
+                      className={`px-4 py-2 rounded-lg border ${form.variants.sizes.includes(size) ? 'bg-system-blue-light border-system-blue-light' : 'bg-white border-gray-200'}`}
+                    >
+                      <Text className={`text-[12px] ${form.variants.sizes.includes(size) ? 'text-white' : 'text-gray-600'}`}>{size}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text className="text-[12px] text-gray-500 mb-0.5">Shoe Sizes (EU)</Text>
+                <Text className="text-[11px] text-gray-400 mb-2">For footwear like sneakers, sandals, boots</Text>
+                <View className="flex-row flex-wrap gap-2 mb-3">
+                  {SHOE_SIZES.map(size => (
+                    <TouchableOpacity
+                      key={size}
+                      onPress={() => toggleSize(size)}
+                      className={`px-3 py-2 rounded-lg border ${form.variants.sizes.includes(size) ? 'bg-system-blue-light border-system-blue-light' : 'bg-white border-gray-200'}`}
+                    >
+                      <Text className={`text-[12px] ${form.variants.sizes.includes(size) ? 'text-white' : 'text-gray-600'}`}>{size}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {form.variants.sizes.some(s => CLOTHING_SIZES.includes(s)) && form.variants.sizes.some(s => SHOE_SIZES.includes(s)) && (
+                  <View className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">
+                    <Text className="text-[12px] text-amber-700">Tip: Most products use one size type. Select both only if your product genuinely comes in both clothing and shoe sizes.</Text>
+                  </View>
+                )}
+
+                {form.variants.sizes.length > 0 && (
+                  <View className="gap-2">
+                    <Text className="text-[12px] text-gray-500">Stock per Size (Optional)</Text>
+                    {form.variants.sizes.map(size => (
+                      <View key={size} className="flex-row items-center gap-3">
+                        <Text className="text-[13px] text-gray-700 w-16">{size}</Text>
+                        <TextInput
+                          className="flex-1 bg-[#F9FAFB] px-3 py-2 rounded-xl border border-[#F3F4F6]"
+                          keyboardType="numeric"
+                          value={form.variant_stock.sizes[size]?.toString() ?? ''}
+                          onChangeText={(v) => {
+                            const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
+                            setForm(f => ({ ...f, variant_stock: { ...f.variant_stock, sizes: { ...f.variant_stock.sizes, [size]: Number.isNaN(n) ? 0 : n } } }));
+                          }}
+                          placeholder="0"
+                        />
+                        <Text className="text-[12px] text-gray-400">units</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
 
               <Button onPress={handleProceed} className="mt-4">

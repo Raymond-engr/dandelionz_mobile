@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { publicApi } from "@/lib/api/publicApi";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -10,47 +11,36 @@ import { WebView, WebViewNavigation } from "react-native-webview";
 /**
  * Paystack WebView for payment.
  *
- * FIX: The previous code called `useVerifyPaymentMutation()` which does NOT
- * exist in publicApi.ts (only `useVerifyPaymentQuery` does).  Calling an
- * undefined hook crashed the screen on mount.
+ * The mobile app sends X-Platform: mobile with every API request (see
+ * baseApi.ts), so the checkout endpoint uses PAYSTACK_MOBILE_CALLBACK_URL
+ * (api.dandelionz.com.ng/transactions/paystack/return/) instead of the web
+ * app's /checkout/success route. This avoids Next.js middleware redirecting
+ * the unauthenticated WebView to /login before we can extract the reference.
  *
- * Solution: use `useLazyVerifyPaymentQuery` — this is the correct on-demand
- * version of the existing query and matches how the web app's success page
- * works (it fires a GET request with the reference from URL params).
- *
- * Paystack callback URL (set in Paystack dashboard):
- *   https://app.dandelionz.com.ng/checkout/success
+ * extractCallback matches both the new mobile endpoint and the web callback
+ * path (plus the login-redirect pattern as a last-resort fallback). The
+ * primary interception point is onShouldStartLoadWithRequest, which fires
+ * before each navigation request — catching the redirect URL before Android's
+ * WebView coalesces the 302 chain and makes it invisible to
+ * onNavigationStateChange.
  */
 
-const PAYSTACK_CALLBACK_HOST = "app.dandelionz.com.ng";
-const PAYSTACK_CALLBACK_PATH = "/checkout/success";
+const RETURN_HOSTS = ["api.dandelionz.com.ng", "app.dandelionz.com.ng"];
 
-function isPaystackCallback(url: string): boolean {
+function extractCallback(url: string): { hit: boolean; reference: string | null } {
   try {
-    const parsed = new URL(url);
-    return (
-      parsed.hostname === PAYSTACK_CALLBACK_HOST &&
-      parsed.pathname === PAYSTACK_CALLBACK_PATH
-    );
+    const p = new URL(url);
+    const inPath =
+      p.pathname.startsWith("/checkout/success") ||
+      p.pathname.startsWith("/transactions/paystack/return");
+    const bounced =
+      p.pathname.startsWith("/login") &&
+      (p.searchParams.get("redirect") || "").includes("/checkout/success");
+    const ref = p.searchParams.get("reference") || p.searchParams.get("trxref");
+    const hit = RETURN_HOSTS.includes(p.hostname) && (inPath || bounced || !!ref);
+    return { hit, reference: ref ?? null };
   } catch {
-    return (
-      url.includes(PAYSTACK_CALLBACK_HOST) &&
-      url.includes(PAYSTACK_CALLBACK_PATH)
-    );
-  }
-}
-
-function extractReference(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-    return (
-      parsed.searchParams.get("reference") ||
-      parsed.searchParams.get("trxref") ||
-      null
-    );
-  } catch {
-    const match = url.match(/[?&](?:reference|trxref)=([^&]+)/);
-    return match ? match[1] : null;
+    return { hit: false, reference: null };
   }
 }
 
@@ -81,25 +71,16 @@ export default function PaystackWebView() {
   const [isVerifying, setIsVerifying] = useState(false);
   const hasHandled = useRef(false);
 
-  // ✅ Use the lazy version of the existing query — NOT a (non-existent) mutation.
   const [triggerVerify] = publicApi.useLazyVerifyPaymentQuery();
-  // For installment plans we use the installment verify endpoint.
   const [triggerInstallmentVerify] =
     publicApi.useLazyVerifyInstallmentPaymentQuery();
 
-  const handleNavigationChange = async (navState: WebViewNavigation) => {
-    const currentUrl = navState.url;
-    if (!currentUrl || hasHandled.current) return;
-
-    if (!isPaystackCallback(currentUrl)) return;
-
-    hasHandled.current = true;
+  const handleCallbackUrl = async (
+    reference: string | null,
+    callbackUrl: string,
+  ) => {
     setIsVerifying(true);
-
-    const reference = extractReference(currentUrl);
-    // plan_id can come from the initial params (installment) OR from the
-    // callback URL that Paystack appends.
-    const planId = planIdParam || extractPlanId(currentUrl);
+    const planId = planIdParam || extractPlanId(callbackUrl);
 
     try {
       if (reference) {
@@ -122,10 +103,19 @@ export default function PaystackWebView() {
       setIsVerifying(false);
       Alert.alert(
         "Payment Verification Failed",
-        err?.data?.message ||
-          "We could not confirm your payment. Please contact support.",
+        apiError(err, "We could not confirm your payment. Please contact support."),
         [{ text: "OK", onPress: () => router.replace("/(tabs)" as any) }],
       );
+    }
+  };
+
+  // Fallback for iOS and cases where onShouldStartLoadWithRequest doesn't fire.
+  const handleNavigationChange = (navState: WebViewNavigation) => {
+    if (!navState.url || hasHandled.current) return;
+    const { hit, reference } = extractCallback(navState.url);
+    if (hit) {
+      hasHandled.current = true;
+      handleCallbackUrl(reference, navState.url);
     }
   };
 
@@ -155,7 +145,7 @@ export default function PaystackWebView() {
   }
 
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-white" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
         <Pressable onPress={handleClose} className="w-10">
@@ -169,7 +159,6 @@ export default function PaystackWebView() {
         </View>
       </View>
 
-      {/* Loading / Verifying overlay */}
       {(isLoading || isVerifying) && (
         <View className="absolute inset-0 bg-white items-center justify-center z-50">
           <ActivityIndicator size="large" color="#030482" />
@@ -181,6 +170,17 @@ export default function PaystackWebView() {
 
       <WebView
         source={{ uri: url }}
+        // Primary interception: fires before each request, catches the callback
+        // URL before Android's WebView coalesces any 302 redirect chain.
+        onShouldStartLoadWithRequest={(request) => {
+          const { hit, reference } = extractCallback(request.url);
+          if (hit && !hasHandled.current) {
+            hasHandled.current = true;
+            setTimeout(() => handleCallbackUrl(reference, request.url), 0);
+            return false;
+          }
+          return true;
+        }}
         onNavigationStateChange={handleNavigationChange}
         onLoadEnd={() => setIsLoading(false)}
         onError={() => {
@@ -194,6 +194,7 @@ export default function PaystackWebView() {
         javaScriptEnabled
         domStorageEnabled
         startInLoadingState={false}
+        incognito
         className="flex-1"
       />
     </View>

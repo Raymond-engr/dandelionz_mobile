@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
 import { useChangeCustomerPasswordMutation } from "@/lib/api/customerApi";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -62,7 +63,7 @@ export default function CustomerChangePasswordScreen() {
     } catch (err: any) {
       Toast.show({
         type: "error",
-        text1: err?.data?.message || "Failed to change password.",
+        text1: apiError(err, "Failed to change password."),
       });
       setStep(1);
     }
@@ -85,7 +86,7 @@ export default function CustomerChangePasswordScreen() {
       </View>
       <Divider />
 
-      <ScrollView className="flex-1 px-[21px] pt-10">
+      <ScrollView className="flex-1 px-[21px] pt-10" contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
         {step === 1 ? (
           <View>
             <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">

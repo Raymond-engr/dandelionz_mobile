@@ -8,10 +8,12 @@ import {
     Text,
     View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { uid, token } = useLocalSearchParams<{ uid: string; token: string }>();
   const [verifyEmail] = useVerifyEmailMutation();
   const [status, setStatus] = useState<"loading" | "success" | "error">(
@@ -40,7 +42,7 @@ export default function VerifyEmailScreen() {
 
   if (status === "success") {
     return (
-      <View className="flex-1 bg-white items-center justify-between py-10">
+      <View className="flex-1 bg-white items-center justify-between" style={{ paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }}>
         <View className="w-full items-center px-6">
           <Text className="text-[24px] font-semibold text-system-blue-light text-center mb-12">
             Confirmation
@@ -79,7 +81,7 @@ export default function VerifyEmailScreen() {
   }
 
   return (
-    <View className="flex-1 bg-white items-center justify-between py-10">
+    <View className="flex-1 bg-white items-center justify-between" style={{ paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }}>
       <View className="w-full items-center px-6">
         <Text className="text-[24px] font-semibold text-system-red text-center mb-12">
           Verification Failed

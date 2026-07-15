@@ -7,7 +7,7 @@ import {
   useAdminRequestWithdrawalMutation,
   useGetWalletStatsQuery,
 } from "@/lib/api/adminApi";
-import { formatCurrency } from "@/lib/utils";
+import { apiError, formatCurrency } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -71,7 +71,7 @@ export default function AdminWithdrawEarnings() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.data?.message || "Failed to submit withdrawal request.",
+        text2: apiError(err, "Failed to submit withdrawal request."),
       });
     }
   };
@@ -106,6 +106,7 @@ export default function AdminWithdrawEarnings() {
 
       <ScrollView
         className="flex-1 px-[21px] pt-6"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
         showsVerticalScrollIndicator={false}
       >
         <View className="bg-system-blue-light rounded-[16px] p-8 mb-8 shadow-lg shadow-blue-900/20">

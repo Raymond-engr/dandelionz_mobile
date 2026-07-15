@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { CheckoutProgress } from "@/components/ui/checkout-progress";
 import { Divider } from "@/components/ui/divider";
 import { useInitializeCheckoutMutation, useInitializeInstallmentCheckoutMutation } from "@/lib/api/publicApi";
+import { apiError } from "@/lib/utils";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, ScrollView, Text, View, TouchableOpacity } from "react-native";
@@ -50,7 +51,7 @@ export default function CheckoutPayment() {
       Toast.show({ 
         type: "error", 
         text1: "Error", 
-        text2: err?.data?.error || err?.data?.message || "Payment initiation failed." 
+        text2: apiError(err, "Payment initiation failed.")
       });
     }
   };
@@ -115,8 +116,8 @@ export default function CheckoutPayment() {
         </View>
       </ScrollView>
 
-      <View className="p-[21px] mb-4">
-        <Button 
+      <View className="px-[21px] pt-[21px]" style={{ paddingBottom: insets.bottom + 16 }}>
+        <Button
           onPress={handlePayment}
           isLoading={isLoading}
         >

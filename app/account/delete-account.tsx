@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { useDeleteCustomerAccountMutation } from "@/lib/api/customerApi";
+import { apiError } from "@/lib/utils";
 import { useLogout } from "@/lib/hooks";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -46,8 +47,7 @@ export default function DeleteAccountScreen() {
             } catch (err: any) {
               Alert.alert(
                 "Error",
-                err?.data?.message ||
-                  "Failed to delete account. Please check your password.",
+                apiError(err, "Failed to delete account. Please check your password."),
               );
             }
           },
@@ -73,7 +73,7 @@ export default function DeleteAccountScreen() {
         <View className="w-10" />
       </View>
 
-      <View className="flex-1 px-[21px] justify-center pb-20">
+      <View className="flex-1 px-[21px] justify-center" style={{ paddingBottom: insets.bottom + 80 }}>
         {/* Icon */}
         <View className="w-20 h-20 bg-red-100 rounded-full items-center justify-center mx-auto mb-8">
           <MaterialIcons name="close" size={48} color="#FF4D4D" />

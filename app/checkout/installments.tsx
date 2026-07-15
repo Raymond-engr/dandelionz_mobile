@@ -7,6 +7,7 @@ import { Pressable, ScrollView, Text, View, TouchableOpacity } from "react-nativ
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useInitializeInstallmentCheckoutMutation } from "@/lib/api/publicApi";
+import { apiError } from "@/lib/utils";
 import Toast from "react-native-toast-message";
 
 type InstallmentDuration = '1_month' | '3_months' | '6_months' | '8_months';
@@ -46,7 +47,7 @@ export default function CheckoutInstallments() {
       Toast.show({ 
         type: "error", 
         text1: "Error", 
-        text2: err?.data?.error || err?.data?.message || "Failed to initialize installment plan." 
+        text2: apiError(err, "Failed to initialize installment plan.")
       });
     }
   };
@@ -94,8 +95,8 @@ export default function CheckoutInstallments() {
         </View>
       </ScrollView>
 
-      <View className="p-[21px] mb-4">
-        <Button 
+      <View className="px-[21px] pt-[21px]" style={{ paddingBottom: insets.bottom + 16 }}>
+        <Button
           onPress={handleNext}
           isLoading={isLoading}
         >

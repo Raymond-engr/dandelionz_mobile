@@ -129,7 +129,7 @@ export default function AdminProfileScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
       >
         <View className="p-[21px]">
           {/* Profile Picture */}

@@ -133,7 +133,7 @@ export default function CheckoutShipping() {
         )}
       </ScrollView>
 
-      <View className="p-[21px] mb-4">
+      <View className="px-[21px] pt-[21px]" style={{ paddingBottom: insets.bottom + 16 }}>
         <Button onPress={handleNext}>Proceed</Button>
       </View>
     </View>

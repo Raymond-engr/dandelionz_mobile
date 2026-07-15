@@ -66,7 +66,7 @@ export default function VendorTransactionHistory() {
       <FlatList
         data={transactions}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         ListEmptyComponent={renderEmpty}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />

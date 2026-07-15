@@ -41,7 +41,7 @@ export default function CategoryDetailScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 100, paddingTop: 20 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100, paddingTop: 20 }}
         showsVerticalScrollIndicator={false}
       >
         {isLoading ? (

@@ -192,7 +192,7 @@ export default function CheckoutSuccessScreen() {
 
       <View className="w-full items-center">
         <Divider className="mb-6" />
-        <View className="w-full px-[21px] gap-4 pb-10">
+        <View className="w-full px-[21px] gap-4" style={{ paddingBottom: insets.bottom + 40 }}>
           <Button
             onPress={() => {
               navigation.dispatch(StackActions.popToTop());

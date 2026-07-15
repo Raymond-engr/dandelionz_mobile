@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useLoginMutation } from "@/lib/api/authApi";
+import { apiError } from "@/lib/utils";
 import { setCredentials } from "@/lib/features/auth/authSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { router } from "expo-router";
@@ -13,10 +14,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
   console.log("[Login] Rendering LoginScreen");
   const dispatch = useAppDispatch();
+  const insets = useSafeAreaInsets();
   const [login, { isLoading }] = useLoginMutation();
 
   const [email, setEmail] = useState("");
@@ -87,16 +90,11 @@ export default function LoginScreen() {
       }
 
       if (err?.status === 403) {
-        setError(
-          err?.data?.error ||
-          "Your account has been suspended. Please contact support."
-        );
+        setError(apiError(err, "Your account has been suspended. Please contact support."));
         return;
       }
 
-      setError(
-        err?.data?.error || "Login failed. Please check your credentials.",
-      );
+      setError(apiError(err, "Login failed. Please check your credentials."));
     }
   };
 
@@ -107,7 +105,7 @@ export default function LoginScreen() {
     >
       <ScrollView
         className="flex-1 bg-white"
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}
         keyboardShouldPersistTaps="handled"
       >
         <View className="flex-1 px-[24px] pt-[80px] pb-[40px]">

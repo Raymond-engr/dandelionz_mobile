@@ -4,6 +4,7 @@ import {
 } from "@/components/password-criteria";
 import { Button } from "@/components/ui/button";
 import { useConfirmPasswordResetMutation } from "@/lib/api/authApi";
+import { apiError } from "@/lib/utils";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -13,9 +14,11 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ForgotPasswordConfirmScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { uid, token } = useLocalSearchParams<{ uid: string; token: string }>();
   const [confirmReset, { isLoading }] = useConfirmPasswordResetMutation();
 
@@ -48,17 +51,14 @@ export default function ForgotPasswordConfirmScreen() {
       }).unwrap();
       if (res.success) router.replace("/(auth)/login");
     } catch (err: any) {
-      setError(
-        err?.data?.message ||
-          "Failed to reset password. The link may have expired.",
-      );
+      setError(apiError(err, "Failed to reset password. The link may have expired."));
     }
   };
 
   return (
     <ScrollView
       className="flex-1 bg-white"
-      contentContainerStyle={{ flexGrow: 1 }}
+      contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}
       keyboardShouldPersistTaps="handled"
     >
       <View className="flex-1 px-[24px] pt-[80px] pb-[40px]">

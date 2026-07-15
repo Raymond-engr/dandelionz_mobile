@@ -62,7 +62,7 @@ export default function WithdrawalReceiptScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}>
         <View style={styles.receiptCard}>
           <View style={styles.successIcon}>
             <Text style={styles.checkMark}>✓</Text>

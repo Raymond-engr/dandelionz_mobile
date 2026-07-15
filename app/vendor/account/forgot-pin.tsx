@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
 import { useRequestPINResetMutation } from "@/lib/api/vendorApi";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -31,7 +32,7 @@ export default function VendorForgotPinScreen() {
       Toast.show({ 
         type: "error", 
         text1: "Error", 
-        text2: err?.data?.message || "Failed to send reset request." 
+        text2: apiError(err, "Failed to send reset request.")
       });
     }
   };
@@ -53,7 +54,7 @@ export default function VendorForgotPinScreen() {
       {renderHeader()}
       <Divider height={11} />
 
-      <View className="flex-1 px-[21px] justify-center pb-20">
+      <View className="flex-1 px-[21px] justify-center" style={{ paddingBottom: insets.bottom + 80 }}>
         <View className="w-20 h-20 bg-blue-50 rounded-full items-center justify-center mx-auto mb-8">
           <MaterialIcons name="lock-reset" size={48} color={Colors.primary} />
         </View>

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Colors } from "@/constants/theme";
 import { useSetCustomerPaymentPinMutation } from "@/lib/api/customerApi";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -34,7 +35,7 @@ export default function CustomerSetPinScreen() {
     } catch (err: any) {
       Toast.show({
         type: "error",
-        text1: err?.data?.message || "Failed to set PIN.",
+        text1: apiError(err, "Failed to set PIN."),
       });
     }
   };
@@ -51,7 +52,7 @@ export default function CustomerSetPinScreen() {
         <View className="w-10" />
       </View>
 
-      <View className="px-[21px] pt-8 gap-5">
+      <View className="px-[21px] pt-8 gap-5" style={{ paddingBottom: insets.bottom + 20 }}>
         <Text className="text-[14px] text-gray-500">
           Set a 4-digit PIN to authorise withdrawals from your wallet.
         </Text>

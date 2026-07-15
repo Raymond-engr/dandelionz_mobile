@@ -1,10 +1,10 @@
 import { Divider } from "@/components/ui/divider";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Colors } from "@/constants/theme";
-import { 
-  useAdminGetAllNotificationsQuery, 
+import {
+  useAdminGetAllNotificationsQuery,
   useGetAdminSystemNotificationsQuery,
-  useAdminMarkNotificationAsReadMutation, 
+  useAdminMarkNotificationAsReadMutation,
   useAdminMarkAllNotificationsAsReadMutation,
   useDeleteInboxNotificationMutation,
   useDeleteSystemNotificationMutation,
@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/adminApi";
 import { resolveNotificationUrl, isSystemNotification } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
+import { format } from "date-fns";
 import { useRouter } from "expo-router";
 import React, { useState, useMemo } from "react";
 import {
@@ -25,6 +26,25 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+
+type RecipientMeta = {
+  label: string;
+  icon: keyof typeof MaterialIcons.glyphMap;
+  bg: string;
+  text: string;
+  color: string;
+};
+
+function getRecipientMeta(item: any): RecipientMeta {
+  const raw = (item.recipient_group || item.recipient_type || "").toLowerCase();
+  if (raw === "all")
+    return { label: "All Users", icon: "people", bg: "bg-purple-50", text: "text-purple-600", color: "#9333ea" };
+  if (raw === "customer" || raw === "users")
+    return { label: "Customers", icon: "person", bg: "bg-blue-50", text: "text-system-blue-light", color: Colors.primary };
+  if (raw === "vendor" || raw === "vendors")
+    return { label: "Vendors", icon: "storefront", bg: "bg-green-50", text: "text-green-700", color: "#15803d" };
+  return { label: "Unknown", icon: "help-outline", bg: "bg-gray-50", text: "text-gray-400", color: "#9ca3af" };
+}
 
 export default function AdminNotificationManagement() {
   const router = useRouter();
@@ -193,7 +213,7 @@ export default function AdminNotificationManagement() {
       <FlatList
         data={activeTab === "inbox" ? inboxNotifications : systemNotifications}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
         }
@@ -226,24 +246,56 @@ export default function AdminNotificationManagement() {
                   {item.message}
                 </Text>
                 
-                {activeTab === 'sent' && (
-                  <View className="flex-row mt-3 gap-3">
-                    {item.is_draft && (
-                      <TouchableOpacity 
-                        onPress={() => handlePublish(item.id)}
-                        className="bg-green-50 px-3 py-1.5 rounded-md"
-                      >
-                        <Text className="text-green-600 text-[12px] font-bold">Publish</Text>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity 
-                      onPress={() => handleDeleteSystem(item.id)}
-                      className="bg-red-50 px-3 py-1.5 rounded-md"
-                    >
-                      <Text className="text-red-600 text-[12px] font-bold">Delete</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
+                {activeTab === 'sent' && (() => {
+                  const r = getRecipientMeta(item);
+                  return (
+                    <>
+                      {/* Recipient + status badges */}
+                      <View className="flex-row flex-wrap items-center gap-2 mt-3">
+                        <View className={`flex-row items-center gap-1 px-2.5 py-1 rounded-full ${r.bg}`}>
+                          <MaterialIcons name={r.icon} size={12} color={r.color} />
+                          <Text className={`text-[11px] font-bold ${r.text}`}>{r.label}</Text>
+                        </View>
+
+                        {item.is_draft && (
+                          <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-full bg-yellow-50">
+                            <MaterialIcons name="edit" size={12} color="#ca8a04" />
+                            <Text className="text-[11px] font-bold text-yellow-700">Draft</Text>
+                          </View>
+                        )}
+
+                        {item.scheduled_for && !item.is_draft && (
+                          <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-50">
+                            <MaterialIcons name="schedule" size={12} color="#4f46e5" />
+                            <Text className="text-[11px] font-bold text-indigo-600">
+                              {format(new Date(item.scheduled_for), "MMM d, h:mm a")}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Action buttons */}
+                      <View className="flex-row mt-3 gap-2">
+                        {item.is_draft && (
+                          <TouchableOpacity
+                            onPress={() => handlePublish(item.id)}
+                            className="flex-row items-center gap-1 bg-system-blue-light px-3 py-1.5 rounded-lg"
+                          >
+                            <MaterialIcons name="send" size={13} color="white" />
+                            <Text className="text-white text-[12px] font-bold">Publish</Text>
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                          onPress={() => handleDeleteSystem(item.id)}
+                          className="flex-row items-center gap-1 bg-red-50 px-3 py-1.5 rounded-lg"
+                        >
+                          <MaterialIcons name="delete-outline" size={13} color="#dc2626" />
+                          <Text className="text-red-600 text-[12px] font-bold">Delete</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  );
+                })()}
                 
                 {activeTab === 'inbox' && !isSystemNotification(item) && (
                   <TouchableOpacity 
@@ -260,7 +312,7 @@ export default function AdminNotificationManagement() {
       />
 
       {/* Floating Action Button for Create */}
-      <View className="absolute bottom-10 left-[21px] right-[21px]">
+      <View className="absolute left-[21px] right-[21px]" style={{ bottom: insets.bottom + 40 }}>
         <TouchableOpacity
           onPress={() => router.push("/(admin)/account/notifications/create" as any)}
           className="bg-system-blue-light h-[55px] rounded-[12px] flex-row items-center justify-center shadow-lg shadow-blue-900/40"

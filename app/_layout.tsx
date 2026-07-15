@@ -14,6 +14,25 @@ import { Provider } from "react-redux";
 import "../global.css";
 
 import { Ionicons } from "@expo/vector-icons";
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://b18fcb70f70492e30fe557e497ce685e@o4511738351386624.ingest.us.sentry.io/4511738405191680',
+
+  // Adds more context data to events (IP address, cookies, user, etc.)
+  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+  sendDefaultPii: true,
+
+  // Enable Logs
+  enableLogs: true,
+
+  // Capture a replay only when an error occurs
+  replaysOnErrorSampleRate: 1.0,
+  integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
+
+  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+  // spotlight: __DEV__,
+});
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -337,7 +356,7 @@ function AppWithProviders() {
 }
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
-export default function RootLayout() {
+export default Sentry.wrap(function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>
@@ -347,4 +366,4 @@ export default function RootLayout() {
       </Provider>
     </GestureHandlerRootView>
   );
-}
+});

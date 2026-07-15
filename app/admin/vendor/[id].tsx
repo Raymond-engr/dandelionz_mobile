@@ -14,6 +14,7 @@ import {
   useVerifyVendorKYCMutation,
   useSuspendVendorMutation,
 } from "@/lib/api/adminApi";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons, Ionicons, Feather } from "@expo/vector-icons";
 import { Divider } from "@/components/ui/divider";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -72,7 +73,7 @@ export default function VendorDetail() {
       Toast.show({ 
         type: "error", 
         text1: "Error", 
-        text2: err?.data?.message || "Failed to perform action" 
+        text2: apiError(err, "Failed to perform action")
       });
     }
   };
@@ -121,7 +122,7 @@ export default function VendorDetail() {
         <View className="w-10" />
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}>
         {/* Profile Info */}
         <View className="flex-row items-center p-[21px]">
           <View className="w-[91px] h-[91px] rounded-full bg-system-blue-light items-center justify-center">

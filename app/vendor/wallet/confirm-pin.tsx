@@ -16,7 +16,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { formatCurrency } from "@/lib/utils";
+import { apiError, formatCurrency } from "@/lib/utils";
 
 const SECURE_PIN_KEY = "user_payment_pin";
 
@@ -104,7 +104,7 @@ export default function ConfirmPinScreen() {
         }
       } as any);
     } catch (err: any) {
-      setError(err?.data?.message ?? "Incorrect PIN. Please try again.");
+      setError(apiError(err, "Incorrect PIN. Please try again."));
       setPin(["", "", "", ""]);
     }
   };
@@ -135,7 +135,7 @@ export default function ConfirmPinScreen() {
       {renderHeader()}
       <Divider height={11} />
 
-      <View className="flex-1 px-[21px] pt-8">
+      <View className="flex-1 px-[21px] pt-8" style={{ paddingBottom: insets.bottom + 20 }}>
         {/* Summary Card */}
         <View className="bg-gray-50 border border-gray-100 rounded-[20px] p-6 mb-10 shadow-sm">
           <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-1 text-center">

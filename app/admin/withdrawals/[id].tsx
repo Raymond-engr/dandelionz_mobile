@@ -134,7 +134,7 @@ export default function AdminWithdrawalDetail() {
       {renderHeader()}
       <Divider />
       
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}>
         {/* Summary Card */}
         <View className="px-[21px] py-8 items-center bg-gray-50/30">
           <Text className="text-[14px] text-gray-500 uppercase tracking-widest mb-2">Amount</Text>

@@ -95,8 +95,8 @@ export default function CheckoutInstallments() {
         </View>
       </ScrollView>
 
-      <View className="p-[21px] mb-4">
-        <Button 
+      <View className="px-[21px] pt-[21px]" style={{ paddingBottom: insets.bottom + 16 }}>
+        <Button
           onPress={handleNext}
           isLoading={isLoading}
         >

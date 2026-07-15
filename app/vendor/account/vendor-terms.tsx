@@ -67,7 +67,7 @@ export default function VendorTermsScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.lastUpdated}>Last updated: January 2025</Text>

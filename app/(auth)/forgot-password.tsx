@@ -10,9 +10,11 @@ import {
     TextInput,
     View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [requestReset, { isLoading }] = useRequestPasswordResetMutation();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
@@ -34,7 +36,7 @@ export default function ForgotPasswordScreen() {
 
   if (success) {
     return (
-      <View className="flex-1 bg-white">
+      <View className="flex-1 bg-white" style={{ paddingBottom: insets.bottom }}>
         <View className="flex-1 px-[24px] pt-[100px]">
           <Text className="text-[24px] font-bold text-system-blue-dark text-center mb-[12px]">
             Check your email
@@ -54,7 +56,7 @@ export default function ForgotPasswordScreen() {
   return (
     <ScrollView
       className="flex-1 bg-white"
-      contentContainerStyle={{ flexGrow: 1 }}
+      contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}
       keyboardShouldPersistTaps="handled"
     >
       <View className="flex-1 px-[24px] pt-[60px] pb-[40px]">

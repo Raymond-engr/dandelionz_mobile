@@ -147,7 +147,7 @@ export default function CreateNotificationScreen() {
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
       {renderHeader()}
       
-      <ScrollView className="flex-1 p-[21px]" contentContainerStyle={{ paddingBottom: 50 }}>
+      <ScrollView className="flex-1 p-[21px]" contentContainerStyle={{ paddingBottom: insets.bottom + 50 }}>
         <View className="mb-6">
           <Text className="text-[14px] font-medium text-gray-700 mb-2">Notification Title</Text>
           <TextInput

@@ -79,7 +79,7 @@ export default function AdminSettlementSummary() {
       
       <ScrollView 
         className="flex-1 bg-gray-50/30"
-        contentContainerStyle={{ padding: 21, paddingBottom: 100 }}
+        contentContainerStyle={{ padding: 21, paddingBottom: insets.bottom + 100 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
         }

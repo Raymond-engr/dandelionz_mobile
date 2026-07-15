@@ -54,7 +54,7 @@ export default function VendorForgotPinScreen() {
       {renderHeader()}
       <Divider height={11} />
 
-      <View className="flex-1 px-[21px] justify-center pb-20">
+      <View className="flex-1 px-[21px] justify-center" style={{ paddingBottom: insets.bottom + 80 }}>
         <View className="w-20 h-20 bg-blue-50 rounded-full items-center justify-center mx-auto mb-8">
           <MaterialIcons name="lock-reset" size={48} color={Colors.primary} />
         </View>

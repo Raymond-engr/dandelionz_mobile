@@ -74,7 +74,7 @@ export default function AdminPayoutManagement() {
       <FlatList
         data={payouts.filter(p => activeTab === 'paid' ? p.status === 'successful' : p.status === 'pending')}
         keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
         }

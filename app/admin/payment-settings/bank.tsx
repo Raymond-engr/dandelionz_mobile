@@ -144,7 +144,7 @@ export default function AdminStorePaymentOption() {
       {renderHeader()}
       <Divider height={11} />
       
-      <ScrollView className="flex-1 px-[21px] pt-6" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1 px-[21px] pt-6" contentContainerStyle={{ paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
         <Text className="text-[18px] font-semibold text-system-blue-dark mb-6">Bank Details</Text>
         
         <View className="mb-6">

@@ -20,6 +20,8 @@ const baseQuery = fetchBaseQuery({
       headers.set("Authorization", `Bearer ${token}`);
     }
 
+    headers.set("X-Platform", "mobile");
+
     const { body } = args || {};
     if (body instanceof FormData) {
       // let browser set Content-Type for FormData

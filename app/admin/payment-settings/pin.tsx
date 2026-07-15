@@ -83,7 +83,7 @@ export default function AdminChangePin() {
       {renderHeader()}
       <Divider height={11} />
       
-      <ScrollView className="flex-1 px-[21px] pt-6" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1 px-[21px] pt-6" contentContainerStyle={{ paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
         {hasPin && (
           <View className="mb-8">
             <Text className="text-[14px] font-semibold text-system-blue-dark mb-4">Current PIN</Text>

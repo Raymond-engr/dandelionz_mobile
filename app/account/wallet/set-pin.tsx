@@ -52,7 +52,7 @@ export default function CustomerSetPinScreen() {
         <View className="w-10" />
       </View>
 
-      <View className="px-[21px] pt-8 gap-5">
+      <View className="px-[21px] pt-8 gap-5" style={{ paddingBottom: insets.bottom + 20 }}>
         <Text className="text-[14px] text-gray-500">
           Set a 4-digit PIN to authorise withdrawals from your wallet.
         </Text>

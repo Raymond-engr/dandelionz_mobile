@@ -116,8 +116,8 @@ export default function CheckoutPayment() {
         </View>
       </ScrollView>
 
-      <View className="p-[21px] mb-4">
-        <Button 
+      <View className="px-[21px] pt-[21px]" style={{ paddingBottom: insets.bottom + 16 }}>
+        <Button
           onPress={handlePayment}
           isLoading={isLoading}
         >

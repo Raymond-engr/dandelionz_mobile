@@ -110,7 +110,7 @@ export default function VendorOrderDetailScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Order Meta */}
@@ -158,6 +158,11 @@ export default function VendorOrderDetailScreen() {
                     {item.product_name ?? item.product?.name}
                   </Text>
                   <Text className="text-[12px] text-gray-400 mt-1">Quantity: {item.quantity}</Text>
+                  {item.selected_variants && Object.keys(item.selected_variants).length > 0 && (
+                    <Text className="text-[12px] text-gray-500 mt-0.5">
+                      {Object.entries(item.selected_variants).map(([k, v]) => `${k}: ${v}`).join(' · ')}
+                    </Text>
+                  )}
                 </View>
                 <Text className="text-[15px] font-bold text-system-blue-dark">
                   {formatCurrency(item.item_subtotal ?? item.price)}

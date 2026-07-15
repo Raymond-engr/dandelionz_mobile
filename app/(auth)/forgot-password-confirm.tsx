@@ -14,9 +14,11 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ForgotPasswordConfirmScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { uid, token } = useLocalSearchParams<{ uid: string; token: string }>();
   const [confirmReset, { isLoading }] = useConfirmPasswordResetMutation();
 
@@ -56,7 +58,7 @@ export default function ForgotPasswordConfirmScreen() {
   return (
     <ScrollView
       className="flex-1 bg-white"
-      contentContainerStyle={{ flexGrow: 1 }}
+      contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}
       keyboardShouldPersistTaps="handled"
     >
       <View className="flex-1 px-[24px] pt-[80px] pb-[40px]">

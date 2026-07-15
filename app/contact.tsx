@@ -34,7 +34,7 @@ export default function ContactScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
       >
         {/* Support Icon & Intro */}
         <View className="px-[21px] py-10 items-center">

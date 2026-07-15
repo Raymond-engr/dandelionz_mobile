@@ -165,7 +165,7 @@ export default function AdminDashboard() {
           </Text>
           <View className="gap-3">
             <TouchableOpacity
-              onPress={() => router.push("/(admin)/(tabs)/orders")}
+              onPress={() => router.push("/(admin)/(tabs)/orders" as any)}
               className="flex-row items-center justify-between p-4 bg-white rounded-xl border border-gray-100"
             >
               <View className="flex-row items-center gap-3">
@@ -180,7 +180,7 @@ export default function AdminDashboard() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => router.push("/(admin)/(tabs)/vendor")}
+              onPress={() => router.push("/(admin)/(tabs)/vendor" as any)}
               className="flex-row items-center justify-between p-4 bg-white rounded-xl border border-gray-100"
             >
               <View className="flex-row items-center gap-3">

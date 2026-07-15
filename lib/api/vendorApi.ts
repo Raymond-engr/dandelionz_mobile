@@ -350,6 +350,18 @@ export const vendorApi = baseApi.injectEndpoints({
       invalidatesTags: ["Draft"],
     }),
 
+    patchProduct: builder.mutation<
+      { success: boolean; data: Product },
+      { slug: string; data: FormData }
+    >({
+      query: ({ slug, data }) => ({
+        url: `/store/products/${slug}/patch/`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["Product", "Draft"],
+    }),
+
     updateDraft: builder.mutation<
       { success: boolean; data: Product },
       { slug: string; data: FormData }
@@ -637,6 +649,7 @@ export const {
   useGetDraftsQuery,
   useGetDraftDetailsQuery,
   useCreateDraftMutation,
+  usePatchProductMutation,
   useUpdateDraftMutation,
   useSubmitDraftMutation,
   useDeleteDraftMutation,

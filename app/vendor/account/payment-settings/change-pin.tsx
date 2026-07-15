@@ -75,6 +75,7 @@ export default function VendorChangePin() {
 
       <ScrollView
         className="flex-1 px-[21px] pt-6"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
         showsVerticalScrollIndicator={false}
       >
         <View className="mb-8">

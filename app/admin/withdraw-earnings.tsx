@@ -106,6 +106,7 @@ export default function AdminWithdrawEarnings() {
 
       <ScrollView
         className="flex-1 px-[21px] pt-6"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
         showsVerticalScrollIndicator={false}
       >
         <View className="bg-system-blue-light rounded-[16px] p-8 mb-8 shadow-lg shadow-blue-900/20">

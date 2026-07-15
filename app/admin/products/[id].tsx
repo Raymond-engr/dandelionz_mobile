@@ -106,7 +106,7 @@ export default function ProductDetail() {
         <View className="w-10" />
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}>
         <View className="p-[21px]">
           <View className="aspect-square bg-gray-50 rounded-2xl overflow-hidden mb-6 items-center justify-center border border-gray-100">
             {product.image ? (

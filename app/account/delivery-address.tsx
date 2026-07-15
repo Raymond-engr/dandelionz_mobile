@@ -159,7 +159,7 @@ export default function DeliveryAddressScreen() {
 
       <ScrollView
         className="flex-1 px-[21px]"
-        contentContainerStyle={{ paddingTop: 24, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingTop: 24, paddingBottom: insets.bottom + 40 }}
         keyboardShouldPersistTaps="handled"
       >
         <Text className="text-[14px] text-gray-500 mb-6 leading-[20px]">

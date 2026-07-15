@@ -216,7 +216,7 @@ export default function CustomerWalletScreen() {
         )}
         ListFooterComponent={() => <View className="h-10" />}
         ItemSeparatorComponent={() => <Divider className="mx-[21px]" />}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
         ListEmptyComponent={() =>
           txnLoading ? (
             <View className="py-8 items-center">

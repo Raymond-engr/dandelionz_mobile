@@ -163,7 +163,7 @@ export default function CustomerWithdrawScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: 21, paddingBottom: 60 }}
+        contentContainerStyle={{ padding: 21, paddingBottom: insets.bottom + 60 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

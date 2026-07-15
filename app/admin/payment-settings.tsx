@@ -58,7 +58,7 @@ export default function AdminPaymentSettingsMenu() {
 
       <Divider height={11} />
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
         <View className="pb-4">
           <SectionHeader title="Payment PIN" />
           {securityItems.map(renderItem)}

@@ -115,7 +115,7 @@ export default function OrderDetails() {
         <View className="w-10" />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}>
         <Text style={styles.sectionTitle}>Customer Information</Text>
         <View style={styles.infoGroup}>
           <Text style={styles.label}>Full Name</Text>
@@ -288,7 +288,7 @@ export default function OrderDetails() {
 
           {order.status === "CANCELED" && (order.payment_status === "PAID" || order.current_status === "PAID") && (
             <TouchableOpacity
-              onPress={() => router.push("/(admin)/settlements/disputes")}
+              onPress={() => router.push("/(admin)/settlements/disputes" as any)}
               style={[styles.confirmBtn, { backgroundColor: "#FEF3C7", marginTop: 8 }]}
             >
               <Text style={[styles.confirmBtnText, { color: "#D97706" }]}>Manage Refund Request</Text>

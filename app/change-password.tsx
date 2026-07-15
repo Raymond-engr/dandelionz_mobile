@@ -86,7 +86,7 @@ export default function CustomerChangePasswordScreen() {
       </View>
       <Divider />
 
-      <ScrollView className="flex-1 px-[21px] pt-10">
+      <ScrollView className="flex-1 px-[21px] pt-10" contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
         {step === 1 ? (
           <View>
             <Text className="text-[12px] font-bold text-gray-400 uppercase mb-2">

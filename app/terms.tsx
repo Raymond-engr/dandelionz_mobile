@@ -63,7 +63,7 @@ export default function TermsScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 48 }]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.pageTitle}>Terms & Conditions</Text>

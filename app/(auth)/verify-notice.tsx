@@ -5,11 +5,13 @@ import { apiError } from "@/lib/utils";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Text, View, ActivityIndicator, TouchableOpacity } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import Toast from "react-native-toast-message";
 
 export default function VerifyNoticeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { email: emailParam } = useLocalSearchParams<{ email: string }>();
   const [sendVerification, { isLoading }] = useSendVerificationEmailMutation();
   const [cooldown, setCooldown] = useState(0);
@@ -55,7 +57,7 @@ export default function VerifyNoticeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white items-center justify-between py-10">
+    <View className="flex-1 bg-white items-center justify-between" style={{ paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }}>
       <View className="w-full items-center px-6">
         <Text className="text-[24px] font-semibold text-system-blue-dark text-center mb-12">
           Verify Email

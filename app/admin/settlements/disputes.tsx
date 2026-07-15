@@ -231,7 +231,7 @@ export default function RefundDisputesScreen() {
           data={refunds}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingTop: 16, paddingBottom: 40 }}
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: insets.bottom + 40 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
           }

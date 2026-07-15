@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { useDeleteCustomerAccountMutation } from "@/lib/api/customerApi";
+import { apiError } from "@/lib/utils";
 import { useLogout } from "@/lib/hooks";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -46,8 +47,7 @@ export default function DeleteAccountScreen() {
             } catch (err: any) {
               Alert.alert(
                 "Error",
-                err?.data?.message ||
-                  "Failed to delete account. Please check your password.",
+                apiError(err, "Failed to delete account. Please check your password."),
               );
             }
           },

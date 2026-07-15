@@ -5,7 +5,7 @@ import {
   useCreateDraftMutation,
   useSubmitDraftMutation,
 } from "@/lib/api/vendorApi";
-import { formatCurrency } from "@/lib/utils";
+import { apiError, formatCurrency } from "@/lib/utils";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -66,11 +66,17 @@ export default function VendorNewProduct() {
 
   const handleProceed = () => {
     if (step === "basic") {
-      if (!form.name || !form.category || form.images.length === 0) {
+      if (!form.name || !form.description || !form.category || form.images.length === 0) {
         Toast.show({
           type: "error",
           text1: "Error",
-          text2: "Please fill name, category and add at least one image",
+          text2: !form.name
+            ? "Please enter a product name"
+            : !form.description
+              ? "Please add a product description"
+              : !form.category
+                ? "Please select a category"
+                : "Please add at least one image",
         });
         return;
       }
@@ -97,7 +103,7 @@ export default function VendorNewProduct() {
     formData.append("stock", form.stock);
     formData.append("brand", form.brand);
     formData.append("tags", form.tags);
-    formData.append("discount", form.discount);
+    formData.append("discount", String(parseInt(form.discount || "0", 10) || 0));
 
     form.images.forEach((uri, index) => {
       const filename = uri.split("/").pop();
@@ -129,29 +135,36 @@ export default function VendorNewProduct() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.data?.message || "Failed to save draft",
+        text2: apiError(err, "Failed to save draft"),
       });
     }
   };
 
   const handlePublish = async () => {
+    let draftSlug: string | null = null;
     try {
       const res = await createDraft(buildFormData()).unwrap();
-      const slug = (res as any).data?.slug;
-      if (slug) {
-        await submitDraft(slug).unwrap();
+      const slug = (res as any)?.data?.slug;
+      if (!slug) throw new Error("Server did not return a product slug");
+      draftSlug = slug;
+      await submitDraft(slug).unwrap();
+      Toast.show({ type: "success", text1: "Product published successfully" });
+      router.replace("/vendor/(tabs)/products");
+    } catch (err: any) {
+      if (draftSlug) {
         Toast.show({
-          type: "success",
-          text1: "Product published successfully",
+          type: "error",
+          text1: "Saved as draft",
+          text2: `Could not publish: ${apiError(err, "Please try again")}`,
         });
         router.replace("/vendor/(tabs)/products");
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Could not publish",
+          text2: apiError(err, "Failed to publish product"),
+        });
       }
-    } catch (err: any) {
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: err?.data?.message || "Failed to publish product",
-      });
     }
   };
 
@@ -347,9 +360,15 @@ export default function VendorNewProduct() {
                 <TextInput
                   className="bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6]"
                   placeholder="0"
-                  keyboardType="numeric"
+                  keyboardType="number-pad"
+                  maxLength={3}
                   value={form.discount}
-                  onChangeText={(v) => setForm((f) => ({ ...f, discount: v }))}
+                  onChangeText={(v) => {
+                    const digits = v.replace(/[^0-9]/g, "");
+                    if (digits === "") return setForm((f) => ({ ...f, discount: "" }));
+                    const n = Math.min(100, parseInt(digits, 10));
+                    setForm((f) => ({ ...f, discount: String(n) }));
+                  }}
                 />
               </View>
 

@@ -3,6 +3,7 @@ import {
     useUpdateCategoryMutation,
     useCreateCategoryMutation,
 } from "@/lib/api/adminApi";
+import { apiError } from "@/lib/utils";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -109,7 +110,7 @@ export default function CategoryEdit() {
       Toast.show({ 
         type: "error", 
         text1: "Error", 
-        text2: err?.data?.message || `Failed to ${isNew ? "create" : "update"} category.` 
+        text2: apiError(err, `Failed to ${isNew ? "create" : "update"} category.`)
       });
     }
   }

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useLoginMutation } from "@/lib/api/authApi";
+import { apiError } from "@/lib/utils";
 import { setCredentials } from "@/lib/features/auth/authSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { router } from "expo-router";
@@ -87,16 +88,11 @@ export default function LoginScreen() {
       }
 
       if (err?.status === 403) {
-        setError(
-          err?.data?.error ||
-          "Your account has been suspended. Please contact support."
-        );
+        setError(apiError(err, "Your account has been suspended. Please contact support."));
         return;
       }
 
-      setError(
-        err?.data?.error || "Login failed. Please check your credentials.",
-      );
+      setError(apiError(err, "Login failed. Please check your credentials."));
     }
   };
 

@@ -4,6 +4,7 @@ import {
 } from "@/components/password-criteria";
 import { Button } from "@/components/ui/button";
 import { useConfirmPasswordResetMutation } from "@/lib/api/authApi";
+import { apiError } from "@/lib/utils";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -48,10 +49,7 @@ export default function ForgotPasswordConfirmScreen() {
       }).unwrap();
       if (res.success) router.replace("/(auth)/login");
     } catch (err: any) {
-      setError(
-        err?.data?.message ||
-          "Failed to reset password. The link may have expired.",
-      );
+      setError(apiError(err, "Failed to reset password. The link may have expired."));
     }
   };
 

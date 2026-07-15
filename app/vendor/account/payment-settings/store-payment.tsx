@@ -8,6 +8,7 @@ import {
   useGetBanksQuery,
   useVerifyBankAccountMutation
 } from "@/lib/api/vendorApi";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -81,7 +82,7 @@ export default function VendorStorePaymentOption() {
       Toast.show({ 
         type: "error", 
         text1: "Verification Failed", 
-        text2: err?.data?.message || "Could not verify this account. Please check details." 
+        text2: apiError(err, "Could not verify this account. Please check details.")
       });
     }
   };
@@ -110,7 +111,7 @@ export default function VendorStorePaymentOption() {
       Toast.show({ 
         type: "error", 
         text1: "Error", 
-        text2: err?.data?.message || "Failed to update settings." 
+        text2: apiError(err, "Failed to update settings.")
       });
     }
   };

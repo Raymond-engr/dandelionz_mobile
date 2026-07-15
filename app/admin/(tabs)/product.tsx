@@ -12,7 +12,7 @@ import {
   useSubmitDraftMutation,
   useDeleteDraftMutation,
 } from "@/lib/api/vendorApi";
-import { formatCurrency } from "@/lib/utils";
+import { apiError, formatCurrency } from "@/lib/utils";
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -91,7 +91,7 @@ export default function AdminProduct() {
               Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: err?.data?.message || "Failed to delete category",
+                text2: apiError(err, "Failed to delete category"),
               });
             }
           },
@@ -121,7 +121,7 @@ export default function AdminProduct() {
               Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: err?.data?.message || "Failed to delete product",
+                text2: apiError(err, "Failed to delete product"),
               });
             }
           },
@@ -151,7 +151,7 @@ export default function AdminProduct() {
               Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: err?.data?.error || "Failed to delete draft",
+                text2: apiError(err, "Failed to delete draft"),
               });
             }
           },
@@ -173,7 +173,7 @@ export default function AdminProduct() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.data?.error || "Failed to submit draft",
+        text2: apiError(err, "Failed to submit draft"),
       });
     }
   };

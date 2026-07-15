@@ -16,7 +16,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { formatCurrency } from "@/lib/utils";
+import { apiError, formatCurrency } from "@/lib/utils";
 
 const SECURE_PIN_KEY = "user_payment_pin";
 
@@ -104,7 +104,7 @@ export default function ConfirmPinScreen() {
         }
       } as any);
     } catch (err: any) {
-      setError(err?.data?.message ?? "Incorrect PIN. Please try again.");
+      setError(apiError(err, "Incorrect PIN. Please try again."));
       setPin(["", "", "", ""]);
     }
   };

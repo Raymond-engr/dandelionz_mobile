@@ -14,7 +14,7 @@ import {
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { formatCurrency } from "@/lib/utils";
+import { apiError, formatCurrency } from "@/lib/utils";
 import Toast from "react-native-toast-message";
 
 export default function AdminWithdrawalDetail() {
@@ -50,7 +50,7 @@ export default function AdminWithdrawalDetail() {
               Toast.show({ 
                 type: "error", 
                 text1: "Error", 
-                text2: err?.data?.message || "Failed to approve withdrawal." 
+                text2: apiError(err, "Failed to approve withdrawal.")
               });
             }
           }
@@ -80,7 +80,7 @@ export default function AdminWithdrawalDetail() {
               Toast.show({ 
                 type: "error", 
                 text1: "Error", 
-                text2: err?.data?.message || "Failed to reject withdrawal." 
+                text2: apiError(err, "Failed to reject withdrawal.")
               });
             }
           }

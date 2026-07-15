@@ -11,8 +11,9 @@ import {
 } from "react-native";
 import { SafeAreaView , useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { 
-  useGetAdminOrderDetailsQuery, 
+import { apiError } from "@/lib/utils";
+import {
+  useGetAdminOrderDetailsQuery,
   useCancelOrderWithReasonMutation, 
   useUpdateOrderStatusMutation,
   useGetAdminRefundsQuery
@@ -67,7 +68,7 @@ export default function OrderDetails() {
       Toast.show({ 
         type: "error", 
         text1: "Error", 
-        text2: err?.data?.message || "Failed to update order status" 
+        text2: apiError(err, "Failed to update order status")
       });
     }
   };

@@ -4,6 +4,7 @@ import {
 } from "@/components/password-criteria";
 import { Button } from "@/components/ui/button";
 import { useRegisterMutation } from "@/lib/api/authApi";
+import { apiError } from "@/lib/utils";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -91,11 +92,7 @@ export default function RegisterScreen() {
         });
       }
     } catch (err: any) {
-      setError(
-        err?.data?.error ||
-          err?.data?.message ||
-          "Registration failed. Please try again.",
-      );
+      setError(apiError(err, "Registration failed. Please try again."));
     }
   };
 

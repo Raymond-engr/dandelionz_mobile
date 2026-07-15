@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { useSendVerificationEmailMutation } from "@/lib/api/authApi";
+import { apiError } from "@/lib/utils";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Text, View, ActivityIndicator, TouchableOpacity } from "react-native";
@@ -48,7 +49,7 @@ export default function VerifyNoticeScreen() {
       Toast.show({
         type: "error",
         text1: "Failed to send email",
-        text2: err?.data?.message || "Please try again later.",
+        text2: apiError(err, "Please try again later."),
       });
     }
   };

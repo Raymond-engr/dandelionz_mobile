@@ -8,7 +8,7 @@ import {
   useGetInstallmentPlanDetailsQuery,
   useInitializeNextInstallmentMutation,
 } from "@/lib/api/publicApi";
-import { formatCurrency } from "@/lib/utils";
+import { apiError, formatCurrency } from "@/lib/utils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -67,7 +67,7 @@ export default function OrderTrackingScreen() {
       Toast.show({
         type: "error",
         text1: "Failed to initialise payment",
-        text2: err?.data?.error,
+        text2: apiError(err),
       });
     }
   };
@@ -102,7 +102,7 @@ export default function OrderTrackingScreen() {
               Toast.show({
                 type: "error",
                 text1: "Could not cancel order",
-                text2: err?.data?.error || "Please try again.",
+                text2: apiError(err, "Please try again."),
               });
             }
           },

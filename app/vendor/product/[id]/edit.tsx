@@ -6,6 +6,7 @@ import {
   useGetDraftDetailsQuery,
   useCreateDraftMutation,
 } from "@/lib/api/vendorApi";
+import { apiError } from "@/lib/utils";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -97,7 +98,7 @@ export default function VendorEditProduct() {
       formData.append("category", form.category);
       formData.append("price", form.price);
       formData.append("stock", form.stock);
-      formData.append("discount", form.discount);
+      formData.append("discount", String(parseInt(form.discount || "0", 10) || 0));
 
       // Only append new local images
       const newImages = images.filter(
@@ -130,10 +131,10 @@ export default function VendorEditProduct() {
       Toast.show({ type: "success", text1: "Product updated and saved as draft." });
       router.back();
     } catch (err: any) {
-      Toast.show({ 
-        type: "error", 
-        text1: "Error", 
-        text2: err?.data?.message || "Failed to update product." 
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: apiError(err, "Failed to update product."),
       });
     }
   };
@@ -314,9 +315,15 @@ export default function VendorEditProduct() {
             <TextInput
               className="bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6]"
               value={form.discount}
-              onChangeText={(v) => setForm((f) => ({ ...f, discount: v }))}
+              onChangeText={(v) => {
+                const digits = v.replace(/[^0-9]/g, "");
+                if (digits === "") return setForm((f) => ({ ...f, discount: "" }));
+                const n = Math.min(100, parseInt(digits, 10));
+                setForm((f) => ({ ...f, discount: String(n) }));
+              }}
               placeholder="0"
-              keyboardType="numeric"
+              keyboardType="number-pad"
+              maxLength={3}
             />
           </View>
 

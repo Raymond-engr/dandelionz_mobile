@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { publicApi } from "@/lib/api/publicApi";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -122,8 +123,7 @@ export default function PaystackWebView() {
       setIsVerifying(false);
       Alert.alert(
         "Payment Verification Failed",
-        err?.data?.message ||
-          "We could not confirm your payment. Please contact support.",
+        apiError(err, "We could not confirm your payment. Please contact support."),
         [{ text: "OK", onPress: () => router.replace("/(tabs)" as any) }],
       );
     }

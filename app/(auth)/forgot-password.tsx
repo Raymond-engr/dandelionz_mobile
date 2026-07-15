@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useRequestPasswordResetMutation } from "@/lib/api/authApi";
+import { apiError } from "@/lib/utils";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -27,7 +28,7 @@ export default function ForgotPasswordScreen() {
       const res = await requestReset({ email }).unwrap();
       if (res.success) setSuccess(true);
     } catch (err: any) {
-      setError(err?.data?.message || "Something went wrong. Please try again.");
+      setError(apiError(err, "Something went wrong. Please try again."));
     }
   };
 

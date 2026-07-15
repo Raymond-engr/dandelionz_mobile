@@ -4,6 +4,7 @@ import {
   useGetCustomerProfileQuery,
   usePartialUpdateCustomerProfileMutation,
 } from "@/lib/api/customerApi";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -126,7 +127,7 @@ export default function DeliveryAddressScreen() {
         type: "error",
         text1: "Error",
         text2:
-          err?.data?.message || "Failed to update address. Please try again.",
+          apiError(err, "Failed to update address. Please try again."),
       });
     }
   };

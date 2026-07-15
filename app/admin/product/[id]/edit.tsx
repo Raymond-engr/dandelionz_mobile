@@ -7,6 +7,7 @@ import {
 import {
     useCreateDraftMutation
 } from "@/lib/api/vendorApi";
+import { apiError } from "@/lib/utils";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -115,10 +116,10 @@ export default function AdminEditProduct() {
       Toast.show({ type: "success", text1: "Product updated successfully." });
       router.back();
     } catch (err: any) {
-      Toast.show({ 
-        type: "error", 
-        text1: "Error", 
-        text2: err?.data?.message || "Failed to update product." 
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: apiError(err, "Failed to update product."),
       });
     }
   };
@@ -299,9 +300,15 @@ export default function AdminEditProduct() {
             <TextInput
               className="bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6]"
               value={form.discount}
-              onChangeText={(v) => setForm((f) => ({ ...f, discount: v }))}
+              onChangeText={(v) => {
+                const digits = v.replace(/[^0-9]/g, "");
+                if (digits === "") return setForm((f) => ({ ...f, discount: "" }));
+                const n = Math.min(100, parseInt(digits, 10));
+                setForm((f) => ({ ...f, discount: String(n) }));
+              }}
               placeholder="0"
-              keyboardType="numeric"
+              keyboardType="number-pad"
+              maxLength={3}
             />
           </View>
 

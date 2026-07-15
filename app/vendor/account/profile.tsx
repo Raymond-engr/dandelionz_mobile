@@ -7,6 +7,7 @@ import {
   useUpdateVendorProfileMutation,
   useUploadVendorPhotoMutation,
 } from "@/lib/api/vendorApi";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -150,7 +151,7 @@ export default function VendorProfileScreen() {
         Toast.show({
           type: "error",
           text1: "Error",
-          text2: err?.data?.message || "Failed to upload photo",
+          text2: apiError(err, "Failed to upload photo"),
         });
       }
     }
@@ -176,7 +177,7 @@ export default function VendorProfileScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.data?.message || "Failed to update profile",
+        text2: apiError(err, "Failed to update profile"),
       });
     }
   };

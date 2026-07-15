@@ -10,6 +10,7 @@ import {
   useRemoveFromCartMutation,
   useRemoveFromWishlistMutation,
 } from "@/lib/api/publicApi";
+import { apiError } from "@/lib/utils";
 import { useAppSelector } from "@/lib/hooks";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -169,7 +170,7 @@ export default function ProductDetailScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err.data?.error || "Failed to update cart",
+        text2: apiError(err, "Failed to update cart"),
       });
     }
   };
@@ -221,7 +222,7 @@ export default function ProductDetailScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err.data?.message || "Failed to submit review",
+        text2: apiError(err, "Failed to submit review"),
       });
     }
   };

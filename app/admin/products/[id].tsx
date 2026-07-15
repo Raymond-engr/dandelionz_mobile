@@ -5,7 +5,7 @@ import {
     useGetAdminProductDetailsQuery,
     useRejectProductAdminMutation,
 } from "@/lib/api/adminApi";
-import { formatCurrency } from "@/lib/utils";
+import { apiError, formatCurrency } from "@/lib/utils";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import React, { useState } from "react";
@@ -67,7 +67,7 @@ export default function ProductDetail() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.data?.message || "Failed to perform action",
+        text2: apiError(err, "Failed to perform action"),
       });
     }
   };

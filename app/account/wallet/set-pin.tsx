@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Colors } from "@/constants/theme";
 import { useSetCustomerPaymentPinMutation } from "@/lib/api/customerApi";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -34,7 +35,7 @@ export default function CustomerSetPinScreen() {
     } catch (err: any) {
       Toast.show({
         type: "error",
-        text1: err?.data?.message || "Failed to set PIN.",
+        text1: apiError(err, "Failed to set PIN."),
       });
     }
   };

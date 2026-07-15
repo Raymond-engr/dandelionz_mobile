@@ -7,6 +7,7 @@ import {
   useProcessAdminRefundMutation,
   RefundRequest,
 } from "@/lib/api/adminApi";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -63,7 +64,7 @@ export default function RefundDisputesScreen() {
               Toast.show({ type: "success", text1: "Refund approved and wallet credited." });
               refetch();
             } catch (err: any) {
-              Toast.show({ type: "error", text1: err?.data?.message || "Failed to approve refund." });
+              Toast.show({ type: "error", text1: apiError(err, "Failed to approve refund.") });
             }
           },
         },
@@ -87,7 +88,7 @@ export default function RefundDisputesScreen() {
       setRejectionReason("");
       refetch();
     } catch (err: any) {
-      Toast.show({ type: "error", text1: err?.data?.message || "Failed to reject refund." });
+      Toast.show({ type: "error", text1: apiError(err, "Failed to reject refund.") });
     }
   };
 

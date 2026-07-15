@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
 import { useChangeVendorPasswordMutation } from "@/lib/api/vendorApi";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -74,7 +75,7 @@ export default function VendorChangePasswordScreen() {
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: err?.data?.message || "Failed to change password.",
+        text2: apiError(err, "Failed to change password."),
       });
       setStep(1);
     }

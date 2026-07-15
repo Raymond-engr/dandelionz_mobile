@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
 import { useForgotPaymentPinMutation } from "@/lib/api/adminApi";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -31,7 +32,7 @@ export default function AdminForgotPinScreen() {
       Toast.show({ 
         type: "error", 
         text1: "Error", 
-        text2: err?.data?.message || "Failed to send reset request." 
+        text2: apiError(err, "Failed to send reset request.")
       });
     }
   };

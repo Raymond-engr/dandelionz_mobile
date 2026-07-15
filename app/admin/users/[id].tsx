@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { apiError } from "@/lib/utils";
 import {
   useGetUserDetailsQuery,
   useUpdateUserStatusMutation,
@@ -58,7 +59,7 @@ export default function UserDetail() {
       Toast.show({ 
         type: "error", 
         text1: "Error", 
-        text2: err?.data?.message || "Failed to update user status" 
+        text2: apiError(err, "Failed to update user status")
       });
     }
   };

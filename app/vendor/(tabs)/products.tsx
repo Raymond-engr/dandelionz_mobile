@@ -8,6 +8,7 @@ import {
   useDeleteDraftMutation,
   useSubmitDraftMutation,
 } from "@/lib/api/vendorApi";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -67,7 +68,7 @@ export default function VendorProductsScreen() {
       Toast.show({ 
         type: "error", 
         text1: "Error", 
-        text2: err?.data?.message || "Failed to submit product" 
+        text2: apiError(err, "Failed to submit product")
       });
     }
   };
@@ -99,7 +100,7 @@ export default function VendorProductsScreen() {
       Toast.show({ 
         type: "error", 
         text1: "Error", 
-        text2: err?.data?.message || "Failed to delete product" 
+        text2: apiError(err, "Failed to delete product")
       });
     }
   };

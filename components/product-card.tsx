@@ -8,6 +8,7 @@ import {
   useRemoveFromCartMutation,
   useRemoveFromWishlistMutation,
 } from "@/lib/api/publicApi";
+import { apiError } from "@/lib/utils";
 import { useAppSelector } from "@/lib/hooks";
 import { Image } from "expo-image";
 // ✅ Use imperative router, NOT the useRouter() hook.
@@ -118,7 +119,7 @@ export function ProductCard({ product, hideAddToCart = false }: Props) {
     } catch (err: any) {
       Toast.show({
         type: "error",
-        text1: err?.data?.error || "Something went wrong",
+        text1: apiError(err, "Something went wrong"),
       });
     }
   };

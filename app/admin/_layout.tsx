@@ -1,5 +1,5 @@
 import { useAppSelector } from "@/lib/hooks";
-import { Stack } from "expo-router";
+import { Redirect, Stack } from "expo-router";
 import React from "react";
 
 /**
@@ -22,7 +22,7 @@ export default function AdminLayout() {
   // useLogout() and login.tsx own all navigation decisions.
 
   if (!isAuthenticated || !user || user.role !== "BUSINESS_ADMIN") {
-    return null;
+    return <Redirect href="/" />;
   }
 
   return (

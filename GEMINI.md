@@ -124,3 +124,7 @@ Always generate commit messages at the end of a task and append this instruction
 - Updated app/admin/_layout.tsx and app/vendor/_layout.tsx to return <Redirect href="/" /> instead of null when a user lacks access, preventing unrecoverable white screens.
 - Updated useLogout in lib/hooks.ts to navigate to /(auth)/login before clearing authentication state and removing setTimeout. This ensures stable routing and prevents stacked index history.
 - Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.
+
+## July 14, 2026 - Remove Shadowing Index Workaround
+- Removed app/index.tsx and components/standalone-bottom-tab-bar.tsx since the routing collision is fixed and the root route naturally resolves to the (tabs) group.
+- Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.

@@ -49,7 +49,7 @@ export default function LoginScreen() {
         const userRole = res.data.user.role;
 
         if (userRole === "BUSINESS_ADMIN") {
-          router.replace("/(admin)/(tabs)");
+          router.replace("/admin");
         } else if (userRole === "VENDOR") {
           router.replace("/vendor");
         } else {

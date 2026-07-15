@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
-    height: 64,
+    minHeight: 64,
     alignItems: "center",
     paddingHorizontal: 8,
     shadowColor: "#000",

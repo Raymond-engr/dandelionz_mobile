@@ -27,7 +27,7 @@ export default function TabsLayout() {
 
     if (user.role === "BUSINESS_ADMIN") {
       hasRedirected.current = true;
-      setTimeout(() => router.replace("/(admin)/(tabs)"), 0);
+      setTimeout(() => router.replace("/admin"), 0);
     } else if (user.role === "VENDOR") {
       hasRedirected.current = true;
       setTimeout(() => router.replace("/vendor"), 0);

@@ -28,15 +28,14 @@ export const useLogout = () => {
     } catch (err) {
       console.error("Logout API failed:", err);
     } finally {
+      // Navigate while the current layout tree is still valid. Clearing auth first
+      // makes the vendor/admin layout return null mid-flight, and the replace then
+      // dispatches into a navigator that is being torn down.
+      router.replace("/(auth)/login");
+
       dispatch(logoutAction());
-      await AsyncStorage.removeItem("auth");
-      await SecureStore.deleteItemAsync("access_token");
-      // Navigate to "/" first so (tabs) is mounted in the stack,
-      // then push login on top. This means router.back() from login
-      // always reveals an already-rendered (tabs) — no fresh mount,
-      // no white screen, for any role re-login.
-      router.replace("/");
-      setTimeout(() => router.push("/(auth)/login"), 50);
+      AsyncStorage.removeItem("auth").catch(() => {});
+      SecureStore.deleteItemAsync("access_token").catch(() => {});
     }
   };
 

@@ -156,7 +156,7 @@ export default function AdminWithdrawEarnings() {
         <Pressable
           className="mt-6 py-2"
           onPress={() =>
-            router.push("/(admin)/payment-settings/forgot-pin" as any)
+            router.push("/admin/payment-settings/forgot-pin" as any)
           }
         >
           <Text className="text-system-blue-light text-center font-semibold">

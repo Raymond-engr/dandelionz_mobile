@@ -19,12 +19,12 @@ export default function AdminSettlementsMenu() {
     {
       label: "Summary",
       icon: "assessment",
-      href: "/(admin)/settlements/summary",
+      href: "/admin/settlements/summary",
     },
     {
       label: "Transaction History",
       icon: "history",
-      href: "/(admin)/settlements/history",
+      href: "/admin/settlements/history",
     },
   ];
 
@@ -32,12 +32,12 @@ export default function AdminSettlementsMenu() {
     {
       label: "Vendor Settlements",
       icon: "storefront",
-      href: "/(admin)/settlements/vendor",
+      href: "/admin/settlements/vendor",
     },
     {
       label: "Payout Management",
       icon: "payments",
-      href: "/(admin)/settlements/payout",
+      href: "/admin/settlements/payout",
     },
   ];
 
@@ -92,7 +92,7 @@ export default function AdminSettlementsMenu() {
           
           <View className="px-4 mt-2">
             <TouchableOpacity
-              onPress={() => router.push("/(admin)/settlements/disputes" as any)}
+              onPress={() => router.push("/admin/settlements/disputes" as any)}
               className="bg-white rounded-2xl border border-gray-100 p-4 flex-row items-center justify-between"
             >
               <View className="flex-row items-center gap-3">

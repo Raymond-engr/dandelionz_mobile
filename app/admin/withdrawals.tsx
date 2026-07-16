@@ -94,7 +94,7 @@ export default function AdminWithdrawalList() {
         renderItem={({ item }) => (
           <View>
             <TouchableOpacity
-              onPress={() => router.push(`/(admin)/withdrawals/${item.id}` as any)}
+              onPress={() => router.push(`/admin/withdrawals/${item.id}` as any)}
               className="p-[21px] flex-row items-center justify-between"
             >
               <View className="flex-1">

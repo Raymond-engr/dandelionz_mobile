@@ -156,16 +156,16 @@ export function resolveNotificationUrl(
       /\/(?:transactions\/orders|orders)\/([a-zA-Z0-9-]+)/,
     );
     if (orderMatch) {
-      return `/(admin)/orders/${orderMatch[1]}`;
+      return `/admin/orders/${orderMatch[1]}`;
     }
 
-    if (path === "/dashboard" || path === "/dashboard/") return "/(admin)/(tabs)";
+    if (path === "/dashboard" || path === "/dashboard/") return "/admin/(tabs)";
     
     if (path.startsWith("/account/")) {
       const subPath = path.replace("/account/", "").replace(/\/$/, "");
-      if (subPath === "faqs") return "/(admin)/account/admin-faqs";
-      if (subPath === "notifications") return "/(admin)/account/notifications";
-      return `/(admin)/account/${subPath}`;
+      if (subPath === "faqs") return "/admin/account/admin-faqs";
+      if (subPath === "notifications") return "/admin/account/notifications";
+      return `/admin/account/${subPath}`;
     }
   }
 

@@ -288,7 +288,7 @@ export default function OrderDetails() {
 
           {order.status === "CANCELED" && (order.payment_status === "PAID" || order.current_status === "PAID") && (
             <TouchableOpacity
-              onPress={() => router.push("/(admin)/settlements/disputes" as any)}
+              onPress={() => router.push("/admin/settlements/disputes" as any)}
               style={[styles.confirmBtn, { backgroundColor: "#FEF3C7", marginTop: 8 }]}
             >
               <Text style={[styles.confirmBtnText, { color: "#D97706" }]}>Manage Refund Request</Text>

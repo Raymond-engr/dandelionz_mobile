@@ -162,7 +162,7 @@ export default function AdminNewProduct() {
     try {
       await createDraft(buildFormData()).unwrap();
       Toast.show({ type: "success", text1: "Product saved as draft" });
-      router.replace("/(admin)/(tabs)/product" as any);
+      router.replace("/admin/(tabs)/product" as any);
     } catch (err: any) {
       Toast.show({
         type: "error",
@@ -181,7 +181,7 @@ export default function AdminNewProduct() {
       draftSlug = slug;
       await submitDraft(slug).unwrap();
       Toast.show({ type: "success", text1: "Product published successfully" });
-      router.replace("/(admin)/(tabs)/product" as any);
+      router.replace("/admin/(tabs)/product" as any);
     } catch (err: any) {
       if (draftSlug) {
         Toast.show({
@@ -189,7 +189,7 @@ export default function AdminNewProduct() {
           text1: "Saved as draft",
           text2: `Could not publish: ${apiError(err, "Please try again")}`,
         });
-        router.replace("/(admin)/(tabs)/product" as any);
+        router.replace("/admin/(tabs)/product" as any);
       } else {
         Toast.show({
           type: "error",

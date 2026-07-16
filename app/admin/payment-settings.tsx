@@ -11,12 +11,12 @@ export default function AdminPaymentSettingsMenu() {
   const insets = useSafeAreaInsets();
 
   const securityItems = [
-    { label: "Change Payment PIN", icon: "lock-outline", href: "/(admin)/payment-settings/pin" },
-    { label: "Forgot Payment PIN", icon: "help-outline", href: "/(admin)/payment-settings/forgot-pin" },
+    { label: "Change Payment PIN", icon: "lock-outline", href: "/admin/payment-settings/pin" },
+    { label: "Forgot Payment PIN", icon: "help-outline", href: "/admin/payment-settings/forgot-pin" },
   ];
 
   const withdrawalItems = [
-    { label: "Store Payment Option", icon: "account-balance", href: "/(admin)/payment-settings/bank" },
+    { label: "Store Payment Option", icon: "account-balance", href: "/admin/payment-settings/bank" },
   ];
 
   const renderItem = (item: any) => (

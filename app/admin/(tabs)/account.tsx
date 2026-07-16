@@ -121,15 +121,15 @@ export default function AdminAccountScreen() {
       <View>
         <MenuRow
           label="My Profile"
-          onPress={() => router.push("/(admin)/account/profile" as any)}
+          onPress={() => router.push("/admin/account/profile" as any)}
         />
         <MenuRow
           label="Notification"
-          onPress={() => router.push("/(admin)/account/notifications" as any)}
+          onPress={() => router.push("/admin/account/notifications" as any)}
         />
         <MenuRow
           label="Payment Settings"
-          onPress={() => router.push("/(admin)/payment-settings" as any)}
+          onPress={() => router.push("/admin/payment-settings" as any)}
           last
         />
       </View>
@@ -140,15 +140,15 @@ export default function AdminAccountScreen() {
       <View>
         <MenuRow
           label="Analytics"
-          onPress={() => router.push("/(admin)/analytics" as any)}
+          onPress={() => router.push("/admin/analytics" as any)}
         />
         <MenuRow
           label="Payments & Settlements"
-          onPress={() => router.push("/(admin)/settlements" as any)}
+          onPress={() => router.push("/admin/settlements" as any)}
         />
         <MenuRow
           label="Withdraw Earnings"
-          onPress={() => router.push("/(admin)/withdraw-earnings" as any)}
+          onPress={() => router.push("/admin/withdraw-earnings" as any)}
           last
         />
       </View>
@@ -159,7 +159,7 @@ export default function AdminAccountScreen() {
       <View>
         <MenuRow
           label="FAQs"
-          onPress={() => router.push("/(admin)/account/admin-faqs" as any)}
+          onPress={() => router.push("/admin/account/admin-faqs" as any)}
         />
         <MenuRow
           label="Terms and Conditions"

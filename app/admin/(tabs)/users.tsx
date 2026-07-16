@@ -39,7 +39,7 @@ export default function AdminUsers() {
   );
 
   const handleUserClick = (userId: string) => {
-    router.push(`/(admin)/users/${userId}` as any);
+    router.push(`/admin/users/${userId}` as any);
   };
 
   return (

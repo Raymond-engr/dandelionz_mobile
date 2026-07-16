@@ -314,7 +314,7 @@ export default function AdminNotificationManagement() {
       {/* Floating Action Button for Create */}
       <View className="absolute left-[21px] right-[21px]" style={{ bottom: insets.bottom + 40 }}>
         <TouchableOpacity
-          onPress={() => router.push("/(admin)/account/notifications/create" as any)}
+          onPress={() => router.push("/admin/account/notifications/create" as any)}
           className="bg-system-blue-light h-[55px] rounded-[12px] flex-row items-center justify-center shadow-lg shadow-blue-900/40"
         >
           <MaterialIcons name="add" size={24} color="white" />

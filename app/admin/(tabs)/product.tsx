@@ -282,7 +282,7 @@ export default function AdminProduct() {
             <View>
               <TouchableOpacity
                 onPress={() =>
-                  router.push("/(admin)/product/category/new/edit" as any)
+                  router.push("/admin/product/category/new/edit" as any)
                 }
                 className="bg-[#f5f7fa] h-[101px] rounded-[12px] flex-row items-center justify-center gap-4 mb-6 shadow-sm"
               >
@@ -311,7 +311,7 @@ export default function AdminProduct() {
                           <TouchableOpacity
                             onPress={() =>
                               router.push(
-                                `/(admin)/product/category/${item.slug}/edit` as any,
+                                `/admin/product/category/${item.slug}/edit` as any,
                               )
                             }
                             className="flex-1"
@@ -339,7 +339,7 @@ export default function AdminProduct() {
                             <TouchableOpacity
                               onPress={() =>
                                 router.push(
-                                  `/(admin)/product/category/${item.slug}/edit` as any,
+                                  `/admin/product/category/${item.slug}/edit` as any,
                                 )
                               }
                               className="p-2 bg-blue-100 rounded-lg"
@@ -434,7 +434,7 @@ export default function AdminProduct() {
                   All Products
                 </Text>
                 <TouchableOpacity
-                  onPress={() => router.push("/(admin)/product/new" as any)}
+                  onPress={() => router.push("/admin/product/new" as any)}
                   className="bg-system-blue-light p-2 rounded-lg"
                 >
                   <Ionicons name="add" size={20} color="white" />
@@ -463,7 +463,7 @@ export default function AdminProduct() {
                             <TouchableOpacity
                               onPress={() =>
                                 router.push(
-                                  `/(admin)/products/${item.slug}` as any,
+                                  `/admin/products/${item.slug}` as any,
                                 )
                               }
                               className="flex-1"
@@ -523,7 +523,7 @@ export default function AdminProduct() {
                               <TouchableOpacity
                                 onPress={() =>
                                   router.push(
-                                    `/(admin)/product/${item.slug}/edit` as any,
+                                    `/admin/product/${item.slug}/edit` as any,
                                   )
                                 }
                                 className="p-2 bg-blue-100 rounded-lg"
@@ -590,7 +590,7 @@ export default function AdminProduct() {
                           <View className="flex-row items-center gap-2">
                             <TouchableOpacity
                               onPress={() =>
-                                router.push(`/(admin)/product/${item.slug}/edit?type=draft` as any)
+                                router.push(`/admin/product/${item.slug}/edit?type=draft` as any)
                               }
                               className="p-2 bg-blue-100 rounded-lg"
                             >

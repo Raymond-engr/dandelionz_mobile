@@ -128,6 +128,10 @@ export default function VendorEditProduct() {
       Toast.show({ type: "error", text1: "Error", text2: "Please fill in name and price." });
       return;
     }
+    if (form.stock.trim() === "" || Number.isNaN(Number(form.stock)) || Number(form.stock) < 0) {
+      Toast.show({ type: "error", text1: "Error", text2: "Please enter a valid stock quantity." });
+      return;
+    }
 
     try {
       const formData = new FormData();

@@ -80,6 +80,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
     minHeight: 64,
+    paddingTop: 8,
     alignItems: "center",
     paddingHorizontal: 8,
     shadowColor: "#000",

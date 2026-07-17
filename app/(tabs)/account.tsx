@@ -73,9 +73,12 @@ export default function AccountScreen() {
     ]);
   };
 
+  // This tab stays mounted under the admin/vendor stacks, so without the role
+  // check it fires a customer-only request for whoever is logged in — a 403 for
+  // any non-customer. `profile` below already falls back to `authUser`.
   const { data: profileResponse, isLoading } = useGetCustomerProfileQuery(
     undefined,
-    { skip: !isAuthenticated },
+    { skip: !isAuthenticated || authUser?.role !== "CUSTOMER" },
   );
 
   const profile = profileResponse?.user ?? authUser;

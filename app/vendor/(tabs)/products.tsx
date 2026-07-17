@@ -8,6 +8,7 @@ import {
   useDeleteDraftMutation,
   useSubmitDraftMutation,
 } from "@/lib/api/vendorApi";
+import { captureApiError } from "@/lib/observability";
 import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -65,9 +66,14 @@ export default function VendorProductsScreen() {
       await submitDraft(slug).unwrap();
       Toast.show({ type: "success", text1: "Product submitted for approval!" });
     } catch (err: any) {
-      Toast.show({ 
-        type: "error", 
-        text1: "Error", 
+      captureApiError(err, {
+        flow: "product",
+        action: "submit-draft",
+        extra: { slug, role: "VENDOR" },
+      });
+      Toast.show({
+        type: "error",
+        text1: "Error",
         text2: apiError(err, "Failed to submit product")
       });
     }
@@ -97,9 +103,14 @@ export default function VendorProductsScreen() {
       }
       Toast.show({ type: "success", text1: "Product deleted successfully" });
     } catch (err: any) {
-      Toast.show({ 
-        type: "error", 
-        text1: "Error", 
+      captureApiError(err, {
+        flow: "product",
+        action: type === "store" ? "delete" : "delete-draft",
+        extra: { slug, productType: type, role: "VENDOR" },
+      });
+      Toast.show({
+        type: "error",
+        text1: "Error",
         text2: apiError(err, "Failed to delete product")
       });
     }

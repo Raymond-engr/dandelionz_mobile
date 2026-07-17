@@ -5,6 +5,7 @@ import {
   useCreateDraftMutation,
   useSubmitDraftMutation,
 } from "@/lib/api/vendorApi";
+import { captureApiError, trackAction } from "@/lib/observability";
 import { apiError, formatCurrency } from "@/lib/utils";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -158,12 +159,29 @@ export default function VendorNewProduct() {
     return formData;
   };
 
+  /** Describes the attempt without copying the images themselves into Sentry. */
+  const productContext = () => ({
+    role: "VENDOR",
+    name: form.name,
+    category: form.category,
+    imageCount: form.images.length,
+    imageUris: form.images,
+    hasVariants:
+      form.variants.colors.length > 0 || form.variants.sizes.length > 0,
+  });
+
   const handleSaveDraft = async () => {
+    trackAction("product/save-draft attempted", productContext());
     try {
       await createDraft(buildFormData()).unwrap();
       Toast.show({ type: "success", text1: "Product saved as draft" });
       router.replace("/vendor/(tabs)/products");
     } catch (err: any) {
+      captureApiError(err, {
+        flow: "product",
+        action: "save-draft",
+        extra: productContext(),
+      });
       Toast.show({
         type: "error",
         text1: "Error",
@@ -173,16 +191,25 @@ export default function VendorNewProduct() {
   };
 
   const handlePublish = async () => {
+    trackAction("product/publish attempted", productContext());
     let draftSlug: string | null = null;
     try {
       const res = await createDraft(buildFormData()).unwrap();
       const slug = (res as any)?.data?.slug;
       if (!slug) throw new Error("Server did not return a product slug");
       draftSlug = slug;
+      trackAction("product/publish draft created", { slug });
       await submitDraft(slug).unwrap();
       Toast.show({ type: "success", text1: "Product published successfully" });
       router.replace("/vendor/(tabs)/products");
     } catch (err: any) {
+      // draftSlug tells the two failure modes apart: unset means createDraft
+      // itself failed, set means the draft exists but submit failed.
+      captureApiError(err, {
+        flow: "product",
+        action: draftSlug ? "publish-submit" : "publish-create",
+        extra: { ...productContext(), draftSlug },
+      });
       if (draftSlug) {
         Toast.show({
           type: "error",

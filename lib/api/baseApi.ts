@@ -34,10 +34,19 @@ const baseQuery = fetchBaseQuery({
 
 const mutex = {
   isLocked: false,
-  resolveQueue: () => {},
+  /**
+   * Every caller currently parked in `wait()`.
+   *
+   * This has to be a list. Holding a single resolver meant each new waiter
+   * overwrote the previous one, so `unlock()` woke only the most recent caller
+   * and every earlier request hung forever — its promise never settled, leaving
+   * the query stuck loading with no error. Concurrent waiters are the norm
+   * here: a token refresh fires while several screens' queries are in flight.
+   */
+  waiters: [] as (() => void)[],
   wait: function () {
     return new Promise<void>((resolve) => {
-      this.resolveQueue = resolve;
+      this.waiters.push(resolve);
     });
   },
   lock: function () {
@@ -45,7 +54,10 @@ const mutex = {
   },
   unlock: function () {
     this.isLocked = false;
-    this.resolveQueue();
+    // Swap before draining so a waiter that re-parks doesn't get dropped.
+    const waiting = this.waiters;
+    this.waiters = [];
+    waiting.forEach((resolve) => resolve());
   },
 };
 

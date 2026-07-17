@@ -12,6 +12,7 @@ import {
   useSubmitDraftMutation,
   useDeleteDraftMutation,
 } from "@/lib/api/vendorApi";
+import { captureApiError } from "@/lib/observability";
 import { apiError, formatCurrency } from "@/lib/utils";
 import { Feather, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -88,6 +89,11 @@ export default function AdminProduct() {
               });
               refetchCategories();
             } catch (err: any) {
+              captureApiError(err, {
+                flow: "product",
+                action: "delete-category",
+                extra: { slug, role: "BUSINESS_ADMIN" },
+              });
               Toast.show({
                 type: "error",
                 text1: "Error",
@@ -118,6 +124,11 @@ export default function AdminProduct() {
               });
               refetchProducts();
             } catch (err: any) {
+              captureApiError(err, {
+                flow: "product",
+                action: "delete",
+                extra: { slug, name, role: "BUSINESS_ADMIN" },
+              });
               Toast.show({
                 type: "error",
                 text1: "Error",
@@ -148,6 +159,11 @@ export default function AdminProduct() {
               });
               refetchDrafts();
             } catch (err: any) {
+              captureApiError(err, {
+                flow: "product",
+                action: "delete-draft",
+                extra: { slug, name, role: "BUSINESS_ADMIN" },
+              });
               Toast.show({
                 type: "error",
                 text1: "Error",
@@ -170,6 +186,11 @@ export default function AdminProduct() {
       refetchProducts();
       refetchDrafts();
     } catch (err: any) {
+      captureApiError(err, {
+        flow: "product",
+        action: "submit-draft",
+        extra: { slug, role: "BUSINESS_ADMIN" },
+      });
       Toast.show({
         type: "error",
         text1: "Error",

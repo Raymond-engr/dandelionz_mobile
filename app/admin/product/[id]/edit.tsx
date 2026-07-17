@@ -7,6 +7,7 @@ import {
 import {
     usePatchProductMutation,
 } from "@/lib/api/vendorApi";
+import { captureApiError, trackAction } from "@/lib/observability";
 import { apiError } from "@/lib/utils";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -170,10 +171,16 @@ export default function AdminEditProduct() {
         formData.append("variant_stock", JSON.stringify(variantStock));
       }
 
+      trackAction("product/edit submitting", { slug: id, role: "BUSINESS_ADMIN" });
       await patchProduct({ slug: id!, data: formData }).unwrap();
       Toast.show({ type: "success", text1: "Product updated successfully." });
       router.back();
     } catch (err: any) {
+      captureApiError(err, {
+        flow: "product",
+        action: "edit",
+        extra: { slug: id, role: "BUSINESS_ADMIN" },
+      });
       Toast.show({
         type: "error",
         text1: "Error",

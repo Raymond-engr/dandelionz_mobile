@@ -5,6 +5,7 @@ import {
     useGetAdminProductDetailsQuery,
     useRejectProductAdminMutation,
 } from "@/lib/api/adminApi";
+import { captureApiError } from "@/lib/observability";
 import { apiError, formatCurrency } from "@/lib/utils";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
@@ -64,6 +65,11 @@ export default function ProductDetail() {
       }
       refetch();
     } catch (err: any) {
+      captureApiError(err, {
+        flow: "product",
+        action: action === "Approve Product" ? "approve" : "reject",
+        extra: { slug: id, reason: reason || undefined, role: "BUSINESS_ADMIN" },
+      });
       Toast.show({
         type: "error",
         text1: "Error",

@@ -3,6 +3,7 @@ import {
     useUpdateCategoryMutation,
     useCreateCategoryMutation,
 } from "@/lib/api/adminApi";
+import { captureApiError } from "@/lib/observability";
 import { apiError } from "@/lib/utils";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -107,9 +108,14 @@ export default function CategoryEdit() {
         router.back();
       }
     } catch (err: any) {
-      Toast.show({ 
-        type: "error", 
-        text1: "Error", 
+      captureApiError(err, {
+        flow: "product",
+        action: isNew ? "create-category" : "edit-category",
+        extra: { slug: id, role: "BUSINESS_ADMIN" },
+      });
+      Toast.show({
+        type: "error",
+        text1: "Error",
         text2: apiError(err, `Failed to ${isNew ? "create" : "update"} category.`)
       });
     }

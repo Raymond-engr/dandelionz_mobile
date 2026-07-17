@@ -8,11 +8,12 @@ import {
 } from "@/lib/api/vendorApi";
 import { captureApiError, trackAction } from "@/lib/observability";
 import { apiError } from "@/lib/utils";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -39,8 +40,14 @@ export default function VendorEditProduct() {
     id!, { skip: !isDraft }
   );
 
-  const { data: categories = [] } = useGetAllCategoriesQuery();
+  const { data: categories = [], refetch: refetchCategories } = useGetAllCategoriesQuery();
   const [patchProduct, { isLoading: isSaving }] = usePatchProductMutation();
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchCategories();
+    }, [refetchCategories]),
+  );
 
   const product = isDraft ? draftResponse?.data : storeResponse?.data;
   const isLoading = isDraft ? fetchingDraft : fetchingStore;
@@ -185,6 +192,16 @@ export default function VendorEditProduct() {
         action: "edit",
         extra: { slug: id, role: "VENDOR" },
       });
+      if (err?.data?.error?.category) {
+        setForm((f) => ({ ...f, category: "" }));
+        refetchCategories();
+        Toast.show({
+          type: "error",
+          text1: "Category no longer available",
+          text2: "Please pick a category again from the refreshed list.",
+        });
+        return;
+      }
       Toast.show({
         type: "error",
         text1: "Error",

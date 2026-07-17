@@ -9,11 +9,12 @@ import {
 } from "@/lib/api/vendorApi";
 import { captureApiError, trackAction } from "@/lib/observability";
 import { apiError } from "@/lib/utils";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -36,8 +37,14 @@ export default function AdminEditProduct() {
   const { data: productResponse, isLoading } = useGetAdminProductDetailsQuery(
     id!,
   );
-  const { data: categories = [] } = useGetAllCategoriesQuery();
+  const { data: categories = [], refetch: refetchCategories } = useGetAllCategoriesQuery();
   const [patchProduct, { isLoading: isSaving }] = usePatchProductMutation();
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchCategories();
+    }, [refetchCategories]),
+  );
 
   const product = productResponse?.data;
 
@@ -181,6 +188,16 @@ export default function AdminEditProduct() {
         action: "edit",
         extra: { slug: id, role: "BUSINESS_ADMIN" },
       });
+      if (err?.data?.error?.category) {
+        setForm((f) => ({ ...f, category: "" }));
+        refetchCategories();
+        Toast.show({
+          type: "error",
+          text1: "Category no longer available",
+          text2: "Please pick a category again from the refreshed list.",
+        });
+        return;
+      }
       Toast.show({
         type: "error",
         text1: "Error",

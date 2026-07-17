@@ -162,7 +162,7 @@ export default function AdminVendors() {
             <View>
               <TouchableOpacity
                 onPress={() =>
-                  router.push(`/(admin)/vendor/${item.user_uuid}` as any)
+                  router.push(`/admin/vendor/${item.user_uuid}` as any)
                 }
                 className="p-[21px] flex-row items-center bg-white"
               >

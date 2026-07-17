@@ -156,16 +156,16 @@ export function resolveNotificationUrl(
       /\/(?:transactions\/orders|orders)\/([a-zA-Z0-9-]+)/,
     );
     if (orderMatch) {
-      return `/(admin)/orders/${orderMatch[1]}`;
+      return `/admin/orders/${orderMatch[1]}`;
     }
 
-    if (path === "/dashboard" || path === "/dashboard/") return "/(admin)/(tabs)";
+    if (path === "/dashboard" || path === "/dashboard/") return "/admin/(tabs)";
     
     if (path.startsWith("/account/")) {
       const subPath = path.replace("/account/", "").replace(/\/$/, "");
-      if (subPath === "faqs") return "/(admin)/account/admin-faqs";
-      if (subPath === "notifications") return "/(admin)/account/notifications";
-      return `/(admin)/account/${subPath}`;
+      if (subPath === "faqs") return "/admin/account/admin-faqs";
+      if (subPath === "notifications") return "/admin/account/notifications";
+      return `/admin/account/${subPath}`;
     }
   }
 
@@ -176,6 +176,16 @@ const prettify = (f: string) =>
   f.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
 export function apiError(err: any, fallback = "Something went wrong"): string {
+  // Transport failures carry no server message. RTK Query puts a raw JS error
+  // string on `err.error` ("TypeError: Network request failed"), so these must
+  // be handled before reading the body — otherwise that string is a `string`
+  // and gets returned to the user verbatim.
+  if (err?.status === "FETCH_ERROR")
+    return "Network error. Check your connection and try again.";
+  if (err?.status === "TIMEOUT_ERROR")
+    return "The request timed out. Please try again.";
+  if (err?.status === "PARSING_ERROR") return fallback;
+
   const e = err?.data?.error ?? err?.data?.message ?? err?.error;
   if (typeof e === "string") return e;
   if (Array.isArray(e)) return e.join("\n");
@@ -187,7 +197,8 @@ export function apiError(err: any, fallback = "Something went wrong"): string {
       })
       .join("\n");
   }
-  if (err?.status === "FETCH_ERROR") return "Network error. Check your connection and try again.";
+  // Numeric statuses reach here intact: they carry no `err.error`, so the body
+  // extraction above finds nothing and falls through.
   if (err?.status === 413) return "Your images are too large. Try fewer or smaller photos.";
   return fallback;
 }

@@ -105,7 +105,7 @@ export default function AdminDashboard() {
             </Text>
           </View>
           <TouchableOpacity
-            onPress={() => router.push("/(admin)/account/notifications" as any)}
+            onPress={() => router.push("/admin/account/notifications" as any)}
             className="w-10 h-10 items-center justify-center bg-[#F5F7FA] rounded-full"
           >
             <Ionicons name="notifications-outline" size={22} color="#030482" />
@@ -165,7 +165,7 @@ export default function AdminDashboard() {
           </Text>
           <View className="gap-3">
             <TouchableOpacity
-              onPress={() => router.push("/(admin)/(tabs)/orders" as any)}
+              onPress={() => router.push("/admin/(tabs)/orders" as any)}
               className="flex-row items-center justify-between p-4 bg-white rounded-xl border border-gray-100"
             >
               <View className="flex-row items-center gap-3">
@@ -180,7 +180,7 @@ export default function AdminDashboard() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => router.push("/(admin)/(tabs)/vendor" as any)}
+              onPress={() => router.push("/admin/(tabs)/vendor" as any)}
               className="flex-row items-center justify-between p-4 bg-white rounded-xl border border-gray-100"
             >
               <View className="flex-row items-center gap-3">

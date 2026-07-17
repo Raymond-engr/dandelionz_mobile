@@ -124,7 +124,7 @@ export default function AdminOrders() {
               <View>
                 <TouchableOpacity
                   onPress={() =>
-                    router.push(`/(admin)/orders/${item.order_id}` as any)
+                    router.push(`/admin/orders/${item.order_id}` as any)
                   }
                   className="p-[21px] flex-row justify-between items-center"
                 >

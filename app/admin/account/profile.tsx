@@ -220,7 +220,7 @@ export default function AdminProfileScreen() {
               />
               <TouchableOpacity
                 onPress={() =>
-                  router.push("/(admin)/account/change-password" as any)
+                  router.push("/admin/account/change-password" as any)
                 }
               >
                 <Text className="text-system-blue-light font-bold mt-2">

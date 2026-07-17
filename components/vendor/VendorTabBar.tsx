@@ -98,7 +98,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
-    height: 64,
+    minHeight: 64,
+    paddingTop: 8,
     alignItems: "center",
     paddingHorizontal: 8,
     ...Platform.select({

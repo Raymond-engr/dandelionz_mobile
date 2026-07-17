@@ -5,11 +5,13 @@ import {
   useCreateDraftMutation,
   useSubmitDraftMutation,
 } from "@/lib/api/vendorApi";
+import { captureApiError, trackAction } from "@/lib/observability";
 import { apiError, formatCurrency } from "@/lib/utils";
+import { useFocusEffect } from "@react-navigation/native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useCallback } from "react";
 import {
   Alert,
   Image,
@@ -30,9 +32,15 @@ export default function VendorNewProduct() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const { data: categories = [] } = useGetAllCategoriesQuery();
+  const { data: categories = [], refetch: refetchCategories } = useGetAllCategoriesQuery();
   const [createDraft, { isLoading: isSavingDraft }] = useCreateDraftMutation();
   const [submitDraft, { isLoading: isSubmitting }] = useSubmitDraftMutation();
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchCategories();
+    }, [refetchCategories]),
+  );
 
   const [step, setStep] = React.useState<Step>("basic");
   const [form, setForm] = React.useState({
@@ -158,12 +166,39 @@ export default function VendorNewProduct() {
     return formData;
   };
 
+  /** Describes the attempt without copying the images themselves into Sentry. */
+  const productContext = () => ({
+    role: "VENDOR",
+    name: form.name,
+    category: form.category,
+    imageCount: form.images.length,
+    imageUris: form.images,
+    hasVariants:
+      form.variants.colors.length > 0 || form.variants.sizes.length > 0,
+  });
+
   const handleSaveDraft = async () => {
+    trackAction("product/save-draft attempted", productContext());
     try {
       await createDraft(buildFormData()).unwrap();
       Toast.show({ type: "success", text1: "Product saved as draft" });
       router.replace("/vendor/(tabs)/products");
     } catch (err: any) {
+      captureApiError(err, {
+        flow: "product",
+        action: "save-draft",
+        extra: productContext(),
+      });
+      if (err?.data?.error?.category) {
+        setForm((f) => ({ ...f, category: "" }));
+        refetchCategories();
+        Toast.show({
+          type: "error",
+          text1: "Category no longer available",
+          text2: "Please pick a category again from the refreshed list.",
+        });
+        return;
+      }
       Toast.show({
         type: "error",
         text1: "Error",
@@ -173,16 +208,35 @@ export default function VendorNewProduct() {
   };
 
   const handlePublish = async () => {
+    trackAction("product/publish attempted", productContext());
     let draftSlug: string | null = null;
     try {
       const res = await createDraft(buildFormData()).unwrap();
       const slug = (res as any)?.data?.slug;
       if (!slug) throw new Error("Server did not return a product slug");
       draftSlug = slug;
+      trackAction("product/publish draft created", { slug });
       await submitDraft(slug).unwrap();
       Toast.show({ type: "success", text1: "Product published successfully" });
       router.replace("/vendor/(tabs)/products");
     } catch (err: any) {
+      // draftSlug tells the two failure modes apart: unset means createDraft
+      // itself failed, set means the draft exists but submit failed.
+      captureApiError(err, {
+        flow: "product",
+        action: draftSlug ? "publish-submit" : "publish-create",
+        extra: { ...productContext(), draftSlug },
+      });
+      if (!draftSlug && err?.data?.error?.category) {
+        setForm((f) => ({ ...f, category: "" }));
+        refetchCategories();
+        Toast.show({
+          type: "error",
+          text1: "Category no longer available",
+          text2: "Please pick a category again from the refreshed list.",
+        });
+        return;
+      }
       if (draftSlug) {
         Toast.show({
           type: "error",

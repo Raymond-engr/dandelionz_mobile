@@ -11,7 +11,7 @@ import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -28,6 +28,8 @@ import Toast from "react-native-toast-message";
 interface NominatimResult {
   place_id: number;
   display_name: string;
+  lat: string;
+  lon: string;
 }
 
 const InputField = ({
@@ -78,25 +80,40 @@ export default function VendorProfileScreen() {
     accountName: "",
   });
 
+  // Coordinates for the address currently in the form. Null means the address text
+  // has no coordinates we trust, in which case the server geocodes it on our behalf.
+  const [coords, setCoords] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+
   const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    if (profileData?.data) {
-      const p = profileData.data;
-      setFormData({
-        fullName: p.user.full_name || "",
-        storeName: p.store_name || "",
-        storeDescription: p.store_description || "",
-        phoneNumber: p.user.phone_number || "",
-        address: p.address || "",
-        bankName: p.bank_name || "",
-        accountNumber: p.account_number || "",
-        accountName: p.account_name || "",
-      });
-    }
+  const hydrateForm = useCallback(() => {
+    if (!profileData?.data) return;
+    const p = profileData.data;
+    setFormData({
+      fullName: p.user.full_name || "",
+      storeName: p.store_name || "",
+      storeDescription: p.store_description || "",
+      phoneNumber: p.user.phone_number || "",
+      address: p.address || "",
+      bankName: p.bank_name || "",
+      accountNumber: p.account_number || "",
+      accountName: p.account_name || "",
+    });
+    setCoords(
+      p.store_latitude != null && p.store_longitude != null
+        ? { latitude: p.store_latitude, longitude: p.store_longitude }
+        : null
+    );
   }, [profileData]);
+
+  useEffect(() => {
+    hydrateForm();
+  }, [hydrateForm]);
 
   const searchAddress = (query: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -158,6 +175,16 @@ export default function VendorProfileScreen() {
   };
 
   const handleSave = async () => {
+    // Send coordinates when we have them. When the address was edited by hand we have
+    // none, so clear the stored pair rather than leave it pointing at the old address —
+    // the server geocodes the new text when the vendor publishes.
+    const addressChanged = formData.address !== (profileData?.data.address || "");
+    const locationFields = coords
+      ? { store_latitude: coords.latitude, store_longitude: coords.longitude }
+      : addressChanged
+        ? { store_latitude: null, store_longitude: null }
+        : {};
+
     try {
       await updateProfile({
         full_name: formData.fullName,
@@ -165,6 +192,7 @@ export default function VendorProfileScreen() {
         store_name: formData.storeName,
         store_description: formData.storeDescription,
         address: formData.address,
+        ...locationFields,
         bank_name: formData.bankName,
         account_number: formData.accountNumber,
         account_name: formData.accountName,
@@ -308,6 +336,7 @@ export default function VendorProfileScreen() {
               value={formData.address}
               onChangeText={(t) => {
                 setFormData({ ...formData, address: t });
+                setCoords(null);
                 if (isEditing) searchAddress(t);
               }}
               editable={isEditing}
@@ -330,6 +359,10 @@ export default function VendorProfileScreen() {
                         ...formData,
                         address: item.display_name,
                       });
+                      setCoords({
+                        latitude: parseFloat(item.lat),
+                        longitude: parseFloat(item.lon),
+                      });
                       setSuggestions([]);
                     }}
                     className="px-4 py-3 border-b border-gray-100 last:border-b-0"
@@ -344,9 +377,15 @@ export default function VendorProfileScreen() {
                 ))}
               </View>
             )}
+            {coords && (
+              <View className="flex-row items-center gap-1 mt-2">
+                <MaterialIcons name="check-circle" size={14} color="#16a34a" />
+                <Text className="text-[12px] text-green-600">
+                  Store location coordinates set
+                </Text>
+              </View>
+            )}
           </View>
-
-
 
           <View className="mb-6">
             <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-2">
@@ -377,7 +416,14 @@ export default function VendorProfileScreen() {
                 <Button onPress={handleSave} isLoading={isSaving}>
                   Save Changes
                 </Button>
-                <Button variant="outline" onPress={() => setIsEditing(false)}>
+                <Button
+                  variant="outline"
+                  onPress={() => {
+                    hydrateForm();
+                    setSuggestions([]);
+                    setIsEditing(false);
+                  }}
+                >
                   Cancel
                 </Button>
               </>

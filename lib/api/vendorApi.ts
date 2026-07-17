@@ -18,8 +18,8 @@ interface VendorProfile {
   store_description: string;
   business_registration_number: string;
   address: string;
-  latitude?: number;
-  longitude?: number;
+  store_latitude?: number | null;
+  store_longitude?: number | null;
   bank_name: string;
   account_number: string;
   account_name: string;
@@ -200,6 +200,8 @@ export interface VendorProfileUpdateRequest {
   store_name?: string;
   store_description?: string;
   address?: string;
+  store_latitude?: number | null;
+  store_longitude?: number | null;
   bank_name?: string;
   account_number?: string;
   account_name?: string;

@@ -32,7 +32,7 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
-const mutex = {
+export const mutex = {
   isLocked: false,
   /**
    * Every caller currently parked in `wait()`.

@@ -41,6 +41,11 @@ export default function CustomerWalletScreen() {
   const wallet = walletData?.data;
   const txns = txnData?.results || [];
   const balance = wallet?.balance ?? 0;
+  // Two buckets make up the total. Deposits are spendable at checkout only;
+  // just refunds and earnings can leave as a bank transfer, so the Withdraw
+  // button is gated on the withdrawable figure rather than the total.
+  const spendable = wallet?.spendable_balance ?? 0;
+  const withdrawable = wallet?.withdrawable_balance ?? 0;
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -121,7 +126,7 @@ export default function CustomerWalletScreen() {
             {/* Balance card */}
             <View className="mx-[21px] mt-5 mb-4 bg-system-blue-dark rounded-2xl p-6">
               <Text className="text-white/60 text-[13px] font-medium mb-1">
-                Available Balance
+                Total Balance
               </Text>
               {walletLoading ? (
                 <ActivityIndicator color="white" size="small" />
@@ -131,40 +136,75 @@ export default function CustomerWalletScreen() {
                 </Text>
               )}
 
-              {/* Stats row */}
+              {/* Bucket breakdown — the two halves behave differently, so they
+                  are labelled rather than left as one opaque number. */}
               {wallet && (
                 <View className="flex-row mt-4 gap-4">
                   <View className="flex-1 bg-white/10 rounded-xl p-3">
-                    <Text className="text-white/60 text-[11px]">Total In</Text>
+                    <Text className="text-white/60 text-[11px]">
+                      Spendable (deposits)
+                    </Text>
                     <Text className="text-white text-[14px] font-bold mt-1">
-                      {formatCurrency(wallet.total_credits)}
+                      {formatCurrency(spendable)}
+                    </Text>
+                    <Text className="text-white/50 text-[10px] mt-1">
+                      Use at checkout
                     </Text>
                   </View>
                   <View className="flex-1 bg-white/10 rounded-xl p-3">
-                    <Text className="text-white/60 text-[11px]">Total Out</Text>
+                    <Text className="text-white/60 text-[11px]">Withdrawable</Text>
                     <Text className="text-white text-[14px] font-bold mt-1">
-                      {formatCurrency(wallet.total_debits)}
+                      {formatCurrency(withdrawable)}
+                    </Text>
+                    <Text className="text-white/50 text-[10px] mt-1">
+                      Refunds &amp; earnings
                     </Text>
                   </View>
                 </View>
               )}
 
-              {/* Withdraw button */}
-              <TouchableOpacity
-                onPress={() => router.push("/account/wallet/withdraw" as any)}
-                disabled={balance <= 0}
-                className={`mt-5 py-3 rounded-xl items-center ${
-                  balance > 0 ? "bg-white" : "bg-white/30"
-                }`}
-              >
-                <Text
-                  className={`text-[15px] font-bold ${
-                    balance > 0 ? "text-system-blue-dark" : "text-white/50"
+              {wallet && (
+                <View className="flex-row justify-between mt-3">
+                  <Text className="text-white/50 text-[11px]">
+                    Total in {formatCurrency(wallet.total_credits)}
+                  </Text>
+                  <Text className="text-white/50 text-[11px]">
+                    Total out {formatCurrency(wallet.total_debits)}
+                  </Text>
+                </View>
+              )}
+
+              {/* Actions */}
+              <View className="flex-row mt-5 gap-3">
+                <TouchableOpacity
+                  onPress={() => router.push("/account/wallet/deposit" as any)}
+                  className="flex-1 py-3 rounded-xl items-center bg-white"
+                >
+                  <Text className="text-[15px] font-bold text-system-blue-dark">
+                    Fund Wallet
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Gated on the withdrawable bucket: a balance made up entirely
+                    of deposits cannot be paid out. */}
+                <TouchableOpacity
+                  onPress={() => router.push("/account/wallet/withdraw" as any)}
+                  disabled={withdrawable <= 0}
+                  className={`flex-1 py-3 rounded-xl items-center border ${
+                    withdrawable > 0
+                      ? "bg-white/10 border-white/60"
+                      : "bg-white/5 border-white/20"
                   }`}
                 >
-                  Withdraw to Bank
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    className={`text-[15px] font-bold ${
+                      withdrawable > 0 ? "text-white" : "text-white/40"
+                    }`}
+                  >
+                    Withdraw to Bank
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Refund info hint — shown when balance > 0 */}
@@ -177,8 +217,8 @@ export default function CustomerWalletScreen() {
                   style={{ marginTop: 1 }}
                 />
                 <Text className="text-[12px] text-blue-700 flex-1">
-                  Refunds from cancelled orders are credited here. Withdraw to
-                  your bank anytime.
+                  Money you add yourself is spendable at checkout but cannot be
+                  withdrawn. Only refunds and earnings can be sent to your bank.
                 </Text>
               </View>
             )}

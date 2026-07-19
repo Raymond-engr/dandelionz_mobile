@@ -2,23 +2,20 @@ import { Button } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
 import {
+    hasCompletePayoutDetails,
+    useGetCustomerPaymentSettingsQuery,
     useGetCustomerWalletQuery,
     useRequestCustomerWithdrawalMutation,
 } from "@/lib/api/customerApi";
-import {
-    useGetBanksQuery,
-    useVerifyBankAccountMutation,
-} from "@/lib/api/vendorApi";
 import { apiError, formatCurrency } from "@/lib/utils";
+import { MIN_WITHDRAWAL, isWithdrawFormValid } from "@/lib/wallet";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
     ActivityIndicator,
     Alert,
-    FlatList,
     KeyboardAvoidingView,
-    Modal,
     Platform,
     ScrollView,
     Text,
@@ -29,67 +26,25 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
-const MIN_WITHDRAWAL = 500;
-
 export default function CustomerWithdrawScreen() {
   const insets = useSafeAreaInsets();
 
   // Wallet
   const { data: walletData } = useGetCustomerWalletQuery();
-  const balance = walletData?.data?.balance ?? 0;
+  // Withdrawals draw from the withdrawable bucket only - deposited funds are spendable at
+  // checkout but can never leave as a bank transfer, so showing the total here would
+  // overstate what the server will actually let through.
+  const balance =
+    walletData?.data?.withdrawable_balance ?? walletData?.data?.balance ?? 0;
+  // The server enforces the real minimum and reports it; MIN_WITHDRAWAL is the value shown
+  // before the wallet response arrives.
+  const minWithdrawal = walletData?.data?.min_withdrawal ?? MIN_WITHDRAWAL;
 
-  // Bank selection
-  const { data: banksData } = useGetBanksQuery();
-  const [bankSearch, setBankSearch] = useState("");
-  const [selectedBank, setSelectedBank] = useState<{
-    name: string;
-    code: string;
-  } | null>(null);
-  const [bankModalOpen, setBankModalOpen] = useState(false);
-
-  const filteredBanks = useMemo(() => {
-    const banks = banksData?.data ?? [];
-    if (!bankSearch.trim()) return banks;
-    return banks.filter((b: any) =>
-      b.name.toLowerCase().includes(bankSearch.toLowerCase()),
-    );
-  }, [banksData, bankSearch]);
-
-  // Account verification
-  const [accountNumber, setAccountNumber] = useState("");
-  const [accountName, setAccountName] = useState("");
-  const [verifyAccount, { isLoading: isVerifying }] =
-    useVerifyBankAccountMutation();
-
-  const handleVerify = async () => {
-    if (!selectedBank) {
-      Toast.show({ type: "error", text1: "Please select a bank first." });
-      return;
-    }
-    if (accountNumber.length !== 10) {
-      Toast.show({ type: "error", text1: "Account number must be 10 digits." });
-      return;
-    }
-    try {
-      const res = await verifyAccount({
-        account_number: accountNumber,
-        bank_code: selectedBank.code,
-      }).unwrap();
-      setAccountName(res.data?.account_name || "");
-      Toast.show({
-        type: "success",
-        text1: "Account verified ✓",
-        text2: res.data?.account_name,
-      });
-    } catch (err: any) {
-      setAccountName("");
-      Toast.show({
-        type: "error",
-        text1: "Verification Failed",
-        text2: apiError(err, "Could not verify account. Check your details."),
-      });
-    }
-  };
+  // Saved payout details — the withdrawal request no longer carries bank data.
+  const { data: settingsResponse, isLoading: isLoadingSettings } =
+    useGetCustomerPaymentSettingsQuery();
+  const settings = settingsResponse?.data;
+  const payoutReady = hasCompletePayoutDetails(settings);
 
   // Withdrawal
   const [amount, setAmount] = useState("");
@@ -98,20 +53,19 @@ export default function CustomerWithdrawScreen() {
     useRequestCustomerWithdrawalMutation();
 
   const numericAmount = parseFloat(amount) || 0;
-  const canWithdraw =
-    accountName.length > 0 &&
-    selectedBank !== null &&
-    accountNumber.length === 10 &&
-    numericAmount >= MIN_WITHDRAWAL &&
-    numericAmount <= balance &&
-    pin.length === 4;
+  const canWithdraw = isWithdrawFormValid({
+    amount: numericAmount,
+    pin,
+    balance,
+    minimum: minWithdrawal,
+  });
 
   const handleWithdraw = () => {
     if (!canWithdraw) return;
 
     Alert.alert(
       "Confirm Withdrawal",
-      `Send ${formatCurrency(numericAmount)} to ${accountName} (${selectedBank!.name} ···${accountNumber.slice(-4)})?`,
+      `Send ${formatCurrency(numericAmount)} to ${settings?.account_name} (${settings?.bank_name} ···${(settings?.account_number ?? "").slice(-4)})?`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -121,10 +75,6 @@ export default function CustomerWithdrawScreen() {
               const res = await requestWithdrawal({
                 amount: numericAmount,
                 pin,
-                bank_name: selectedBank!.name,
-                bank_code: selectedBank!.code,
-                account_number: accountNumber,
-                account_name: accountName,
               }).unwrap();
               Toast.show({
                 type: "success",
@@ -145,22 +95,67 @@ export default function CustomerWithdrawScreen() {
     );
   };
 
+  const renderHeader = () => (
+    <View className="flex-row items-center px-4 py-4 bg-white border-b border-gray-100">
+      <TouchableOpacity onPress={() => router.back()} className="w-10">
+        <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
+      </TouchableOpacity>
+      <Text className="text-[20px] font-bold text-system-blue-dark flex-1 text-center">
+        Withdraw to Bank
+      </Text>
+      <View className="w-10" />
+    </View>
+  );
+
+  if (isLoadingSettings) {
+    return (
+      <View className="flex-1 bg-[#F5F7FA]" style={{ paddingTop: insets.top }}>
+        {renderHeader()}
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      </View>
+    );
+  }
+
+  if (!payoutReady) {
+    return (
+      <View className="flex-1 bg-[#F5F7FA]" style={{ paddingTop: insets.top }}>
+        {renderHeader()}
+        <View className="flex-1 items-center justify-center px-[21px]">
+          <View className="w-16 h-16 rounded-full bg-blue-50 items-center justify-center mb-5">
+            <MaterialIcons
+              name="account-balance"
+              size={30}
+              color={Colors.primary}
+            />
+          </View>
+          <Text className="text-[18px] font-bold text-system-blue-dark text-center mb-2">
+            Add your bank account
+          </Text>
+          <Text className="text-[14px] text-gray-500 text-center mb-6">
+            Add and verify your bank account in Payment Settings before
+            withdrawing.
+          </Text>
+          <Button
+            onPress={() =>
+              router.push("/account/payment-settings/payout-details" as any)
+            }
+          >
+            Add Payout Details
+          </Button>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-[#F5F7FA]"
       style={{ paddingTop: insets.top }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      {/* Header */}
-      <View className="flex-row items-center px-4 py-4 bg-white border-b border-gray-100">
-        <TouchableOpacity onPress={() => router.back()} className="w-10">
-          <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
-        </TouchableOpacity>
-        <Text className="text-[20px] font-bold text-system-blue-dark flex-1 text-center">
-          Withdraw to Bank
-        </Text>
-        <View className="w-10" />
-      </View>
+      {renderHeader()}
 
       <ScrollView
         contentContainerStyle={{ padding: 21, paddingBottom: insets.bottom + 60 }}
@@ -173,6 +168,28 @@ export default function CustomerWithdrawScreen() {
           <Text className="text-[18px] font-bold text-system-blue-dark">
             {formatCurrency(balance)}
           </Text>
+        </View>
+
+        {/* Saved destination */}
+        <Text className="text-[13px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+          Destination
+        </Text>
+        <View className="bg-white rounded-2xl border border-gray-100 px-4 py-4 mb-6">
+          <Text className="text-[15px] font-bold text-system-blue-dark">
+            {settings?.account_name}
+          </Text>
+          <Text className="text-[13px] text-gray-500 mt-1">
+            {settings?.bank_name} ···{(settings?.account_number ?? "").slice(-4)}
+          </Text>
+          <TouchableOpacity
+            onPress={() =>
+              router.push("/account/payment-settings/payout-details" as any)
+            }
+          >
+            <Text className="text-[12px] text-system-blue-light mt-3">
+              Change payout details →
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Amount */}
@@ -193,87 +210,9 @@ export default function CustomerWithdrawScreen() {
           />
         </View>
         <Text className="text-[12px] text-gray-400 mb-6">
-          Minimum: {formatCurrency(MIN_WITHDRAWAL)} · Maximum:{" "}
+          Minimum: {formatCurrency(minWithdrawal)} · Maximum:{" "}
           {formatCurrency(balance)}
         </Text>
-
-        <Divider className="mb-6" />
-
-        {/* Bank selection */}
-        <Text className="text-[13px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-          Bank Details
-        </Text>
-
-        <TouchableOpacity
-          onPress={() => setBankModalOpen(true)}
-          className="bg-white rounded-2xl border border-gray-100 px-4 py-4 mb-3 flex-row items-center justify-between"
-        >
-          <Text
-            className={
-              selectedBank
-                ? "text-system-blue-dark font-semibold text-[15px]"
-                : "text-gray-400 text-[15px]"
-            }
-          >
-            {selectedBank?.name ?? "Select bank"}
-          </Text>
-          <MaterialIcons name="keyboard-arrow-down" size={22} color="#9CA3AF" />
-        </TouchableOpacity>
-
-        {/* Account number + verify */}
-        <View className="bg-white rounded-2xl border border-gray-100 flex-row items-center px-4 mb-3">
-          <TextInput
-            value={accountNumber}
-            onChangeText={(v) => {
-              setAccountNumber(v.replace(/\D/g, "").slice(0, 10));
-              setAccountName("");
-            }}
-            keyboardType="number-pad"
-            placeholder="10-digit account number"
-            placeholderTextColor="#9CA3AF"
-            maxLength={10}
-            className="flex-1 text-[15px] text-system-blue-dark py-4"
-          />
-          <TouchableOpacity
-            onPress={handleVerify}
-            disabled={
-              isVerifying || accountNumber.length !== 10 || !selectedBank
-            }
-            className={`px-3 py-1.5 rounded-lg ml-2 ${
-              isVerifying || accountNumber.length !== 10 || !selectedBank
-                ? "bg-gray-100"
-                : "bg-system-blue-light/10"
-            }`}
-          >
-            {isVerifying ? (
-              <ActivityIndicator size="small" color={Colors.primary} />
-            ) : (
-              <Text
-                className={`text-[13px] font-bold ${
-                  accountNumber.length === 10 && selectedBank
-                    ? "text-system-blue-light"
-                    : "text-gray-400"
-                }`}
-              >
-                Verify
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Verified account name */}
-        {accountName ? (
-          <View className="bg-green-50 rounded-xl px-4 py-3 mb-3 flex-row items-center gap-2 border border-green-100">
-            <MaterialIcons name="check-circle" size={18} color="#059669" />
-            <Text className="text-[14px] font-bold text-green-700">
-              {accountName}
-            </Text>
-          </View>
-        ) : (
-          <Text className="text-[12px] text-gray-400 mb-3">
-            Enter your account number and tap Verify to confirm account name.
-          </Text>
-        )}
 
         <Divider className="my-4" />
 
@@ -298,7 +237,7 @@ export default function CustomerWithdrawScreen() {
           onPress={() => router.push("/account/wallet/set-pin" as any)}
         >
           <Text className="text-[12px] text-system-blue-light mb-6">
-            Don't have a PIN? Set one here →
+            Don&apos;t have a PIN? Set one here →
           </Text>
         </TouchableOpacity>
 
@@ -319,69 +258,6 @@ export default function CustomerWithdrawScreen() {
           )}
         </Button>
       </ScrollView>
-
-      {/* Bank selection modal */}
-      <Modal
-        visible={bankModalOpen}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
-          <View className="flex-row items-center px-4 py-4 border-b border-gray-100">
-            <Text className="text-[18px] font-bold text-system-blue-dark flex-1">
-              Select Bank
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                setBankModalOpen(false);
-                setBankSearch("");
-              }}
-            >
-              <MaterialIcons name="close" size={24} color="#9CA3AF" />
-            </TouchableOpacity>
-          </View>
-          <View className="px-4 py-3">
-            <View className="bg-gray-50 rounded-xl flex-row items-center px-3">
-              <MaterialIcons name="search" size={18} color="#9CA3AF" />
-              <TextInput
-                value={bankSearch}
-                onChangeText={setBankSearch}
-                placeholder="Search banks..."
-                placeholderTextColor="#9CA3AF"
-                className="flex-1 py-3 ml-2 text-[15px] text-system-blue-dark"
-                autoFocus
-              />
-            </View>
-          </View>
-          <FlatList
-            data={filteredBanks}
-            keyExtractor={(item: any) => item.code}
-            renderItem={({ item }: any) => (
-              <TouchableOpacity
-                onPress={() => {
-                  setSelectedBank({ name: item.name, code: item.code });
-                  setAccountName("");
-                  setBankModalOpen(false);
-                  setBankSearch("");
-                }}
-                className="px-4 py-4 border-b border-gray-50 flex-row items-center justify-between"
-              >
-                <Text className="text-[15px] text-system-blue-dark">
-                  {item.name}
-                </Text>
-                {selectedBank?.code === item.code && (
-                  <MaterialIcons
-                    name="check"
-                    size={18}
-                    color={Colors.primary}
-                  />
-                )}
-              </TouchableOpacity>
-            )}
-            keyboardShouldPersistTaps="handled"
-          />
-        </View>
-      </Modal>
     </KeyboardAvoidingView>
   );
 }

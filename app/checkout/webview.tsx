@@ -1,5 +1,7 @@
 import { Colors } from "@/constants/theme";
+import { useLazyVerifyWalletDepositQuery } from "@/lib/api/customerApi";
 import { publicApi } from "@/lib/api/publicApi";
+import { classifyReference } from "@/lib/payments";
 import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -7,6 +9,7 @@ import React, { useRef, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView, WebViewNavigation } from "react-native-webview";
+import Toast from "react-native-toast-message";
 
 /**
  * Paystack WebView for payment.
@@ -23,6 +26,12 @@ import { WebView, WebViewNavigation } from "react-native-webview";
  * before each navigation request — catching the redirect URL before Android's
  * WebView coalesces the 302 chain and makes it invisible to
  * onNavigationStateChange.
+ *
+ * This screen is shared by three flows — order checkout, installment payments
+ * and wallet top-ups — which differ only in which endpoint verifies the
+ * reference and which screen the user lands on afterwards. classifyReference()
+ * makes that choice; see lib/payments.ts. Deposits are routed back to the
+ * wallet rather than /checkout/success, whose copy is all order messaging.
  */
 
 const RETURN_HOSTS = ["api.dandelionz.com.ng", "app.dandelionz.com.ng"];
@@ -61,10 +70,12 @@ export default function PaystackWebView() {
     url,
     orderId,
     plan_id: planIdParam,
+    reference: referenceParam,
   } = useLocalSearchParams<{
     url: string;
     orderId?: string;
     plan_id?: string;
+    reference?: string;
   }>();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -74,6 +85,7 @@ export default function PaystackWebView() {
   const [triggerVerify] = publicApi.useLazyVerifyPaymentQuery();
   const [triggerInstallmentVerify] =
     publicApi.useLazyVerifyInstallmentPaymentQuery();
+  const [triggerDepositVerify] = useLazyVerifyWalletDepositQuery();
 
   const handleCallbackUrl = async (
     reference: string | null,
@@ -81,10 +93,30 @@ export default function PaystackWebView() {
   ) => {
     setIsVerifying(true);
     const planId = planIdParam || extractPlanId(callbackUrl);
+    // The callback URL is the source of truth for the reference; the launch
+    // param is only a fallback for the case where Paystack returns us to a URL
+    // that carries no reference at all.
+    const effectiveReference = reference ?? referenceParam ?? null;
+    const kind = classifyReference(effectiveReference, planId);
 
     try {
+      if (kind === "deposit") {
+        // A deposit with no reference cannot be verified, and crediting nothing
+        // silently would be worse than saying so.
+        if (!effectiveReference) throw new Error("Missing deposit reference");
+        await triggerDepositVerify({ reference: effectiveReference }).unwrap();
+
+        Toast.show({
+          type: "success",
+          text1: "Wallet funded",
+          text2: "Your balance has been topped up.",
+        });
+        router.replace("/account/wallet" as any);
+        return;
+      }
+
       if (reference) {
-        if (planId) {
+        if (kind === "installment") {
           await triggerInstallmentVerify({ reference }).unwrap();
         } else {
           await triggerVerify({ reference }).unwrap();
@@ -101,6 +133,17 @@ export default function PaystackWebView() {
       });
     } catch (err: any) {
       setIsVerifying(false);
+      if (kind === "deposit") {
+        Alert.alert(
+          "Top-up Verification Failed",
+          apiError(
+            err,
+            "We could not confirm your top-up. If you were debited, contact support.",
+          ),
+          [{ text: "OK", onPress: () => router.replace("/account/wallet" as any) }],
+        );
+        return;
+      }
       Alert.alert(
         "Payment Verification Failed",
         apiError(err, "We could not confirm your payment. Please contact support."),

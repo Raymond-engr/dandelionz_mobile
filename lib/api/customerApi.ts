@@ -59,9 +59,15 @@ interface NotificationStats {
 
 export interface CustomerWalletBalance {
   balance: number;
+  /** Deposited funds: spendable at checkout, never withdrawable to a bank. */
+  spendable_balance: number;
+  /** Refunds and earnings: both spendable and withdrawable. */
+  withdrawable_balance: number;
   total_credits: number;
   total_debits: number;
   this_month_earnings: number;
+  /** Server-enforced minimum withdrawal, so the client never disagrees with it. */
+  min_withdrawal: number;
 }
 
 export interface CustomerWalletTransaction {
@@ -70,6 +76,50 @@ export interface CustomerWalletTransaction {
   amount: string;
   description: string;
   created_at: string;
+}
+
+/** Response of initializing a top-up: the Paystack page to open, plus our own reference. */
+export interface WalletDepositInit {
+  reference: string;
+  amount: number;
+  authorization_url: string;
+}
+
+/** A single wallet top-up record. Deposits land in the spendable bucket only. */
+export interface WalletDeposit {
+  id: number;
+  reference: string;
+  amount: number;
+  status: string;
+  authorization_url: string;
+  paid_at: string | null;
+  created_at: string;
+}
+
+export interface CustomerPaymentSettings {
+  bank_name: string;
+  bank_code: string;
+  account_number: string;
+  account_name: string;
+  recipient_code: string;
+  has_pin: boolean;
+}
+
+/**
+ * A payout is only possible when every bank field is saved. `bank_code` is
+ * required too: without it the backend cannot create a Paystack transfer
+ * recipient, so a settings record that only looks complete still fails.
+ */
+export function hasCompletePayoutDetails(
+  settings?: Partial<CustomerPaymentSettings> | null,
+): boolean {
+  if (!settings) return false;
+  return Boolean(
+    settings.bank_name &&
+      settings.bank_code &&
+      settings.account_number &&
+      settings.account_name,
+  );
 }
 
 export const customerApi = baseApi.injectEndpoints({
@@ -91,16 +141,34 @@ export const customerApi = baseApi.injectEndpoints({
       providesTags: ['CustomerWallet'],
     }),
 
-    requestCustomerWithdrawal: builder.mutation<
-      { success: boolean; message: string; reference: string },
+    getCustomerPaymentSettings: builder.query<
+      { success: boolean; data: CustomerPaymentSettings },
+      void
+    >({
+      query: () => '/user/customer/payment-settings/',
+      providesTags: ['CustomerPaymentSettings'],
+    }),
+
+    updateCustomerPaymentSettings: builder.mutation<
+      { success: boolean; message: string },
       {
-        amount: number;
-        pin: string;
         bank_name: string;
+        bank_code: string;
         account_number: string;
         account_name: string;
-        bank_code: string;
       }
+    >({
+      query: (body) => ({
+        url: '/user/customer/payment-settings/',
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['CustomerPaymentSettings'],
+    }),
+
+    requestCustomerWithdrawal: builder.mutation<
+      { success: boolean; message: string; reference: string },
+      { amount: number; pin: string }
     >({
       query: (body) => ({
         url: '/user/customer/wallet/withdraw/',
@@ -108,6 +176,59 @@ export const customerApi = baseApi.injectEndpoints({
         body,
       }),
       invalidatesTags: ['CustomerWallet'],
+    }),
+
+    /**
+     * Start a wallet top-up. Returns a Paystack authorization_url that the
+     * checkout WebView opens; the balance only moves once the deposit is
+     * verified, so nothing is invalidated here.
+     */
+    initializeWalletDeposit: builder.mutation<
+      { success: boolean; message: string; data: WalletDepositInit },
+      { amount: number }
+    >({
+      query: (body) => ({
+        url: '/transactions/wallet/deposit/',
+        method: 'POST',
+        body,
+      }),
+    }),
+
+    /**
+     * Confirm a top-up after Paystack redirects back. Used lazily from the
+     * WebView, the same way verifyPayment is for orders.
+     *
+     * A query cannot declare `invalidatesTags`, so the wallet cache is
+     * invalidated by hand once the verification succeeds — otherwise the
+     * wallet screen would show the pre-deposit balance.
+     */
+    verifyWalletDeposit: builder.query<
+      { success: boolean; message: string; data: WalletDeposit },
+      { reference: string }
+    >({
+      query: ({ reference }) => ({
+        url: `/transactions/wallet/deposit/verify/?reference=${encodeURIComponent(reference)}`,
+        method: 'GET',
+      }),
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(baseApi.util.invalidateTags(['CustomerWallet']));
+        } catch {
+          // A failed verification changes no balance, so there is nothing to refresh.
+        }
+      },
+    }),
+
+    getWalletDeposits: builder.query<
+      { count: number; next: string | null; previous: string | null; results: WalletDeposit[] },
+      { page?: number; page_size?: number } | void
+    >({
+      query: (params) => ({
+        url: '/transactions/wallet/deposits/',
+        params: params || undefined,
+      }),
+      providesTags: ['CustomerWallet'],
     }),
 
     setCustomerPaymentPin: builder.mutation<
@@ -266,5 +387,11 @@ export const {
   useGetCustomerWalletQuery,
   useGetCustomerWalletTransactionsQuery,
   useRequestCustomerWithdrawalMutation,
+  useInitializeWalletDepositMutation,
+  useVerifyWalletDepositQuery,
+  useLazyVerifyWalletDepositQuery,
+  useGetWalletDepositsQuery,
   useSetCustomerPaymentPinMutation,
+  useGetCustomerPaymentSettingsQuery,
+  useUpdateCustomerPaymentSettingsMutation,
 } = customerApi;

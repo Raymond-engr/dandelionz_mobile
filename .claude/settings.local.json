@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Read(//c/Users/PC/Documents/Dandelionz/**)",
+      "Bash(python manage.py test store.test_search --settings=e_commerce_api.test_settings)",
+      "Bash(python -u manage.py test --settings=e_commerce_api.test_settings)"
     ]
   }
 }

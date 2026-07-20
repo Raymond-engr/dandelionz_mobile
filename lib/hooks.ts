@@ -8,6 +8,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
+import { RECENT_SEARCHES_KEY } from "../hooks/use-recent-searches";
 import { useLogoutMutation } from "./api/authApi";
 import { logout as logoutAction } from "./features/auth/authSlice";
 import type { AppDispatch, RootState } from "./store";
@@ -34,7 +35,9 @@ export const useLogout = () => {
       router.replace("/(auth)/login");
 
       dispatch(logoutAction());
-      AsyncStorage.removeItem("auth").catch(() => {});
+      // Search history is per-device, not per-account, so it has to be cleared
+      // here or the next person to sign in on this device sees it.
+      AsyncStorage.multiRemove(["auth", RECENT_SEARCHES_KEY]).catch(() => {});
       SecureStore.deleteItemAsync("access_token").catch(() => {});
     }
   };

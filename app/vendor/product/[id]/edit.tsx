@@ -59,6 +59,8 @@ export default function VendorEditProduct() {
     price: "",
     stock: "",
     discount: "0",
+    brand: "",
+    tags: "",
   });
   const [images, setImages] = useState<{ id?: number; uri: string }[]>([]);
   const [deletedImageIds, setDeletedImageIds] = useState<number[]>([]);
@@ -96,6 +98,11 @@ export default function VendorEditProduct() {
         price: product.price?.toString() || "",
         stock: product.stock?.toString() || "0",
         discount: (product as any).discount?.toString() || "0",
+        brand: (product as any).brand || "",
+        // The API may return tags as a JSON array or a comma-separated string.
+        tags: Array.isArray((product as any).tags)
+          ? (product as any).tags.join(", ")
+          : (product as any).tags || "",
       });
 
       if (product.images && product.images.length > 0) {
@@ -149,6 +156,10 @@ export default function VendorEditProduct() {
       formData.append("price", form.price);
       formData.append("stock", form.stock);
       formData.append("discount", String(parseInt(form.discount || "0", 10) || 0));
+      // Always sent, unlike on create: clearing the field here should clear the
+      // stored value rather than silently leave the old one in place.
+      formData.append("brand", form.brand.trim());
+      formData.append("tags", form.tags.trim());
 
       const newImages = images.filter(
         (item) => item.uri.startsWith("file://") || item.uri.startsWith("content://"),
@@ -317,6 +328,37 @@ export default function VendorEditProduct() {
               multiline
               textAlignVertical="top"
             />
+          </View>
+
+          {/* Brand (optional) */}
+          <View className="mb-5">
+            <Text className="text-[14px] font-semibold text-system-blue-dark mb-2">
+              Brand <Text className="font-normal text-gray-400">(optional)</Text>
+            </Text>
+            <TextInput
+              className="bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6]"
+              value={form.brand}
+              onChangeText={(v) => setForm((f) => ({ ...f, brand: v }))}
+              placeholder="Brand name"
+              autoCapitalize="words"
+            />
+          </View>
+
+          {/* Tags (optional) */}
+          <View className="mb-5">
+            <Text className="text-[14px] font-semibold text-system-blue-dark mb-2">
+              Tags <Text className="font-normal text-gray-400">(optional)</Text>
+            </Text>
+            <TextInput
+              className="bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6]"
+              value={form.tags}
+              onChangeText={(v) => setForm((f) => ({ ...f, tags: v }))}
+              placeholder="waterproof, hiking, lightweight"
+              autoCapitalize="none"
+            />
+            <Text className="text-[12px] text-gray-500 mt-1">
+              Comma-separated. Tags help shoppers find this product in search.
+            </Text>
           </View>
 
           {/* Category */}

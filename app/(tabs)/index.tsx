@@ -5,6 +5,7 @@ import { ProductGrid } from "@/components/product-grid";
 import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
 import { SearchBar } from "@/components/search-bar";
 import { useGetProductsQuery } from "@/lib/api/publicApi";
+import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,15 +22,12 @@ export default function ShopScreen() {
   "use no memo";
   console.log("[Shop] Rendering ShopScreen");
   const insets = useSafeAreaInsets();
-  const [search, setSearch] = useState("");
+  const router = useRouter();
   const [filters, setFilters] = useState<Filters>({});
   const [filterOpen, setFilterOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data, isLoading, refetch } = useGetProductsQuery({
-    search: search || undefined,
-    ...filters,
-  });
+  const { data, isLoading, refetch } = useGetProductsQuery(filters);
 
   const products = data?.data ?? [];
 
@@ -54,9 +52,12 @@ export default function ShopScreen() {
         }
       >
         <View className="px-4 mb-6 pt-4">
+          {/* Tapping opens the dedicated search screen; this bar never filters
+              the shop grid in place. */}
           <SearchBar
-            value={search}
-            onChange={setSearch}
+            value=""
+            onChange={() => {}}
+            onPress={() => router.push("/search")}
             showFilter
             onFilterPress={() => setFilterOpen(true)}
           />

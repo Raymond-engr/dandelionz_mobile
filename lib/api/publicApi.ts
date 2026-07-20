@@ -160,6 +160,19 @@ type GetProductsResponse = {
   data: Product[];
 };
 
+export type SearchSuggestion = {
+  name: string;
+  slug: string;
+};
+
+type SearchSuggestionsResponse = {
+  success: boolean;
+  data: {
+    products: SearchSuggestion[];
+    categories: SearchSuggestion[];
+  };
+};
+
 // Public/Store API (no auth required)
 export const publicApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -190,6 +203,15 @@ export const publicApi = baseApi.injectEndpoints({
     >({
       query: (slug) => `/store/products/${slug}/`,
       providesTags: ["Product"],
+    }),
+
+    getSearchSuggestions: builder.query<SearchSuggestionsResponse, string>({
+      query: (q) => ({
+        url: "/store/products/suggestions/",
+        params: { q },
+      }),
+      // Deliberately untagged: suggestions are a transient typeahead aid, and
+      // invalidating them on every product mutation would refetch constantly.
     }),
 
     // Categories
@@ -486,6 +508,7 @@ export const publicApi = baseApi.injectEndpoints({
 export const {
   useGetProductsQuery,
   useGetProductBySlugQuery,
+  useGetSearchSuggestionsQuery,
   useGetCategoriesQuery,
   useGetCartQuery,
   useAddToCartMutation,

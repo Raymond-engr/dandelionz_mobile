@@ -297,8 +297,14 @@ export const customerApi = baseApi.injectEndpoints({
       invalidatesTags: ['CustomerWallet'],
     }),
 
-    getDepositRefunds: builder.query<DepositRefund[], void>({
-      query: () => ({ url: '/transactions/wallet/deposit/refunds/' }),
+    getDepositRefunds: builder.query<
+      { count: number; next: string | null; previous: string | null; results: DepositRefund[] },
+      { page?: number; page_size?: number } | void
+    >({
+      query: (params) => ({
+        url: '/transactions/wallet/deposit/refunds/',
+        params: params || undefined,
+      }),
       providesTags: ['CustomerWallet'],
     }),
 

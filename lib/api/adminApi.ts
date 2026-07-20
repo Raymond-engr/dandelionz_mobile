@@ -362,9 +362,8 @@ export interface LedgerEntry {
   bucket: "SPENDABLE" | "WITHDRAWABLE";
   entry_type: string;
   entry_type_display: string;
+  /** Always positive. `direction` carries the sign; apply it at render time. */
   amount: string;
-  /** Debits carry a minus, so a column of these sums to the net movement. */
-  signed_amount: string;
   balance_after: string;
   reference: string;
   description: string;

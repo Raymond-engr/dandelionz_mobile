@@ -10,6 +10,8 @@ import {
   useRemoveFromCartMutation,
   useRemoveFromWishlistMutation,
 } from "@/lib/api/publicApi";
+import { RecommendationRow } from "@/components/recommendation-row";
+import { useTrackProductView } from "@/hooks/use-track-product-view";
 import { apiError } from "@/lib/utils";
 import { useAppSelector } from "@/lib/hooks";
 import { Ionicons } from "@expo/vector-icons";
@@ -66,6 +68,10 @@ export default function ProductDetailScreen() {
     refetch: refetchProduct,
   } = useGetProductBySlugQuery(slug, { skip: !slug });
   const product = response?.data;
+
+  // Keyed off the resolved product rather than the route param, so a bad or
+  // unresolvable slug never records a view.
+  useTrackProductView(product?.slug);
 
   // Parse variants into { category → Set<value> }
   const variantOptions = useMemo(() => {
@@ -558,6 +564,18 @@ export default function ProductDetailScreen() {
             )}
           </View>
         </View>
+
+        {/* ── You might also like ──────────────────────────────────────────── */}
+        {/* Renders nothing when there are no related products, so the section
+            never appears as a bare heading. */}
+        {product.slug && (
+          <RecommendationRow
+            title="You might also like"
+            type="related"
+            product={product.slug}
+            className="mt-8 mb-6"
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );

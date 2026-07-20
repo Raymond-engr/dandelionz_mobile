@@ -6,6 +6,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useRecentSearches } from "@/hooks/use-recent-searches";
 import {
   useGetProductsQuery,
+  useGetRecommendationsQuery,
   useGetSearchSuggestionsQuery,
 } from "@/lib/api/publicApi";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,6 +25,9 @@ interface Filters {
 
 // Below this the suggestions endpoint returns nothing anyway, so don't ask.
 const MIN_SUGGESTION_LENGTH = 2;
+
+/** Enough to fill the empty-results screen without turning it into a feed. */
+const TRENDING_LIMIT = 8;
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
@@ -59,6 +63,18 @@ export default function SearchScreen() {
 
   const products = resultData?.data ?? [];
   const suggestions = suggestionsReady ? suggestionData?.data : undefined;
+
+  // A search that found nothing is a dead end, so offer trending products as a
+  // way back in. Only asked for once we know the search actually came back
+  // empty — not while it's still in flight.
+  const hasNoResults = Boolean(submitted) && !isFetching && products.length === 0;
+
+  const { data: trendingData } = useGetRecommendationsQuery(
+    { type: "trending", limit: TRENDING_LIMIT },
+    { skip: !hasNoResults },
+  );
+
+  const trending = trendingData?.data ?? [];
 
   const runSearch = useCallback(
     (term: string) => {
@@ -158,15 +174,31 @@ export default function SearchScreen() {
 
     if (products.length === 0) {
       return (
-        <View className="items-center px-8 py-16">
-          <Ionicons name="search-outline" size={44} color="#D1D5DB" />
-          <Text className="mt-4 text-[16px] font-semibold text-gray-900">
-            No results for “{submitted}”
-          </Text>
-          <Text className="mt-1 text-center text-[14px] text-gray-500">
-            Try a different spelling or a more general term.
-          </Text>
-        </View>
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 100 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View className="items-center px-8 py-16">
+            <Ionicons name="search-outline" size={44} color="#D1D5DB" />
+            <Text className="mt-4 text-[16px] font-semibold text-gray-900">
+              No results for “{submitted}”
+            </Text>
+            <Text className="mt-1 text-center text-[14px] text-gray-500">
+              Try a different spelling or a more general term.
+            </Text>
+          </View>
+
+          {/* Only shown once trending actually returns something — a heading
+              over an empty grid would make the dead end worse, not better. */}
+          {trending.length > 0 && (
+            <View className="border-t border-gray-100 pt-6">
+              <Text className="px-4 mb-3 text-[16px] font-semibold text-gray-900">
+                Trending right now
+              </Text>
+              <ProductGrid products={trending} />
+            </View>
+          )}
+        </ScrollView>
       );
     }
 

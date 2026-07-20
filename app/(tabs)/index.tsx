@@ -3,8 +3,11 @@ import { FilterModal } from "@/components/filter-modal";
 import { HeroSlider } from "@/components/hero-slider";
 import { ProductGrid } from "@/components/product-grid";
 import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
+import { RecommendationRow } from "@/components/recommendation-row";
 import { SearchBar } from "@/components/search-bar";
 import { useGetProductsQuery } from "@/lib/api/publicApi";
+import { useAppSelector } from "@/lib/hooks";
+import { personalizedFeed } from "@/lib/recommendations";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
@@ -26,6 +29,9 @@ export default function ShopScreen() {
   const [filters, setFilters] = useState<Filters>({});
   const [filterOpen, setFilterOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+
+  const feed = personalizedFeed(isAuthenticated);
 
   const { data, isLoading, refetch } = useGetProductsQuery(filters);
 
@@ -65,6 +71,10 @@ export default function ShopScreen() {
 
         <HeroSlider />
         <CategorySlider />
+
+        {/* Signed-in users get their own feed; everyone else gets trending
+            under an honest heading. Renders nothing when the feed is empty. */}
+        <RecommendationRow title={feed.title} type={feed.type} />
 
         <View className="px-4 mb-4">
           <Text className="text-[20px] font-bold text-system-blue-dark">

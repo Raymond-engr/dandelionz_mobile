@@ -5,6 +5,7 @@ import {
   isDepositAmountValid,
   isRefundAmountValid,
   isWithdrawFormValid,
+  planCheckoutSplit,
 } from "./wallet";
 
 describe("MIN_WITHDRAWAL", () => {
@@ -205,5 +206,49 @@ describe("isRefundAmountValid", () => {
     const check = isRefundAmountValid(100, { refundable: 0 });
     expect(check.valid).toBe(false);
     expect(check.reason).toContain("no deposited funds");
+  });
+});
+
+describe("planCheckoutSplit", () => {
+  it("puts the whole order on the card when the wallet is empty", () => {
+    expect(planCheckoutSplit(5000, 0)).toEqual({ wallet: 0, card: 5000 });
+  });
+
+  it("covers the whole order when the wallet is large enough", () => {
+    expect(planCheckoutSplit(1000, 5000)).toEqual({ wallet: 1000, card: 0 });
+  });
+
+  it("splits when the wallet covers only part", () => {
+    expect(planCheckoutSplit(5000, 2000)).toEqual({ wallet: 2000, card: 3000 });
+  });
+
+  it("never returns a negative card leg", () => {
+    // A balance larger than the order is the common case, not an edge case.
+    const { card } = planCheckoutSplit(100, 999999);
+    expect(card).toBe(0);
+  });
+
+  it("always sums back to the order total", () => {
+    for (const [total, balance] of [[5000, 2000], [1000, 5000], [750.5, 250.25]]) {
+      const { wallet, card } = planCheckoutSplit(total, balance);
+      expect(wallet + card).toBeCloseTo(total, 2);
+    }
+  });
+
+  it("treats a zero or negative total as nothing to pay", () => {
+    expect(planCheckoutSplit(0, 5000)).toEqual({ wallet: 0, card: 0 });
+    expect(planCheckoutSplit(-100, 5000)).toEqual({ wallet: 0, card: 0 });
+  });
+
+  it("falls back to the card for an unparseable balance", () => {
+    expect(planCheckoutSplit(5000, NaN)).toEqual({ wallet: 0, card: 5000 });
+  });
+
+  it("agrees with the server's plan_split on the boundary cases it mirrors", () => {
+    // Same three cases asserted in PlanSplitTests on the backend. If these drift, the
+    // number shown at checkout is a promise the server will not keep.
+    expect(planCheckoutSplit(1000, 5000)).toEqual({ wallet: 1000, card: 0 });
+    expect(planCheckoutSplit(5000, 2000)).toEqual({ wallet: 2000, card: 3000 });
+    expect(planCheckoutSplit(5000, 0)).toEqual({ wallet: 0, card: 5000 });
   });
 });

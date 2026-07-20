@@ -358,20 +358,34 @@ export const publicApi = baseApi.injectEndpoints({
         success: boolean;
         data: {
           order_id: string;
+          /** The card leg only. On a split payment this is less than total_amount. */
           amount: number;
           reference: string;
-          authorization_url: string;
-          access_code: string;
+          /** Null when the wallet covered the whole order and there is no card leg. */
+          authorization_url: string | null;
+          access_code?: string;
+          /** How much of the order the wallet paid. */
+          wallet_amount: number;
+          total_amount: number;
+          /**
+           * False when the wallet covered everything. The client must then skip the
+           * payment WebView entirely — the order is already paid.
+           */
+          requires_payment: boolean;
+          delivery_fee: number;
         };
         message: string;
       },
-      void
+      { use_wallet?: boolean; wallet_amount?: number } | void
     >({
-      query: () => ({
+      query: (body) => ({
         url: "/transactions/checkout/",
         method: "POST",
+        body: body || {},
       }),
-      invalidatesTags: ["Cart", "Order"],
+      // The wallet is debited when checkout starts, not when the card leg lands, so the
+      // balance has really changed by the time this returns.
+      invalidatesTags: ["Cart", "Order", "CustomerWallet"],
     }),
 
     initializeInstallmentCheckout: builder.mutation<

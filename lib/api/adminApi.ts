@@ -352,6 +352,76 @@ export interface WithdrawalDetail extends Withdrawal {
   recipient_code?: string;
 }
 
+/** One movement of money. The ledger is append-only, so these are read-only everywhere. */
+export interface LedgerEntry {
+  id: number;
+  created_at: string;
+  user_email: string;
+  user_name: string;
+  direction: "CREDIT" | "DEBIT";
+  bucket: "SPENDABLE" | "WITHDRAWABLE";
+  entry_type: string;
+  entry_type_display: string;
+  amount: string;
+  /** Debits carry a minus, so a column of these sums to the net movement. */
+  signed_amount: string;
+  balance_after: string;
+  reference: string;
+  description: string;
+  order_id: string | null;
+  payout_reference: string | null;
+  operation_key: string;
+}
+
+export interface LedgerFilters {
+  date_from?: string;
+  date_to?: string;
+  entry_type?: string;
+  direction?: string;
+  bucket?: string;
+  user?: string;
+  reference?: string;
+  search?: string;
+  page?: number;
+}
+
+export interface LedgerBreakdownRow {
+  entry_type?: string;
+  bucket?: string;
+  direction: string;
+  total: string;
+  count: number;
+}
+
+export interface LedgerSummary {
+  filters: Record<string, string | null>;
+  count: number;
+  total_credits: string;
+  total_debits: string;
+  /** Credits minus debits for the filtered slice. Not a balance: the ledger spans wallets. */
+  net: string;
+  by_type: LedgerBreakdownRow[];
+  by_bucket: LedgerBreakdownRow[];
+}
+
+/**
+ * A Paystack delivery that produced no ledger entry.
+ *
+ * Kept separate from the ledger on purpose: the ledger is what actually happened to
+ * balances, so folding failures into it would make every total wrong.
+ */
+export interface FailedPaymentEvent {
+  id: number;
+  event_id: string;
+  event_type: string;
+  reference: string;
+  status: string;
+  error_message: string;
+  signature_valid: boolean;
+  received_at: string;
+  processed_at: string | null;
+}
+
 export interface RefundRequest {
   id: number;
   order_id: string;
@@ -527,6 +597,42 @@ export const adminApi = baseApi.injectEndpoints({
     }),
 
     // Refunds
+    // Finance ledger. Mobile is a read-and-review surface: the list and the summary, no
+    // export. Downloading a spreadsheet onto a phone is not a workflow anyone wants, and
+    // the web page owns that job.
+    getLedger: builder.query<
+      { count: number; next: string | null; previous: string | null; results: LedgerEntry[] },
+      LedgerFilters | void
+    >({
+      query: (params) => ({
+        url: "/transactions/admin/ledger/",
+        params: params || undefined,
+      }),
+      providesTags: ["Ledger"],
+    }),
+
+    getLedgerSummary: builder.query<
+      { success: boolean; data: LedgerSummary },
+      LedgerFilters | void
+    >({
+      query: (params) => ({
+        url: "/transactions/admin/ledger/summary/",
+        params: params || undefined,
+      }),
+      providesTags: ["Ledger"],
+    }),
+
+    getFailedPayments: builder.query<
+      { count: number; results: FailedPaymentEvent[] },
+      { status?: string; event_type?: string } | void
+    >({
+      query: (params) => ({
+        url: "/transactions/admin/failed-payments/",
+        params: params || undefined,
+      }),
+      providesTags: ["Ledger"],
+    }),
+
     getAdminRefunds: builder.query<
       {
         success: boolean;
@@ -1210,4 +1316,7 @@ export const {
   useVerifyBankAccountMutation,
   useGetAdminRefundsQuery,
   useProcessAdminRefundMutation,
+  useGetLedgerQuery,
+  useGetLedgerSummaryQuery,
+  useGetFailedPaymentsQuery,
 } = adminApi;

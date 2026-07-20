@@ -49,35 +49,6 @@ export function isDepositAmountValid(
   return { valid: true };
 }
 
-export interface CheckoutSplit {
-  /** What the wallet will cover. */
-  wallet: number;
-  /** What the card will be charged. Zero means no payment page opens at all. */
-  card: number;
-}
-
-/**
- * Preview how an order total will divide between wallet and card.
- *
- * The server decides this for real — see plan_split in transactions/wallet_checkout.py —
- * and this mirrors it so the checkout screen can show the customer the split before they
- * commit. Kept deliberately identical in shape: if the two ever disagree, the number on
- * screen is a promise the server will break.
- *
- * Guards against a negative card leg and a negative wallet leg independently, because a
- * balance larger than the order is the common case, not an edge case.
- */
-export function planCheckoutSplit(total: number, walletBalance: number): CheckoutSplit {
-  if (!Number.isFinite(total) || total <= 0) {
-    return { wallet: 0, card: 0 };
-  }
-  if (!Number.isFinite(walletBalance) || walletBalance <= 0) {
-    return { wallet: 0, card: total };
-  }
-  const wallet = Math.min(walletBalance, total);
-  return { wallet, card: Math.max(0, total - wallet) };
-}
-
 export interface RefundAmountCheck {
   valid: boolean;
   reason?: string;

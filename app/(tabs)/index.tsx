@@ -7,7 +7,7 @@ import { RecommendationRow } from "@/components/recommendation-row";
 import { SearchBar } from "@/components/search-bar";
 import { useGetProductsQuery } from "@/lib/api/publicApi";
 import { useAppSelector } from "@/lib/hooks";
-import { personalizedFeed } from "@/lib/recommendations";
+import { shopRecommendationSurface } from "@/lib/recommendations";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
@@ -31,7 +31,7 @@ export default function ShopScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
-  const feed = personalizedFeed(isAuthenticated);
+  const feed = shopRecommendationSurface(isAuthenticated);
 
   const { data, isLoading, refetch } = useGetProductsQuery(filters);
 

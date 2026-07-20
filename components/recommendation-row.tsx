@@ -2,12 +2,12 @@ import {
   useGetRecommendationsQuery,
   type RecommendationType,
 } from "@/lib/api/publicApi";
+import { RECOMMENDATION_LIMIT } from "@/lib/recommendations";
 import React from "react";
 import { ScrollView, Text, View } from "react-native";
 import { ProductCard } from "./product-card";
 
 const CARD_WIDTH = 160;
-const DEFAULT_LIMIT = 8;
 
 interface Props {
   title: string;
@@ -39,7 +39,7 @@ export function RecommendationRow({
   type,
   product,
   category,
-  limit = DEFAULT_LIMIT,
+  limit = RECOMMENDATION_LIMIT,
   className = "mb-6",
 }: Props) {
   const { data } = useGetRecommendationsQuery({

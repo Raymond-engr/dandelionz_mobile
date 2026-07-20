@@ -1,21 +1,21 @@
-import { personalizedFeed } from "./recommendations";
+import { shopRecommendationSurface } from "./recommendations";
 
-describe("personalizedFeed", () => {
+describe("shopRecommendationSurface", () => {
   it("asks for the personalised feed when signed in", () => {
-    expect(personalizedFeed(true)).toEqual({
+    expect(shopRecommendationSurface(true)).toEqual({
       type: "for-you",
       title: "Recommended for you",
     });
   });
 
   it("falls back to trending when signed out", () => {
-    expect(personalizedFeed(false)).toEqual({
+    expect(shopRecommendationSurface(false)).toEqual({
       type: "trending",
       title: "Trending now",
     });
   });
 
   it("never labels the signed-out feed as personalised", () => {
-    expect(personalizedFeed(false).title).not.toMatch(/for you/i);
+    expect(shopRecommendationSurface(false).title).not.toMatch(/for you/i);
   });
 });

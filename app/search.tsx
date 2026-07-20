@@ -4,6 +4,7 @@ import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
 import { SearchBar } from "@/components/search-bar";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useRecentSearches } from "@/hooks/use-recent-searches";
+import { RECOMMENDATION_LIMIT } from "@/lib/recommendations";
 import {
   useGetProductsQuery,
   useGetRecommendationsQuery,
@@ -25,9 +26,6 @@ interface Filters {
 
 // Below this the suggestions endpoint returns nothing anyway, so don't ask.
 const MIN_SUGGESTION_LENGTH = 2;
-
-/** Enough to fill the empty-results screen without turning it into a feed. */
-const TRENDING_LIMIT = 8;
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
@@ -70,7 +68,7 @@ export default function SearchScreen() {
   const hasNoResults = Boolean(submitted) && !isFetching && products.length === 0;
 
   const { data: trendingData } = useGetRecommendationsQuery(
-    { type: "trending", limit: TRENDING_LIMIT },
+    { type: "trending", limit: RECOMMENDATION_LIMIT },
     { skip: !hasNoResults },
   );
 

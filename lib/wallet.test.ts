@@ -3,6 +3,7 @@ import {
   MIN_DEPOSIT,
   MIN_WITHDRAWAL,
   isDepositAmountValid,
+  isRefundAmountValid,
   isWithdrawFormValid,
 } from "./wallet";
 
@@ -164,5 +165,45 @@ describe("isWithdrawFormValid with a server-supplied minimum", () => {
   it("falls back to the local default when no minimum is supplied", () => {
     expect(isWithdrawFormValid({ amount: 499, pin: "1234", balance: 10000 })).toBe(false);
     expect(isWithdrawFormValid({ amount: 500, pin: "1234", balance: 10000 })).toBe(true);
+  });
+});
+
+describe("isRefundAmountValid", () => {
+  it("accepts an amount within the refundable total", () => {
+    expect(isRefundAmountValid(500, { refundable: 2000 }).valid).toBe(true);
+  });
+
+  it("accepts refunding the whole refundable balance", () => {
+    expect(isRefundAmountValid(2000, { refundable: 2000 }).valid).toBe(true);
+  });
+
+  it("rejects more than can be sent back to source", () => {
+    const check = isRefundAmountValid(2500, { refundable: 2000 });
+    expect(check.valid).toBe(false);
+    expect(check.reason).toContain("2,000");
+  });
+
+  it("caps on the refundable amount, not the spendable balance", () => {
+    // A top-up with no recorded Paystack transaction id counts towards the balance but
+    // cannot go back to a card, so the two numbers legitimately differ. Gating on the
+    // balance would let the user submit a refund the server is bound to reject.
+    expect(isRefundAmountValid(5000, { refundable: 1200 }).valid).toBe(false);
+  });
+
+  it("rejects zero and negative amounts", () => {
+    expect(isRefundAmountValid(0, { refundable: 2000 }).valid).toBe(false);
+    expect(isRefundAmountValid(-100, { refundable: 2000 }).valid).toBe(false);
+  });
+
+  it("explains an empty or unparsed input rather than showing a bounds error", () => {
+    const check = isRefundAmountValid(NaN, { refundable: 2000 });
+    expect(check.valid).toBe(false);
+    expect(check.reason).toBe("Enter an amount.");
+  });
+
+  it("says there is nothing to refund when no deposits remain", () => {
+    const check = isRefundAmountValid(100, { refundable: 0 });
+    expect(check.valid).toBe(false);
+    expect(check.reason).toContain("no deposited funds");
   });
 });

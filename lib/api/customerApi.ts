@@ -96,6 +96,42 @@ export interface WalletDeposit {
   created_at: string;
 }
 
+/**
+ * A top-up that still has money on it, and how much of that could go back to the card.
+ * Partially refunded deposits report the remainder.
+ */
+export interface RefundableDeposit {
+  reference: string;
+  amount: string;
+  refundable_amount: string;
+  paid_at: string | null;
+}
+
+/**
+ * What can be returned to source right now.
+ *
+ * `refundable_amount` can be lower than `spendable_balance`: a deposit too old to have a
+ * Paystack transaction id recorded cannot be refunded, so the form is capped on this
+ * rather than on the balance.
+ */
+export interface RefundableBalance {
+  spendable_balance: string;
+  refundable_amount: string;
+  deposits: RefundableDeposit[];
+}
+
+/** A refund of deposited funds back to the card that paid. */
+export interface DepositRefund {
+  id: number;
+  reference: string;
+  deposit_reference: string;
+  amount: string;
+  status: 'PENDING' | 'PROCESSING' | 'PROCESSED' | 'FAILED';
+  failure_reason: string;
+  created_at: string;
+  settled_at: string | null;
+}
+
 export interface CustomerPaymentSettings {
   bank_name: string;
   bank_code: string;
@@ -228,6 +264,41 @@ export const customerApi = baseApi.injectEndpoints({
         url: '/transactions/wallet/deposits/',
         params: params || undefined,
       }),
+      providesTags: ['CustomerWallet'],
+    }),
+
+    /**
+     * How much deposited money can go back to the card, and which top-ups it comes from.
+     */
+    getRefundableBalance: builder.query<
+      { success: boolean; data: RefundableBalance },
+      void
+    >({
+      query: () => ({ url: '/transactions/wallet/deposit/refund/' }),
+      providesTags: ['CustomerWallet'],
+    }),
+
+    /**
+     * Ask for deposited funds back on the original card.
+     *
+     * The balance drops as soon as this succeeds — the server debits at request time so
+     * the money cannot also be spent at checkout while the refund is in flight — so the
+     * wallet cache is invalidated even though the refund has not settled yet.
+     */
+    requestDepositRefund: builder.mutation<
+      { success: boolean; message: string; data: DepositRefund[] },
+      { amount: number }
+    >({
+      query: (body) => ({
+        url: '/transactions/wallet/deposit/refund/',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['CustomerWallet'],
+    }),
+
+    getDepositRefunds: builder.query<DepositRefund[], void>({
+      query: () => ({ url: '/transactions/wallet/deposit/refunds/' }),
       providesTags: ['CustomerWallet'],
     }),
 
@@ -391,6 +462,9 @@ export const {
   useVerifyWalletDepositQuery,
   useLazyVerifyWalletDepositQuery,
   useGetWalletDepositsQuery,
+  useGetRefundableBalanceQuery,
+  useRequestDepositRefundMutation,
+  useGetDepositRefundsQuery,
   useSetCustomerPaymentPinMutation,
   useGetCustomerPaymentSettingsQuery,
   useUpdateCustomerPaymentSettingsMutation,

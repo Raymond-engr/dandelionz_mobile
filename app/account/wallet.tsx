@@ -205,6 +205,20 @@ export default function CustomerWalletScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
+
+              {/* Refunding to card is the only exit for deposited funds, so it appears
+                  only when there are some. Kept off the main row above: it is a rarer
+                  action than funding or withdrawing, and shouldn't crowd them. */}
+              {spendable > 0 && (
+                <TouchableOpacity
+                  onPress={() => router.push("/account/wallet/refund" as any)}
+                  className="mt-3 py-2.5 rounded-xl items-center border border-white/30"
+                >
+                  <Text className="text-[13px] font-semibold text-white/80">
+                    Refund deposits to card
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Refund info hint — shown when balance > 0 */}

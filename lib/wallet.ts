@@ -49,6 +49,41 @@ export function isDepositAmountValid(
   return { valid: true };
 }
 
+export interface RefundAmountCheck {
+  valid: boolean;
+  reason?: string;
+}
+
+/**
+ * Pure validity check for refunding deposited funds to the original card.
+ *
+ * Gated on `refundable`, not on the spendable balance: a top-up with no recorded Paystack
+ * transaction id cannot be sent back to source, so the two numbers can differ and the
+ * lower one is the real ceiling. Telling the user "you have ₦5,000" and then rejecting a
+ * ₦5,000 refund is exactly the mismatch this avoids.
+ */
+export function isRefundAmountValid(
+  amount: number,
+  { refundable }: { refundable: number },
+): RefundAmountCheck {
+  if (!Number.isFinite(amount)) {
+    return { valid: false, reason: "Enter an amount." };
+  }
+  if (amount <= 0) {
+    return { valid: false, reason: "Enter an amount greater than zero." };
+  }
+  if (refundable <= 0) {
+    return { valid: false, reason: "You have no deposited funds to refund." };
+  }
+  if (amount > refundable) {
+    return {
+      valid: false,
+      reason: `You can refund up to ₦${refundable.toLocaleString()}.`,
+    };
+  }
+  return { valid: true };
+}
+
 /**
  * Pure validity check for the customer withdrawal form. Bank details are no
  * longer part of the request body — they come from saved payout settings — so

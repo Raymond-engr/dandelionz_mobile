@@ -443,6 +443,51 @@ export interface RefundRequest {
   payment_reference: string;
 }
 
+/**
+ * A customer whose refund behaviour looks worth a human glance. This is a
+ * review signal only — flagged customers are never blocked, throttled, or
+ * charged differently. It just surfaces who to look at first.
+ */
+export interface RefundFlagRow {
+  uuid: string;
+  email: string;
+  full_name: string;
+  paid_orders: number;
+  refund_count: number;
+  /** Share of paid orders that were refunded, as a fraction (e.g. 0.42 = 42%). */
+  refund_rate: number;
+}
+
+/** The refund-abuse review queue, most-refunded first. */
+export interface RefundFlagsData {
+  count: number;
+  results: RefundFlagRow[];
+}
+
+/**
+ * One customer's full refund picture for the detail screen. `needs_review`
+ * gates the attention badge; `flagged` means they cross the thresholds but may
+ * already have been looked at (reviewing snoozes the flag until they refund
+ * more). Neither ever blocks the customer.
+ */
+export interface RefundProfile {
+  uuid: string;
+  email: string;
+  full_name: string;
+  paid_orders: number;
+  refund_count: number;
+  /** Share of paid orders that were refunded, as a fraction (e.g. 0.42 = 42%). */
+  refund_rate: number;
+  flagged: boolean;
+  needs_review: boolean;
+  reviewed_count: number;
+  thresholds: {
+    min_orders: number;
+    min_refunds: number;
+    rate: number;
+  };
+}
+
 export const adminApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // Profile Management
@@ -745,6 +790,39 @@ export const adminApi = baseApi.injectEndpoints({
         url: `/user/admin/users/${uuid}/activate/`,
         method: "POST",
         body,
+      }),
+      invalidatesTags: ["User"],
+    }),
+
+    // Refund-abuse flagging (review-only; never blocks a customer)
+    // The review queue: customers who refund a suspicious share of their orders,
+    // most-refunded first. Powers the "needs attention" banner on the users tab.
+    getRefundFlags: builder.query<
+      { success: boolean; data: RefundFlagsData },
+      void
+    >({
+      query: () => "/user/admin/customers/refund-flags/",
+      providesTags: ["User"],
+    }),
+
+    // One customer's refund profile for the detail screen's "Refund history".
+    getCustomerRefundProfile: builder.query<
+      { success: boolean; data: RefundProfile },
+      string
+    >({
+      query: (uuid) => `/user/admin/customers/${uuid}/refund-profile/`,
+      providesTags: ["User"],
+    }),
+
+    // Mark a flag reviewed. Doesn't block anyone — it just snoozes the flag
+    // until the customer refunds more, so the queue and profile both refresh.
+    reviewRefundFlag: builder.mutation<
+      { success: boolean; data: RefundProfile; message: string },
+      string
+    >({
+      query: (uuid) => ({
+        url: `/user/admin/customers/${uuid}/refund-flag/review/`,
+        method: "POST",
       }),
       invalidatesTags: ["User"],
     }),
@@ -1348,6 +1426,9 @@ export const {
   useSuspendUserMutation,
   useUpdateUserStatusMutation,
   useActivateUserMutation,
+  useGetRefundFlagsQuery,
+  useGetCustomerRefundProfileQuery,
+  useReviewRefundFlagMutation,
   useGetAllVendorsQuery,
   useGetVendorDetailsQuery,
   useApproveVendorMutation,

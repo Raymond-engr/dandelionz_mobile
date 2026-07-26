@@ -6,8 +6,10 @@ import {
   useCancelOrderMutation,
   useGetCustomerOrderDetailsQuery,
   useGetInstallmentPlanDetailsQuery,
+  useInitDeliveryPaymentMutation,
   useInitializeNextInstallmentMutation,
 } from "@/lib/api/publicApi";
+import { useGetCustomerWalletQuery } from "@/lib/api/customerApi";
 import { apiError, formatCurrency } from "@/lib/utils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
@@ -35,9 +37,16 @@ export default function OrderTrackingScreen() {
     data: order,
     isLoading,
     isError,
+    refetch: refetchOrder,
   } = useGetCustomerOrderDetailsQuery(id || "", {
     skip: !id,
   });
+
+  const [useWallet, setUseWallet] = useState(false);
+  const [initDeliveryPayment, { isLoading: isPayingDelivery }] =
+    useInitDeliveryPaymentMutation();
+  const { data: walletData } = useGetCustomerWalletQuery();
+  const walletBalance = walletData?.data?.balance ?? 0;
 
   const planId = order?.installment_plan?.id;
 
@@ -67,6 +76,51 @@ export default function OrderTrackingScreen() {
       Toast.show({
         type: "error",
         text1: "Failed to initialise payment",
+        text2: apiError(err),
+      });
+    }
+  };
+
+  const handlePayDeliveryFee = async () => {
+    if (!order) return;
+    try {
+      const res = await initDeliveryPayment({
+        order_id: order.order_id,
+        use_wallet: useWallet,
+      }).unwrap();
+      const data = res.data;
+
+      // The wallet covered the whole fee: it is already paid, so opening a
+      // payment page would ask the customer to pay a second time.
+      if (!data.requires_payment) {
+        Toast.show({
+          type: "success",
+          text1: "Delivery fee paid from wallet",
+          text2: "Your wallet balance covered the delivery fee in full.",
+        });
+        refetchOrder();
+        return;
+      }
+
+      if (data.authorization_url) {
+        router.push({
+          pathname: "/checkout/webview" as any,
+          params: {
+            url: data.authorization_url,
+            reference: data.reference,
+            orderId: order.order_id,
+          },
+        });
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Could not initialise delivery payment. Please try again.",
+        });
+      }
+    } catch (err: any) {
+      Toast.show({
+        type: "error",
+        text1: "Failed to pay delivery fee",
         text2: apiError(err),
       });
     }
@@ -126,6 +180,33 @@ export default function OrderTrackingScreen() {
       text2: text,
     });
   };
+
+  const formatEta = (iso: string) =>
+    new Date(iso).toLocaleString("en-NG", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+  const deliveryFee = parseFloat(order?.delivery_fee || "0");
+  const hasDeliveryWindow = !!(
+    order?.expected_delivery_earliest && order?.expected_delivery_latest
+  );
+  const deliveryFeeDue =
+    !!order && deliveryFee > 0 && !order.delivery_fee_paid;
+  const orderPaid =
+    order?.payment_status?.toUpperCase() === "PAID" ||
+    ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"].includes(
+      (order?.status || "").toUpperCase(),
+    );
+  // Paid order still awaiting a delivery schedule: a fee has not been billed yet.
+  const awaitingDeliverySchedule =
+    !!order &&
+    orderPaid &&
+    !order.expected_delivery_latest &&
+    !deliveryFeeDue;
 
   const trackingSteps =
     order?.timeline?.map((step) => ({
@@ -236,6 +317,105 @@ export default function OrderTrackingScreen() {
             <Ionicons name="copy-outline" size={18} color={Colors.primary} />
           </TouchableOpacity>
         </View>
+
+        {/* Delivery window + fee */}
+        {(hasDeliveryWindow || deliveryFeeDue || awaitingDeliverySchedule) && (
+          <View className="px-6 pb-2">
+            {hasDeliveryWindow && (
+              <View className="flex-row items-start bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4">
+                <Ionicons
+                  name="time-outline"
+                  size={20}
+                  color={Colors.primary}
+                  style={{ marginTop: 1 }}
+                />
+                <View className="ml-3 flex-1">
+                  <Text className="text-[13px] font-bold text-system-blue-dark">
+                    Arriving between
+                  </Text>
+                  <Text className="text-[14px] text-system-blue-dark mt-0.5">
+                    {formatEta(order.expected_delivery_earliest!)} and{" "}
+                    {formatEta(order.expected_delivery_latest!)}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {awaitingDeliverySchedule && (
+              <View className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-4">
+                <Text className="text-[13px] font-bold text-amber-700 mb-1">
+                  Delivery is being scheduled
+                </Text>
+                <Text className="text-[13px] text-amber-700 leading-5">
+                  A delivery fee will be billed shortly. Shipping begins once
+                  it&apos;s paid.
+                </Text>
+              </View>
+            )}
+
+            {deliveryFeeDue && (
+              <View className="bg-red-50 border border-red-100 rounded-xl p-4 mb-2">
+                <View className="flex-row items-center justify-between mb-2">
+                  <Text className="text-[14px] font-bold text-red-600">
+                    Delivery fee due
+                  </Text>
+                  <Text className="text-[16px] font-bold text-red-600">
+                    {formatCurrency(deliveryFee)}
+                  </Text>
+                </View>
+                <Text className="text-[13px] text-red-500 mb-3 leading-5">
+                  Shipping begins once your delivery fee is paid.
+                </Text>
+
+                {walletBalance > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setUseWallet((v) => !v)}
+                    className={`mb-3 p-3 rounded-lg border-2 flex-row items-center justify-between ${
+                      useWallet
+                        ? "border-system-blue-light bg-blue-50/40"
+                        : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <View className="flex-1 pr-3">
+                      <Text
+                        className={`text-[14px] font-bold ${useWallet ? "text-system-blue-light" : "text-system-blue-dark"}`}
+                      >
+                        Use wallet balance
+                      </Text>
+                      <Text className="text-[12px] text-[#6B7280] mt-0.5">
+                        {formatCurrency(walletBalance)} available
+                        {useWallet
+                          ? " — anything left over goes on your card"
+                          : ""}
+                      </Text>
+                    </View>
+                    <View
+                      className={`w-6 h-6 rounded border-2 items-center justify-center ${
+                        useWallet
+                          ? "border-system-blue-light bg-system-blue-light"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      {useWallet && (
+                        <Ionicons name="checkmark" size={16} color="white" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  onPress={handlePayDeliveryFee}
+                  disabled={isPayingDelivery}
+                  className={`rounded-xl py-3.5 items-center ${isPayingDelivery ? "bg-gray-300" : "bg-system-blue-light"}`}
+                >
+                  <Text className="text-white font-bold text-[15px]">
+                    {isPayingDelivery ? "Processing…" : "Pay delivery fee"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
 
         <View className="px-10 py-6">
           {trackingSteps.length > 0 ? (

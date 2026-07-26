@@ -86,6 +86,7 @@ export default function PaystackWebView() {
   const [triggerInstallmentVerify] =
     publicApi.useLazyVerifyInstallmentPaymentQuery();
   const [triggerDepositVerify] = useLazyVerifyWalletDepositQuery();
+  const [triggerDeliveryVerify] = publicApi.useLazyVerifyDeliveryPaymentQuery();
 
   const handleCallbackUrl = async (
     reference: string | null,
@@ -115,6 +116,26 @@ export default function PaystackWebView() {
         return;
       }
 
+      if (kind === "delivery") {
+        // A delivery payment with no reference cannot be verified.
+        if (!effectiveReference) throw new Error("Missing delivery reference");
+        const res = await triggerDeliveryVerify({
+          reference: effectiveReference,
+        }).unwrap();
+        const resolvedOrderId = orderId || res?.data?.order_id || "";
+
+        Toast.show({
+          type: "success",
+          text1: "Delivery fee paid",
+          text2: "Your delivery fee has been confirmed.",
+        });
+        router.replace({
+          pathname: "/order-tracking" as any,
+          params: { id: resolvedOrderId },
+        });
+        return;
+      }
+
       if (reference) {
         if (kind === "installment") {
           await triggerInstallmentVerify({ reference }).unwrap();
@@ -141,6 +162,26 @@ export default function PaystackWebView() {
             "We could not confirm your top-up. If you were debited, contact support.",
           ),
           [{ text: "OK", onPress: () => router.replace("/account/wallet" as any) }],
+        );
+        return;
+      }
+      if (kind === "delivery") {
+        Alert.alert(
+          "Delivery Payment Verification Failed",
+          apiError(
+            err,
+            "We could not confirm your delivery payment. If you were debited, contact support.",
+          ),
+          [
+            {
+              text: "OK",
+              onPress: () =>
+                router.replace({
+                  pathname: "/order-tracking" as any,
+                  params: { id: orderId ?? "" },
+                }),
+            },
+          ],
         );
         return;
       }

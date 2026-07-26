@@ -185,6 +185,12 @@ export default function CheckoutSuccessScreen() {
         <Text className="text-[24px] font-semibold text-system-blue-light text-center px-4 mb-4">
           {successMessage}
         </Text>
+        {!plan_id && (
+          <Text className="text-[13px] text-gray-500 text-center px-6 mb-4 leading-5">
+            A delivery fee may be billed after your order is confirmed. Shipping
+            begins once it&apos;s paid — you can settle it from Order Tracking.
+          </Text>
+        )}
         <Text className="text-[14px] text-gray-500 text-center italic">
           Redirecting to home in {countdown}s...
         </Text>

@@ -48,6 +48,12 @@ export interface Order {
   payment_status: string;
   total_price: string;
   delivery_fee: string;
+  /** Whether the delivery fee has been settled. Only meaningful when delivery_fee > 0. */
+  delivery_fee_paid: boolean;
+  /** Start of the promised delivery window (ISO), or null until an admin schedules it. */
+  expected_delivery_earliest: string | null;
+  /** End of the promised delivery window (ISO), or null until an admin schedules it. */
+  expected_delivery_latest: string | null;
   discount: string;
   total_with_delivery: string;
   is_delivered: boolean;
@@ -414,6 +420,55 @@ export const publicApi = baseApi.injectEndpoints({
       invalidatesTags: ["Cart", "Order"],
     }),
 
+    // Delivery-fee payment. Billed after an admin schedules the delivery window; the
+    // wallet can cover part or all of it, mirroring order checkout.
+    initDeliveryPayment: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          /** False when the wallet covered the whole fee — the order is already paid. */
+          requires_payment: boolean;
+          /** Present only when a card leg is needed. */
+          authorization_url?: string;
+          reference: string;
+          wallet_amount: number;
+          card_amount: number;
+          order_id: string;
+        };
+        message?: string;
+      },
+      { order_id: string; use_wallet: boolean; wallet_amount?: number }
+    >({
+      query: ({ order_id, ...body }) => ({
+        url: `/transactions/orders/${order_id}/delivery-payment/`,
+        method: "POST",
+        body,
+      }),
+      // The wallet is debited when the payment starts, so its balance has changed by
+      // the time this returns.
+      invalidatesTags: ["Order", "CustomerWallet"],
+    }),
+
+    verifyDeliveryPayment: builder.query<
+      {
+        success: boolean;
+        message?: string;
+        data: {
+          reference: string;
+          status: string;
+          order_id: string;
+          delivery_fee_paid: boolean;
+        };
+      },
+      { reference: string }
+    >({
+      query: ({ reference }) => ({
+        url: `/transactions/verify-delivery-payment/?reference=${encodeURIComponent(reference)}`,
+        method: "GET",
+      }),
+      providesTags: ["Order"],
+    }),
+
     verifyPayment: builder.query<
       {
         status: string;
@@ -518,6 +573,9 @@ export const {
   useGetProductReviewsQuery,
   useInitializeCheckoutMutation,
   useInitializeInstallmentCheckoutMutation,
+  useInitDeliveryPaymentMutation,
+  useVerifyDeliveryPaymentQuery,
+  useLazyVerifyDeliveryPaymentQuery,
   useVerifyPaymentQuery,
   useLazyVerifyPaymentQuery,
   useVerifyInstallmentPaymentQuery,

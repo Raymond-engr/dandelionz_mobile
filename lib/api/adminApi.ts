@@ -104,6 +104,12 @@ export interface Order {
   payment_status: string;
   total_price: string;
   delivery_fee: string;
+  /** Whether the delivery fee has been settled. Only meaningful when delivery_fee > 0. */
+  delivery_fee_paid?: boolean;
+  /** Start of the promised delivery window (ISO), or null until scheduled. */
+  expected_delivery_earliest?: string | null;
+  /** End of the promised delivery window (ISO), or null until scheduled. */
+  expected_delivery_latest?: string | null;
   discount: string;
   tracking_number: string | null;
   ordered_at: string;
@@ -879,6 +885,49 @@ export const adminApi = baseApi.injectEndpoints({
       invalidatesTags: ["Order"],
     }),
 
+    // Schedule the delivery window and/or set the fee for an order. Send explicit
+    // earliest/latest ISO strings, or use_default to let the backend apply the standard
+    // window. delivery_fee is always required.
+    setOrderDelivery: builder.mutation<
+      { success: boolean; data: Order; message?: string },
+      {
+        order_id: string;
+        use_default?: boolean;
+        expected_delivery_earliest?: string;
+        expected_delivery_latest?: string;
+        delivery_fee: number;
+      }
+    >({
+      query: ({ order_id, ...body }) => ({
+        url: `/user/admin/orders/${order_id}/delivery/`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Order"],
+    }),
+
+    // Orders needing delivery attention, bucketed: no window set, fee owed, or scheduled
+    // and paid but not yet shipped.
+    getDeliveryAttention: builder.query<
+      {
+        success: boolean;
+        data: {
+          counts: {
+            unscheduled: number;
+            awaiting_fee: number;
+            ready_to_ship: number;
+          };
+          unscheduled: Order[];
+          awaiting_fee: Order[];
+          ready_to_ship: Order[];
+        };
+      },
+      void
+    >({
+      query: () => "/user/admin/orders/delivery/attention/",
+      providesTags: ["Order"],
+    }),
+
     cancelOrderWithReason: builder.mutation<
       { success: boolean; message: string },
       { order_id: string; reason: string }
@@ -1312,6 +1361,8 @@ export const {
   useGetAllOrdersQuery,
   useGetAdminOrderDetailsQuery,
   useUpdateOrderStatusMutation,
+  useSetOrderDeliveryMutation,
+  useGetDeliveryAttentionQuery,
   useCancelOrderWithReasonMutation,
   useAssignLogisticsMutation,
   useProcessRefundMutation,

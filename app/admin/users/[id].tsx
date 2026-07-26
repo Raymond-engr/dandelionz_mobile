@@ -35,11 +35,12 @@ export default function UserDetail() {
 
   const [updateUserStatus, { isLoading: isUpdating }] = useUpdateUserStatusMutation();
 
+  const isCustomer = user?.role === "CUSTOMER";
   const {
     data: refundResponse,
     isLoading: isRefundLoading,
     refetch: refetchRefund,
-  } = useGetCustomerRefundProfileQuery(id!);
+  } = useGetCustomerRefundProfileQuery(id!, { skip: !isCustomer });
   const refund = refundResponse?.data;
 
   const [reviewRefundFlag, { isLoading: isReviewing }] = useReviewRefundFlagMutation();
@@ -194,9 +195,10 @@ export default function UserDetail() {
           <InfoField label="Address" value={user.address || ""} />
         </View>
 
-        <Divider height={11} />
+        {isCustomer && <Divider height={11} />}
 
         {/* Refund history (review-only signal; never blocks the customer) */}
+        {isCustomer && (
         <View className="p-[21px]">
           <View className="flex-row items-center justify-between mb-1">
             <Text className="text-[18px] font-bold text-system-blue-dark">
@@ -301,6 +303,7 @@ export default function UserDetail() {
             </Text>
           )}
         </View>
+        )}
 
         <Divider height={11} />
 

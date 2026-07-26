@@ -7,14 +7,14 @@ import {
   useGetCustomerOrderDetailsQuery,
   useGetInstallmentPlanDetailsQuery,
   useInitDeliveryPaymentMutation,
-  useInitializeNextInstallmentMutation,
+  usePayInstallmentMutation,
 } from "@/lib/api/publicApi";
 import { useGetCustomerWalletQuery } from "@/lib/api/customerApi";
 import { apiError, formatCurrency } from "@/lib/utils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -54,24 +54,91 @@ export default function OrderTrackingScreen() {
     useGetInstallmentPlanDetailsQuery(planId ?? 0, { skip: !planId });
   const plan = planResponse?.data;
 
-  const [initNextPayment, { isLoading: isInitingPayment }] =
-    useInitializeNextInstallmentMutation();
+  // Running-balance ("CDcare") pay control. The amount defaults to what's due
+  // now, or the advisory monthly installment when nothing is strictly due yet.
+  const [installmentAmount, setInstallmentAmount] = useState("");
+  const [useWalletForInstallment, setUseWalletForInstallment] = useState(false);
+  const [payInstallment, { isLoading: isPayingInstallment }] =
+    usePayInstallmentMutation();
 
-  const handlePayNextInstallment = async (installment: any) => {
+  useEffect(() => {
+    if (!plan) return;
+    const def =
+      plan.minimum_due_now > 0
+        ? plan.minimum_due_now
+        : parseFloat(plan.installment_amount || "0");
+    setInstallmentAmount(def > 0 ? String(def) : "");
+  }, [plan?.id, plan?.minimum_due_now, plan?.installment_amount]);
+
+  const handlePayInstallment = async (clearBalance: boolean) => {
+    if (!plan) return;
+    const minDue = plan.minimum_due_now ?? 0;
+    const balance = plan.balance_remaining ?? 0;
+
+    let amount: number | undefined;
+    if (!clearBalance) {
+      amount = parseFloat(installmentAmount);
+      if (isNaN(amount) || amount <= 0) {
+        Toast.show({
+          type: "error",
+          text1: "Enter a valid amount",
+        });
+        return;
+      }
+      if (minDue > 0 && amount < minDue) {
+        Toast.show({
+          type: "error",
+          text1: "Amount is below the minimum due",
+          text2: `At least ${formatCurrency(minDue)} is due now.`,
+        });
+        return;
+      }
+      if (amount > balance) {
+        Toast.show({
+          type: "error",
+          text1: "Amount exceeds your balance",
+          text2: `You only owe ${formatCurrency(balance)}.`,
+        });
+        return;
+      }
+    }
+
     try {
-      const res = await initNextPayment({
-        plan_id: plan!.id,
-        payment_number: installment.payment_number,
+      const res = await payInstallment({
+        plan_id: plan.id,
+        ...(clearBalance ? { clear_balance: true } : { amount }),
+        use_wallet: useWalletForInstallment,
       }).unwrap();
+      const data = res.data;
 
-      router.push({
-        pathname: "/checkout/webview" as any,
-        params: {
-          url: res.data.authorization_url,
-          reference: res.data.reference,
-          plan_id: String(plan!.id),
-        },
-      });
+      // The wallet covered it: no card leg, so refresh in place instead of
+      // opening a payment page that would charge a second time.
+      if (!data.requires_payment) {
+        Toast.show({
+          type: "success",
+          text1: "Installment paid from wallet",
+          text2: "Your wallet balance covered this payment.",
+        });
+        refetchPlan();
+        refetchOrder();
+        return;
+      }
+
+      if (data.authorization_url) {
+        router.push({
+          pathname: "/checkout/webview" as any,
+          params: {
+            url: data.authorization_url,
+            reference: data.reference,
+            plan_id: String(plan.id),
+          },
+        });
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Could not initialise payment. Please try again.",
+        });
+      }
     } catch (err: any) {
       Toast.show({
         type: "error",
@@ -468,8 +535,8 @@ export default function OrderTrackingScreen() {
 
         <Divider height={11} className="my-4" />
 
-        {/* Installment Plan Section */}
-        {plan && plan.status !== "COMPLETED" && (
+        {/* Installment Plan Section — running-balance ("CDcare") model */}
+        {plan && (
           <View className="px-6 pb-8">
             <Divider height={1} className="mb-6" />
 
@@ -477,96 +544,247 @@ export default function OrderTrackingScreen() {
               Installment Plan
             </Text>
 
-            {/* Progress bar */}
-            <View className="flex-row items-center mb-2">
-              <Text className="text-[13px] text-gray-500 flex-1">
-                {plan.paid_installments_count} of {plan.number_of_installments}{" "}
-                paid
-              </Text>
-              <Text className="text-[13px] font-bold text-system-blue-light">
-                {formatCurrency(plan.installment_amount)} / month
-              </Text>
-            </View>
-            <View className="h-2 bg-gray-100 rounded-full mb-6">
-              <View
-                className="h-full bg-system-blue-light rounded-full"
-                style={{
-                  width: `${(plan.paid_installments_count / plan.number_of_installments) * 100}%`,
-                }}
-              />
-            </View>
-
-            {/* Individual installments */}
-            {plan.installments?.map((inst: any) => {
-              const isPaid = inst.status === "PAID";
-              const isOverdue = !isPaid && new Date(inst.due_date) < new Date();
-              const isNext =
-                !isPaid &&
-                plan
-                  .installments!.filter((i: any) => i.status !== "PAID")
-                  .indexOf(inst) === 0;
-
-              return (
-                <View
-                  key={inst.payment_number}
-                  className={`flex-row items-center justify-between p-4 mb-3 rounded-xl border ${
-                    isPaid
-                      ? "border-green-100 bg-green-50"
-                      : isOverdue
-                        ? "border-red-100 bg-red-50"
-                        : isNext
-                          ? "border-blue-100 bg-blue-50"
-                          : "border-gray-100 bg-gray-50"
-                  }`}
-                >
-                  <View>
-                    <Text className="text-[14px] font-bold text-system-blue-dark">
-                      Installment #{inst.payment_number}
+            {plan.status === "COMPLETED" ? (
+              <View className="bg-green-50 border border-green-100 rounded-xl p-5 items-center">
+                <Ionicons
+                  name="checkmark-circle"
+                  size={40}
+                  color="#059669"
+                />
+                <Text className="text-[16px] font-bold text-green-700 mt-2">
+                  Fully paid
+                </Text>
+                <Text className="text-[13px] text-green-700 text-center mt-1 leading-5">
+                  You&apos;ve paid off {formatCurrency(plan.total_amount)} in
+                  full. Nothing more is owed.
+                </Text>
+              </View>
+            ) : (
+              <>
+                {/* Balance summary */}
+                <View className="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-4">
+                  <View className="flex-row justify-between mb-2">
+                    <Text className="text-[13px] text-gray-500">Total</Text>
+                    <Text className="text-[13px] font-medium text-system-blue-dark">
+                      {formatCurrency(plan.total_amount)}
                     </Text>
-                    <Text className="text-[12px] text-gray-400 mt-0.5">
-                      Due{" "}
-                      {new Date(inst.due_date).toLocaleDateString("en-NG", {
+                  </View>
+                  <View className="flex-row justify-between mb-2">
+                    <Text className="text-[13px] text-gray-500">
+                      Amount paid
+                    </Text>
+                    <Text className="text-[13px] font-medium text-green-600">
+                      {formatCurrency(plan.amount_paid)}
+                    </Text>
+                  </View>
+                  <View className="flex-row justify-between">
+                    <Text className="text-[13px] text-gray-500">
+                      Balance remaining
+                    </Text>
+                    <Text className="text-[14px] font-bold text-system-blue-light">
+                      {formatCurrency(plan.balance_remaining)}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Progress bar with a "ships at 50%" marker */}
+                <View className="flex-row items-center justify-between mb-2">
+                  <Text className="text-[12px] text-gray-500">
+                    {Math.round((plan.paid_fraction ?? 0) * 100)}% paid
+                  </Text>
+                  <Text className="text-[12px] text-gray-400">
+                    {plan.paid_installments_count} of{" "}
+                    {plan.number_of_installments} scheduled
+                  </Text>
+                </View>
+                <View className="relative h-2 bg-gray-100 rounded-full mb-1">
+                  <View
+                    className="h-full bg-system-blue-light rounded-full"
+                    style={{
+                      width: `${Math.min(Math.max((plan.paid_fraction ?? 0) * 100, 0), 100)}%`,
+                    }}
+                  />
+                  {/* 50% ships marker */}
+                  <View
+                    className="absolute top-[-2px] h-3 w-[2px] bg-amber-500"
+                    style={{ left: "50%" }}
+                  />
+                </View>
+                <Text className="text-[11px] text-amber-700 mb-4">
+                  Ships once you reach 50% paid
+                </Text>
+
+                {/* Next due + minimum due */}
+                {plan.next_due_date && (
+                  <View className="flex-row justify-between mb-1">
+                    <Text className="text-[13px] text-gray-500">Next due</Text>
+                    <Text className="text-[13px] font-medium text-system-blue-dark">
+                      {new Date(plan.next_due_date).toLocaleDateString("en-NG", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
                       })}
                     </Text>
                   </View>
-                  <View className="items-end">
-                    <Text className="text-[14px] font-bold text-system-blue-dark mb-1">
-                      {formatCurrency(inst.amount)}
+                )}
+                {plan.minimum_due_now > 0 && (
+                  <View className="flex-row justify-between mb-4">
+                    <Text className="text-[13px] text-gray-500">
+                      Minimum due now
                     </Text>
-                    {isPaid ? (
-                      <View className="bg-green-100 px-2 py-0.5 rounded-full">
-                        <Text className="text-[11px] text-green-700 font-bold">
-                          Paid
-                        </Text>
-                      </View>
-                    ) : isNext ? (
-                      <TouchableOpacity
-                        onPress={() => handlePayNextInstallment(inst)}
-                        disabled={isInitingPayment}
-                        className="bg-system-blue-light px-3 py-1.5 rounded-lg"
-                      >
-                        <Text className="text-white text-[12px] font-bold">
-                          {isInitingPayment ? "Loading…" : "Pay Now"}
-                        </Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <View
-                        className={`px-2 py-0.5 rounded-full ${isOverdue ? "bg-red-100" : "bg-gray-100"}`}
-                      >
-                        <Text
-                          className={`text-[11px] font-bold ${isOverdue ? "text-red-600" : "text-gray-500"}`}
-                        >
-                          {isOverdue ? "Overdue" : "Upcoming"}
-                        </Text>
-                      </View>
-                    )}
+                    <Text className="text-[13px] font-bold text-amber-700">
+                      {formatCurrency(plan.minimum_due_now)}
+                    </Text>
                   </View>
+                )}
+
+                {/* Pay control */}
+                <View className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4">
+                  <Text className="text-[12px] text-[#6B7280] mb-1">
+                    Amount to pay (₦)
+                  </Text>
+                  <TextInput
+                    value={installmentAmount}
+                    onChangeText={setInstallmentAmount}
+                    keyboardType="decimal-pad"
+                    placeholder="0.00"
+                    placeholderTextColor="#9CA3AF"
+                    editable={!isPayingInstallment}
+                    className="border border-gray-300 rounded-[12px] px-4 h-[48px] text-[15px] text-system-blue-dark bg-white mb-3"
+                  />
+
+                  {walletBalance > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setUseWalletForInstallment((v) => !v)}
+                      className={`mb-3 p-3 rounded-lg border-2 flex-row items-center justify-between ${
+                        useWalletForInstallment
+                          ? "border-system-blue-light bg-blue-50/40"
+                          : "border-gray-200 bg-white"
+                      }`}
+                    >
+                      <View className="flex-1 pr-3">
+                        <Text
+                          className={`text-[14px] font-bold ${useWalletForInstallment ? "text-system-blue-light" : "text-system-blue-dark"}`}
+                        >
+                          Use wallet balance
+                        </Text>
+                        <Text className="text-[12px] text-[#6B7280] mt-0.5">
+                          {formatCurrency(walletBalance)} available
+                          {useWalletForInstallment
+                            ? " — anything left over goes on your card"
+                            : ""}
+                        </Text>
+                      </View>
+                      <View
+                        className={`w-6 h-6 rounded border-2 items-center justify-center ${
+                          useWalletForInstallment
+                            ? "border-system-blue-light bg-system-blue-light"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        {useWalletForInstallment && (
+                          <Ionicons name="checkmark" size={16} color="white" />
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  )}
+
+                  <TouchableOpacity
+                    onPress={() => handlePayInstallment(false)}
+                    disabled={isPayingInstallment}
+                    className={`rounded-xl py-3.5 items-center mb-2 ${isPayingInstallment ? "bg-gray-300" : "bg-system-blue-light"}`}
+                  >
+                    <Text className="text-white font-bold text-[15px]">
+                      {isPayingInstallment ? "Processing…" : "Pay amount"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => handlePayInstallment(true)}
+                    disabled={isPayingInstallment}
+                    className="rounded-xl py-3 items-center border border-system-blue-light"
+                  >
+                    <Text className="text-system-blue-light font-bold text-[14px]">
+                      Clear balance ({formatCurrency(plan.balance_remaining)})
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              );
-            })}
+
+                {/* Advisory schedule (reference only) */}
+                {!!plan.installments?.length && (
+                  <>
+                    <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                      Payment schedule
+                    </Text>
+                    {plan.installments.map((inst: any) => {
+                      const isPaid = inst.status === "PAID";
+                      const isOverdue =
+                        !isPaid && new Date(inst.due_date) < new Date();
+
+                      return (
+                        <View
+                          key={inst.payment_number}
+                          className={`flex-row items-center justify-between p-4 mb-3 rounded-xl border ${
+                            isPaid
+                              ? "border-green-100 bg-green-50"
+                              : isOverdue
+                                ? "border-red-100 bg-red-50"
+                                : "border-gray-100 bg-gray-50"
+                          }`}
+                        >
+                          <View>
+                            <Text className="text-[14px] font-bold text-system-blue-dark">
+                              Installment #{inst.payment_number}
+                            </Text>
+                            <Text className="text-[12px] text-gray-400 mt-0.5">
+                              Due{" "}
+                              {new Date(inst.due_date).toLocaleDateString(
+                                "en-NG",
+                                {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                },
+                              )}
+                            </Text>
+                          </View>
+                          <View className="items-end">
+                            <Text className="text-[14px] font-bold text-system-blue-dark mb-1">
+                              {formatCurrency(inst.amount)}
+                            </Text>
+                            <View
+                              className={`px-2 py-0.5 rounded-full ${
+                                isPaid
+                                  ? "bg-green-100"
+                                  : isOverdue
+                                    ? "bg-red-100"
+                                    : "bg-gray-100"
+                              }`}
+                            >
+                              <Text
+                                className={`text-[11px] font-bold ${
+                                  isPaid
+                                    ? "text-green-700"
+                                    : isOverdue
+                                      ? "text-red-600"
+                                      : "text-gray-500"
+                                }`}
+                              >
+                                {isPaid
+                                  ? "PAID"
+                                  : isOverdue
+                                    ? "OVERDUE"
+                                    : "PENDING"}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </>
+                )}
+              </>
+            )}
           </View>
         )}
 

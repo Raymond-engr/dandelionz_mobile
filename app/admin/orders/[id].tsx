@@ -18,6 +18,7 @@ import {
   useUpdateOrderStatusMutation,
   useGetAdminRefundsQuery,
   useSetOrderDeliveryMutation,
+  useGetAdminInstallmentPlanQuery,
 } from "@/lib/api/adminApi";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { formatCurrency } from "@/lib/utils";
@@ -45,6 +46,15 @@ export default function OrderDetails() {
       order = { ...order, refund_request: orderRefund } as any;
     }
   }
+
+  // Read-only installment plan summary. Admins can't act on it here — the
+  // customer pays it down from their order-tracking screen.
+  const installmentPlanId = order?.installment_plan?.id;
+  const { data: installmentPlanResp } = useGetAdminInstallmentPlanQuery(
+    installmentPlanId ?? 0,
+    { skip: !installmentPlanId },
+  );
+  const installmentPlan = installmentPlanResp?.data;
 
   const [cancelOrder, { isLoading: isCancelling }] = useCancelOrderWithReasonMutation();
   const [updateOrderStatus, { isLoading: isUpdating }] = useUpdateOrderStatusMutation();
@@ -384,6 +394,146 @@ export default function OrderDetails() {
               if (d) setLatest(d);
             }}
           />
+        )}
+
+        {installmentPlan && (
+          <>
+            <Text style={styles.sectionTitle}>Installment Plan</Text>
+            <View className="bg-[#f9fafb] rounded-xl p-4 mb-5">
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-[13px] text-[#6b7280]">Status</Text>
+                <View
+                  className={`px-2 py-0.5 rounded-full ${
+                    installmentPlan.status === "COMPLETED"
+                      ? "bg-[#D1FAE5]"
+                      : installmentPlan.status === "ACTIVE"
+                        ? "bg-[#DBEAFE]"
+                        : "bg-[#FEE2E2]"
+                  }`}
+                >
+                  <Text
+                    className={`text-[11px] font-bold ${
+                      installmentPlan.status === "COMPLETED"
+                        ? "text-[#059669]"
+                        : installmentPlan.status === "ACTIVE"
+                          ? "text-[#2563EB]"
+                          : "text-[#DC2626]"
+                    }`}
+                  >
+                    {installmentPlan.status}
+                  </Text>
+                </View>
+              </View>
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-[13px] text-[#6b7280]">Total</Text>
+                <Text className="text-[13px] font-medium text-[#111827]">
+                  {formatCurrency(installmentPlan.total_amount)}
+                </Text>
+              </View>
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-[13px] text-[#6b7280]">Amount paid</Text>
+                <Text className="text-[13px] font-medium text-[#059669]">
+                  {formatCurrency(installmentPlan.amount_paid)}
+                </Text>
+              </View>
+              <View className="flex-row justify-between mb-3">
+                <Text className="text-[13px] text-[#6b7280]">
+                  Balance remaining
+                </Text>
+                <Text className="text-[13px] font-bold text-[#030482]">
+                  {formatCurrency(installmentPlan.balance_remaining)}
+                </Text>
+              </View>
+
+              {/* Progress bar with a 50% ships marker */}
+              <View className="flex-row justify-between mb-1">
+                <Text className="text-[12px] text-[#6b7280]">
+                  {Math.round((installmentPlan.paid_fraction ?? 0) * 100)}% paid
+                </Text>
+                <Text className="text-[12px] text-[#9CA3AF]">
+                  {installmentPlan.paid_installments_count} of{" "}
+                  {installmentPlan.number_of_installments} scheduled
+                </Text>
+              </View>
+              <View className="relative h-2 bg-[#e5e7eb] rounded-full mb-3">
+                <View
+                  className="h-full bg-system-blue-light rounded-full"
+                  style={{
+                    width: `${Math.min(Math.max((installmentPlan.paid_fraction ?? 0) * 100, 0), 100)}%`,
+                  }}
+                />
+                <View
+                  className="absolute top-[-2px] h-3 w-[2px] bg-amber-500"
+                  style={{ left: "50%" }}
+                />
+              </View>
+
+              <View className="flex-row justify-between">
+                <Text className="text-[13px] text-[#6b7280]">Next due</Text>
+                <Text className="text-[13px] font-medium text-[#111827]">
+                  {installmentPlan.next_due_date
+                    ? fmtWindow(installmentPlan.next_due_date)
+                    : "—"}
+                </Text>
+              </View>
+            </View>
+
+            {!!installmentPlan.installments?.length && (
+              <View className="mb-5">
+                {installmentPlan.installments.map((inst: any) => {
+                  const isPaid = inst.status === "PAID";
+                  const isOverdue =
+                    !isPaid && new Date(inst.due_date) < new Date();
+                  return (
+                    <View
+                      key={inst.payment_number}
+                      className="flex-row items-center justify-between px-4 py-3 mb-2 rounded-xl border border-gray-100 bg-[#f9fafb]"
+                    >
+                      <View>
+                        <Text className="text-[13px] font-bold text-[#111827]">
+                          Installment #{inst.payment_number}
+                        </Text>
+                        <Text className="text-[12px] text-[#9CA3AF] mt-0.5">
+                          Due{" "}
+                          {new Date(inst.due_date).toLocaleDateString("en-NG", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </Text>
+                      </View>
+                      <View className="items-end">
+                        <Text className="text-[13px] font-bold text-[#111827] mb-1">
+                          {formatCurrency(inst.amount)}
+                        </Text>
+                        <View
+                          className={`px-2 py-0.5 rounded-full ${
+                            isPaid
+                              ? "bg-[#D1FAE5]"
+                              : isOverdue
+                                ? "bg-[#FEE2E2]"
+                                : "bg-[#F3F4F6]"
+                          }`}
+                        >
+                          <Text
+                            className={`text-[11px] font-bold ${
+                              isPaid
+                                ? "text-[#059669]"
+                                : isOverdue
+                                  ? "text-[#DC2626]"
+                                  : "text-[#6B7280]"
+                            }`}
+                          >
+                            {isPaid ? "PAID" : isOverdue ? "OVERDUE" : "PENDING"}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </>
         )}
 
         <Text style={styles.sectionTitle}>Order Tracking Status</Text>

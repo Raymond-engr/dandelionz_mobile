@@ -1,4 +1,5 @@
 import { baseApi } from "./baseApi";
+import type { InstallmentPlan } from "./publicApi";
 
 interface AdminProfile {
   uuid: string;
@@ -1047,6 +1048,16 @@ export const adminApi = baseApi.injectEndpoints({
       providesTags: ["Order"],
     }),
 
+    // Read-only view of an order's installment plan for the order detail screen.
+    // Admins can reach the shared installment-plans endpoint directly.
+    getAdminInstallmentPlan: builder.query<
+      { success: boolean; data: InstallmentPlan },
+      number
+    >({
+      query: (id) => `/transactions/installment-plans/${id}/`,
+      providesTags: ["Order"],
+    }),
+
     // Product Management
     getAllProducts: builder.query<
       { success: boolean; data: Product[] },
@@ -1448,6 +1459,7 @@ export const {
   useAssignLogisticsMutation,
   useProcessRefundMutation,
   useGetOrderItemsQuery,
+  useGetAdminInstallmentPlanQuery,
   useGetAllProductsQuery,
   useGetProductDetailsQuery,
   useGetAdminProductDetailsQuery,

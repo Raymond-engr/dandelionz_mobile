@@ -5,6 +5,7 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
+  TextInput,
   Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -13,6 +14,7 @@ import {
   useApproveVendorMutation,
   useVerifyVendorKYCMutation,
   useSuspendVendorMutation,
+  useSetVendorCommissionMutation,
 } from "@/lib/api/adminApi";
 import { apiError } from "@/lib/utils";
 import { MaterialIcons, Ionicons, Feather } from "@expo/vector-icons";
@@ -32,8 +34,43 @@ export default function VendorDetail() {
   const [approveVendor, { isLoading: isApproving }] = useApproveVendorMutation();
   const [verifyKYC, { isLoading: isVerifying }] = useVerifyVendorKYCMutation();
   const [suspendVendor, { isLoading: isSuspending }] = useSuspendVendorMutation();
+  const [setVendorCommission, { isLoading: isSavingCommission }] = useSetVendorCommissionMutation();
 
   const [action, setAction] = useState("");
+  // Held as a percent string (e.g. "8") for the operator; converted to a decimal for the API.
+  const [commissionInput, setCommissionInput] = useState("");
+
+  useEffect(() => {
+    if (vendor?.commission_rate != null && vendor.commission_rate !== "") {
+      setCommissionInput(String(Math.round(parseFloat(vendor.commission_rate) * 100 * 100) / 100));
+    } else {
+      setCommissionInput("");
+    }
+  }, [vendor?.commission_rate]);
+
+  const handleSaveCommission = async (clear = false) => {
+    if (!vendor) return;
+    let value: number | null = null;
+    if (!clear && commissionInput.trim() !== "") {
+      const pct = parseFloat(commissionInput);
+      if (isNaN(pct) || pct < 0 || pct > 10) {
+        Toast.show({ type: "error", text1: "Enter a commission between 0 and 10%." });
+        return;
+      }
+      value = Math.round(pct * 10) / 1000; // percent -> decimal, 3 dp
+    }
+    try {
+      const res = await setVendorCommission({ uuid: id!, commission_rate: value }).unwrap();
+      Toast.show({
+        type: "success",
+        text1: value === null ? "Reset to platform default" : "Commission updated",
+        text2: `Now ${res.data.effective_rate_label}.`,
+      });
+      refetch();
+    } catch (err: any) {
+      Toast.show({ type: "error", text1: "Error", text2: apiError(err, "Could not update commission.") });
+    }
+  };
 
   const availableActions = React.useMemo(() => {
     if (!vendor) return [];
@@ -170,6 +207,52 @@ export default function VendorDetail() {
           <InfoField label="Bank Name" value={vendor.bank_name} />
           <InfoField label="Account Number" value={vendor.account_number} />
           {vendor.recipient_code && <InfoField label="Recipient Code" value={vendor.recipient_code} />}
+        </View>
+
+        <Divider height={11} />
+
+        {/* Commission */}
+        <View className="p-[21px]">
+          <Text className="text-[18px] font-bold text-system-blue-dark mb-2">Commission</Text>
+          <Text className="text-[13px] text-[#00001180] mb-4">
+            Platform commission on this vendor&apos;s sales. Currently{" "}
+            <Text className="font-bold text-system-blue-dark">
+              {vendor.commission_rate != null && vendor.commission_rate !== ""
+                ? `${(parseFloat(vendor.commission_rate) * 100).toString()}% (custom)`
+                : "10% (platform default)"}
+            </Text>
+            . A per-product override, where set, takes precedence. Maximum 10%.
+          </Text>
+          <View className="flex-row items-center gap-2">
+            <View className="flex-1 flex-row items-center border border-gray-300 rounded-[12px] px-4 h-[55px]">
+              <TextInput
+                value={commissionInput}
+                onChangeText={setCommissionInput}
+                keyboardType="decimal-pad"
+                placeholder="Default (10)"
+                placeholderTextColor="#9CA3AF"
+                editable={!isSavingCommission}
+                className="flex-1 text-[16px] text-system-blue-dark"
+              />
+              <Text className="text-[16px] text-gray-400 ml-1">%</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => handleSaveCommission(false)}
+              disabled={isSavingCommission}
+              className={`h-[55px] px-5 rounded-[12px] items-center justify-center ${isSavingCommission ? "bg-gray-300" : "bg-system-blue-light"}`}
+            >
+              {isSavingCommission ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text className="text-white text-[15px] font-bold">Save</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+          {vendor.commission_rate != null && vendor.commission_rate !== "" && (
+            <TouchableOpacity onPress={() => handleSaveCommission(true)} disabled={isSavingCommission} className="mt-3">
+              <Text className="text-[14px] font-bold text-system-blue-light">Reset to platform default</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <Divider height={11} />

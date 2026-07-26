@@ -60,6 +60,7 @@ export interface Vendor {
   store_description?: string;
   business_registration_number?: string;
   address?: string;
+  commission_rate?: string | null; // Platform commission for this vendor (decimal); null = platform default
   bank_name?: string;
   account_number?: string;
   recipient_code?: string;
@@ -146,6 +147,7 @@ export interface Product {
   status: string;
   stock: number;
   discount?: number; // Added discount field
+  commission_rate?: string | null; // Per-product commission override (decimal); null = vendor/platform rate
 }
 
 interface AdminProduct {
@@ -167,6 +169,7 @@ interface AdminProduct {
     email: string;
   };
   status: "PENDING" | "APPROVED" | "REJECTED"; // Specific status for admin actions
+  commission_rate?: string | null; // Per-product commission override (decimal); null = vendor/platform rate
 }
 
 export interface Category {
@@ -789,6 +792,28 @@ export const adminApi = baseApi.injectEndpoints({
       invalidatesTags: ["Vendor"],
     }),
 
+    // Set or clear a vendor's platform commission rate. Send a decimal 0-0.10, or null to
+    // clear the override and fall back to the platform default. Capped server-side at 10%.
+    setVendorCommission: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          vendor_uuid: string;
+          commission_rate: string | null;
+          effective_rate: string;
+          effective_rate_label: string;
+        };
+      },
+      { uuid: string; commission_rate: number | null }
+    >({
+      query: ({ uuid, commission_rate }) => ({
+        url: `/user/admin/vendors/${uuid}/commission/`,
+        method: "PATCH",
+        body: { commission_rate },
+      }),
+      invalidatesTags: ["Vendor", "Product"],
+    }),
+
     getVendorProducts: builder.query<
       { success: boolean; data: Product[] },
       string
@@ -931,6 +956,28 @@ export const adminApi = baseApi.injectEndpoints({
         url: `/user/admin/products/${slug}/`,
         method: "PATCH",
         body,
+      }),
+      invalidatesTags: ["Product"],
+    }),
+
+    // Set or clear a product's commission-rate override. Send a decimal 0-0.10, or null to
+    // clear it so the vendor/platform rate applies. Capped server-side at 10%.
+    setProductCommission: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          slug: string;
+          commission_rate: string | null;
+          effective_rate: string;
+          effective_rate_label: string;
+        };
+      },
+      { slug: string; commission_rate: number | null }
+    >({
+      query: ({ slug, commission_rate }) => ({
+        url: `/user/admin/products/${slug}/commission/`,
+        method: "PATCH",
+        body: { commission_rate },
       }),
       invalidatesTags: ["Product"],
     }),
@@ -1257,6 +1304,7 @@ export const {
   useApproveVendorMutation,
   useVerifyVendorKYCMutation,
   useSuspendVendorMutation,
+  useSetVendorCommissionMutation,
   useGetVendorProductsQuery,
   useAdminGetVendorOrdersQuery,
   useAdminGetVendorAnalyticsQuery,
@@ -1272,6 +1320,7 @@ export const {
   useGetProductDetailsQuery,
   useGetAdminProductDetailsQuery,
   useApproveProductMutation,
+  useSetProductCommissionMutation,
   useApproveProductAdminMutation,
   useRejectProductAdminMutation,
   useDeleteProductMutation,

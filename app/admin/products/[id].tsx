@@ -4,12 +4,13 @@ import {
     useApproveProductAdminMutation,
     useGetAdminProductDetailsQuery,
     useRejectProductAdminMutation,
+    useSetProductCommissionMutation,
 } from "@/lib/api/adminApi";
 import { captureApiError } from "@/lib/observability";
 import { apiError, formatCurrency } from "@/lib/utils";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Image,
@@ -42,6 +43,41 @@ export default function ProductDetail() {
     useApproveProductAdminMutation();
   const [rejectProduct, { isLoading: isRejecting }] =
     useRejectProductAdminMutation();
+  const [setProductCommission, { isLoading: isSavingCommission }] =
+    useSetProductCommissionMutation();
+  const [commissionInput, setCommissionInput] = useState("");
+
+  useEffect(() => {
+    if (product?.commission_rate != null && product.commission_rate !== "") {
+      setCommissionInput(String(Math.round(parseFloat(product.commission_rate) * 100 * 100) / 100));
+    } else {
+      setCommissionInput("");
+    }
+  }, [product?.commission_rate]);
+
+  const handleSaveCommission = async (clear = false) => {
+    if (!product) return;
+    let value: number | null = null;
+    if (!clear && commissionInput.trim() !== "") {
+      const pct = parseFloat(commissionInput);
+      if (isNaN(pct) || pct < 0 || pct > 10) {
+        Toast.show({ type: "error", text1: "Enter a commission between 0 and 10%." });
+        return;
+      }
+      value = Math.round(pct * 10) / 1000; // percent -> decimal, 3 dp
+    }
+    try {
+      const res = await setProductCommission({ slug: id!, commission_rate: value }).unwrap();
+      Toast.show({
+        type: "success",
+        text1: value === null ? "Override cleared" : "Commission updated",
+        text2: `Now ${res.data.effective_rate_label}.`,
+      });
+      refetch();
+    } catch (err: any) {
+      Toast.show({ type: "error", text1: "Error", text2: apiError(err, "Could not update commission.") });
+    }
+  };
 
   const handleConfirmAction = async () => {
     if (!product) return;
@@ -214,6 +250,52 @@ export default function ProductDetail() {
               </View>
             </View>
           </View>
+        </View>
+
+        <Divider />
+
+        {/* Commission */}
+        <View className="p-[21px]">
+          <Text className="text-[16px] font-bold text-system-blue-dark mb-2">Commission</Text>
+          <Text className="text-[13px] text-[#6B7280] leading-[20px] mb-4">
+            Override the platform commission for this product only. Currently{" "}
+            <Text className="font-bold text-system-blue-dark">
+              {product.commission_rate != null && product.commission_rate !== ""
+                ? `${(parseFloat(product.commission_rate) * 100).toString()}% (override)`
+                : "using the vendor/platform rate"}
+            </Text>
+            . Leave blank to inherit. Maximum 10%.
+          </Text>
+          <View className="flex-row items-center gap-2">
+            <View className="flex-1 flex-row items-center border border-gray-300 rounded-[12px] px-4 h-[55px]">
+              <TextInput
+                value={commissionInput}
+                onChangeText={setCommissionInput}
+                keyboardType="decimal-pad"
+                placeholder="Inherit"
+                placeholderTextColor="#9CA3AF"
+                editable={!isSavingCommission}
+                className="flex-1 text-[16px] text-system-blue-dark"
+              />
+              <Text className="text-[16px] text-gray-400 ml-1">%</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => handleSaveCommission(false)}
+              disabled={isSavingCommission}
+              className={`h-[55px] px-5 rounded-[12px] items-center justify-center ${isSavingCommission ? "bg-gray-300" : "bg-system-blue-light"}`}
+            >
+              {isSavingCommission ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text className="text-white text-[15px] font-bold">Save</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+          {product.commission_rate != null && product.commission_rate !== "" && (
+            <TouchableOpacity onPress={() => handleSaveCommission(true)} disabled={isSavingCommission} className="mt-3">
+              <Text className="text-[14px] font-bold text-system-blue-light">Clear override</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {product.status === "PENDING" && (

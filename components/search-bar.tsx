@@ -8,6 +8,15 @@ interface Props {
   placeholder?: string;
   onFilterPress?: () => void;
   showFilter?: boolean;
+  autoFocus?: boolean;
+  /** Fired when the user hits the keyboard's search key. */
+  onSubmit?: () => void;
+  /**
+   * Turns the bar into a button instead of an input. Used on the shop tab,
+   * where tapping should open the dedicated search screen rather than filter
+   * in place.
+   */
+  onPress?: () => void;
 }
 
 export function SearchBar({
@@ -16,7 +25,27 @@ export function SearchBar({
   placeholder = "Search Products",
   onFilterPress,
   showFilter,
+  autoFocus,
+  onSubmit,
+  onPress,
 }: Props) {
+  const input = (
+    <TextInput
+      value={value}
+      onChangeText={onChange}
+      placeholder={placeholder}
+      placeholderTextColor="#9CA3AF"
+      style={styles.input}
+      autoFocus={autoFocus}
+      editable={!onPress}
+      returnKeyType="search"
+      onSubmitEditing={onSubmit}
+      // Search terms are not prose; the usual keyboard assists get in the way.
+      autoCorrect={false}
+      autoCapitalize="none"
+    />
+  );
+
   return (
     <View style={styles.row}>
       <View style={styles.inputWrap}>
@@ -35,13 +64,17 @@ export function SearchBar({
             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
           />
         </Svg>
-        <TextInput
-          value={value}
-          onChangeText={onChange}
-          placeholder={placeholder}
-          placeholderTextColor="#9CA3AF"
-          style={styles.input}
-        />
+        {onPress ? (
+          // pointerEvents="none" lets taps fall through the disabled input to
+          // the Pressable, so the whole bar behaves as one button.
+          <Pressable style={styles.pressableInput} onPress={onPress}>
+            <View pointerEvents="none" style={styles.pressableInput}>
+              {input}
+            </View>
+          </Pressable>
+        ) : (
+          input
+        )}
       </View>
       {showFilter && (
         <Pressable onPress={onFilterPress} style={styles.filterBtn}>
@@ -75,5 +108,6 @@ const styles = StyleSheet.create({
   },
   searchIcon: { marginRight: 8 },
   input: { flex: 1, fontSize: 14, color: "#111827" },
+  pressableInput: { flex: 1, justifyContent: "center" },
   filterBtn: { padding: 8 },
 });

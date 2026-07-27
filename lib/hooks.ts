@@ -33,6 +33,9 @@ export const useLogout = () => {
       // dispatches into a navigator that is being torn down.
       router.replace("/(auth)/login");
 
+      // Search history is cleared by the auth-transition subscriber in
+      // lib/store.ts, which also covers expiry-driven logout. Don't duplicate
+      // it here.
       dispatch(logoutAction());
       AsyncStorage.removeItem("auth").catch(() => {});
       SecureStore.deleteItemAsync("access_token").catch(() => {});

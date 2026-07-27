@@ -131,8 +131,10 @@ export default function VendorNewProduct() {
     formData.append("category", form.category);
     formData.append("price", form.price);
     formData.append("stock", form.stock);
-    formData.append("brand", form.brand);
-    formData.append("tags", form.tags);
+    // Both optional: omit rather than send "", so blank values don't end up
+    // stored as empty strings and diluting tag matching in search.
+    if (form.brand.trim()) formData.append("brand", form.brand.trim());
+    if (form.tags.trim()) formData.append("tags", form.tags.trim());
     formData.append("discount", String(parseInt(form.discount || "0", 10) || 0));
 
     form.images.forEach((uri, index) => {
@@ -337,6 +339,35 @@ export default function VendorNewProduct() {
                     setForm((f) => ({ ...f, description: v }))
                   }
                 />
+              </View>
+
+              <View>
+                <Text className="text-[14px] font-semibold text-system-blue-dark mb-2">
+                  Brand <Text className="font-normal text-gray-400">(optional)</Text>
+                </Text>
+                <TextInput
+                  className="bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6]"
+                  placeholder="Brand name"
+                  autoCapitalize="words"
+                  value={form.brand}
+                  onChangeText={(v) => setForm((f) => ({ ...f, brand: v }))}
+                />
+              </View>
+
+              <View>
+                <Text className="text-[14px] font-semibold text-system-blue-dark mb-2">
+                  Tags <Text className="font-normal text-gray-400">(optional)</Text>
+                </Text>
+                <TextInput
+                  className="bg-[#F9FAFB] p-4 rounded-xl border border-[#F3F4F6]"
+                  placeholder="waterproof, hiking, lightweight"
+                  autoCapitalize="none"
+                  value={form.tags}
+                  onChangeText={(v) => setForm((f) => ({ ...f, tags: v }))}
+                />
+                <Text className="text-[12px] text-gray-500 mt-1">
+                  Comma-separated. Tags help shoppers find this product in search.
+                </Text>
               </View>
 
               <View className="flex-row gap-4">

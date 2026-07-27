@@ -179,6 +179,46 @@ type GetProductsResponse = {
   data: Product[];
 };
 
+export type SearchSuggestion = {
+  name: string;
+  slug: string;
+};
+
+type SearchSuggestionsResponse = {
+  success: boolean;
+  data: {
+    products: SearchSuggestion[];
+    categories: SearchSuggestion[];
+  };
+};
+
+/** Which feed the recommendation endpoint should build. */
+export type RecommendationType = "related" | "for-you" | "trending";
+
+export type RecommendationArgs = {
+  type: RecommendationType;
+  /** Product slug to find neighbours for. Only meaningful for `related`. */
+  product?: string;
+  /** Category slug to scope to. Only meaningful for `trending`. */
+  category?: string;
+  limit?: number;
+};
+
+/** Same envelope and item shape as /store/products/. */
+type GetRecommendationsResponse = {
+  success: boolean;
+  data: Product[];
+};
+
+/** Signals the recommender learns from. Deliberately a closed set. */
+export type InteractionEventType = "view" | "cart_add";
+
+export type InteractionArgs = {
+  /** Product slug, not id — matches the rest of the store API. */
+  product: string;
+  event_type: InteractionEventType;
+};
+
 // Public/Store API (no auth required)
 export const publicApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -209,6 +249,39 @@ export const publicApi = baseApi.injectEndpoints({
     >({
       query: (slug) => `/store/products/${slug}/`,
       providesTags: ["Product"],
+    }),
+
+    getSearchSuggestions: builder.query<SearchSuggestionsResponse, string>({
+      query: (q) => ({
+        url: "/store/products/suggestions/",
+        params: { q },
+      }),
+      // Deliberately untagged: suggestions are a transient typeahead aid, and
+      // invalidating them on every product mutation would refetch constantly.
+    }),
+
+    // Recommendations
+    getRecommendations: builder.query<
+      GetRecommendationsResponse,
+      RecommendationArgs
+    >({
+      query: (params) => ({
+        url: "/store/recommendations/",
+        params,
+      }),
+      // Deliberately untagged, like suggestions: these feeds are advisory and
+      // re-ranked server-side, so invalidating them on every product or cart
+      // mutation would refetch three rows for no visible benefit.
+    }),
+
+    recordInteraction: builder.mutation<void, InteractionArgs>({
+      query: (body) => ({
+        url: "/store/events/",
+        method: "POST",
+        body,
+      }),
+      // No invalidation: this is a write-only signal. The 202 carries no body
+      // and nothing on screen depends on it.
     }),
 
     // Categories
@@ -585,6 +658,9 @@ export const publicApi = baseApi.injectEndpoints({
 export const {
   useGetProductsQuery,
   useGetProductBySlugQuery,
+  useGetSearchSuggestionsQuery,
+  useGetRecommendationsQuery,
+  useRecordInteractionMutation,
   useGetCategoriesQuery,
   useGetCartQuery,
   useAddToCartMutation,

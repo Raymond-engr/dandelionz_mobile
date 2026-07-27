@@ -26,6 +26,13 @@ export default function AdminSettlementsMenu() {
       icon: "history",
       href: "/admin/settlements/history",
     },
+    {
+      // The ledger is the source of truth the other screens are derived from, so it sits
+      // alongside them rather than buried under payouts.
+      label: "Finance Ledger",
+      icon: "receipt-long",
+      href: "/admin/finance/ledger",
+    },
   ];
 
   const paymentItems = [

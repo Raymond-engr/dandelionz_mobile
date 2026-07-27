@@ -12,18 +12,24 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useGetAllUsersQuery } from "@/lib/api/adminApi";
-import { Feather } from "@expo/vector-icons";
+import {
+  useGetAllUsersQuery,
+  useGetRefundFlagsQuery,
+} from "@/lib/api/adminApi";
+import { Feather, Ionicons } from "@expo/vector-icons";
 
 export default function AdminUsers() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const { data: usersResponse, isLoading, isError, refetch } = useGetAllUsersQuery({});
+  const { data: refundFlagsResponse, refetch: refetchRefundFlags } =
+    useGetRefundFlagsQuery();
+  const refundFlagCount = refundFlagsResponse?.data?.count ?? 0;
   const [refreshing, setRefreshing] = useState(false);
 
   async function onRefresh() {
     setRefreshing(true);
-    await refetch();
+    await Promise.all([refetch(), refetchRefundFlags()]);
     setRefreshing(false);
   }
 
@@ -61,6 +67,23 @@ export default function AdminUsers() {
         <Text className="text-sm text-gray-600 mb-4">
           Oversee users information, orders, and deactivate users account
         </Text>
+
+        {/* Refund-abuse review banner (review-only; never blocks anyone) */}
+        {refundFlagCount > 0 && (
+          <View className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200">
+            <View className="flex-row items-center mb-1">
+              <Ionicons name="flag" size={18} color="#b45309" />
+              <Text className="text-[13px] font-bold text-amber-700 ml-2">
+                {refundFlagCount} customer{refundFlagCount === 1 ? "" : "s"}{" "}
+                flagged for refund review
+              </Text>
+            </View>
+            <Text className="text-[12px] text-amber-700/80">
+              Open a customer to review their refund history. This is a review
+              signal only — no customer is blocked or restricted.
+            </Text>
+          </View>
+        )}
 
         {/* Total Users Card */}
         <View className="bg-system-blue-light rounded-lg p-4 mb-4 flex-row items-center justify-between">

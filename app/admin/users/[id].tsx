@@ -14,6 +14,8 @@ import { apiError } from "@/lib/utils";
 import {
   useGetUserDetailsQuery,
   useUpdateUserStatusMutation,
+  useGetCustomerRefundProfileQuery,
+  useReviewRefundFlagMutation,
 } from "@/lib/api/adminApi";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { Divider } from "@/components/ui/divider";
@@ -32,6 +34,47 @@ export default function UserDetail() {
   const user = userResponse?.data;
 
   const [updateUserStatus, { isLoading: isUpdating }] = useUpdateUserStatusMutation();
+
+  const isCustomer = user?.role === "CUSTOMER";
+  const {
+    data: refundResponse,
+    isLoading: isRefundLoading,
+    refetch: refetchRefund,
+  } = useGetCustomerRefundProfileQuery(id!, { skip: !isCustomer });
+  const refund = refundResponse?.data;
+
+  const [reviewRefundFlag, { isLoading: isReviewing }] = useReviewRefundFlagMutation();
+
+  const handleReviewRefundFlag = () => {
+    if (!refund) return;
+    Alert.alert(
+      "Mark as reviewed?",
+      "This clears the review flag until this customer refunds more orders. It does not block, restrict, or penalise the customer in any way.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Mark reviewed",
+          onPress: async () => {
+            try {
+              await reviewRefundFlag(refund.uuid).unwrap();
+              Toast.show({
+                type: "success",
+                text1: "Marked reviewed",
+                text2: "This customer's refund flag has been cleared.",
+              });
+              refetchRefund();
+            } catch (err: any) {
+              Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: apiError(err, "Failed to mark as reviewed"),
+              });
+            }
+          },
+        },
+      ]
+    );
+  };
 
   useEffect(() => {
     if (user) {
@@ -151,6 +194,116 @@ export default function UserDetail() {
           <InfoField label="Registration Date" value={user.created_at ? new Date(user.created_at).toLocaleDateString() : ""} />
           <InfoField label="Address" value={user.address || ""} />
         </View>
+
+        {isCustomer && <Divider height={11} />}
+
+        {/* Refund history (review-only signal; never blocks the customer) */}
+        {isCustomer && (
+        <View className="p-[21px]">
+          <View className="flex-row items-center justify-between mb-1">
+            <Text className="text-[18px] font-bold text-system-blue-dark">
+              Refund history
+            </Text>
+            {refund?.needs_review && (
+              <View className="flex-row items-center px-3 py-1 rounded-full bg-amber-50 border border-amber-200">
+                <Ionicons name="flag" size={13} color="#b45309" />
+                <Text className="text-[11px] font-bold text-amber-700 ml-1.5">
+                  Flagged for review
+                </Text>
+              </View>
+            )}
+          </View>
+          <Text className="text-[13px] text-[#00001180] mb-5">
+            Review signal only — this never blocks or restricts the customer.
+          </Text>
+
+          {isRefundLoading ? (
+            <ActivityIndicator color="#030482" style={{ marginVertical: 12 }} />
+          ) : refund ? (
+            <>
+              <View className="flex-row gap-3">
+                <View className="flex-1 bg-[#F5F7FA] p-4 rounded-xl border border-gray-100">
+                  <Text className="text-[11px] text-[#6B7280] font-bold uppercase mb-1">
+                    Paid orders
+                  </Text>
+                  <Text className="text-[20px] font-bold text-system-blue-dark">
+                    {refund.paid_orders}
+                  </Text>
+                </View>
+                <View className="flex-1 bg-[#F5F7FA] p-4 rounded-xl border border-gray-100">
+                  <Text className="text-[11px] text-[#6B7280] font-bold uppercase mb-1">
+                    Refunds
+                  </Text>
+                  <Text className="text-[20px] font-bold text-system-blue-dark">
+                    {refund.refund_count}
+                  </Text>
+                </View>
+                <View
+                  className={`flex-1 p-4 rounded-xl border ${
+                    refund.needs_review
+                      ? "bg-amber-50 border-amber-200"
+                      : "bg-[#F5F7FA] border-gray-100"
+                  }`}
+                >
+                  <Text
+                    className={`text-[11px] font-bold uppercase mb-1 ${
+                      refund.needs_review ? "text-amber-700" : "text-[#6B7280]"
+                    }`}
+                  >
+                    Refund rate
+                  </Text>
+                  <Text
+                    className={`text-[20px] font-bold ${
+                      refund.needs_review ? "text-amber-700" : "text-system-blue-dark"
+                    }`}
+                  >
+                    {(refund.refund_rate * 100).toFixed(1)}%
+                  </Text>
+                </View>
+              </View>
+
+              {refund.needs_review ? (
+                <>
+                  <Text className="text-[13px] text-[#6B7280] leading-5 mt-4">
+                    This customer refunds a high share of their paid orders
+                    (threshold: {refund.thresholds.min_orders}+ orders,{" "}
+                    {refund.thresholds.min_refunds}+ refunds, over{" "}
+                    {(refund.thresholds.rate * 100).toFixed(0)}%). Review their
+                    orders and mark reviewed once you have looked into it.
+                  </Text>
+                  <TouchableOpacity
+                    onPress={handleReviewRefundFlag}
+                    disabled={isReviewing}
+                    className={`h-[55px] rounded-[12px] items-center justify-center mt-4 ${
+                      isReviewing ? "bg-gray-300" : "bg-system-blue-light"
+                    }`}
+                  >
+                    {isReviewing ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text className="text-white text-[16px] font-bold">
+                        Mark reviewed
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <Text className="text-[13px] text-[#6B7280] leading-5 mt-4">
+                  {refund.reviewed_count > 0
+                    ? `No action needed. Reviewed ${refund.reviewed_count} time${
+                        refund.reviewed_count === 1 ? "" : "s"
+                      } so far.`
+                    : "No action needed — this customer's refund activity is within normal range."}
+                </Text>
+              )}
+            </>
+          ) : (
+            <Text className="text-[14px] text-[#6B7280]">
+              No refund data available for this customer.
+            </Text>
+          )}
+        </View>
+        )}
 
         <Divider height={11} />
 

@@ -48,6 +48,12 @@ export interface Order {
   payment_status: string;
   total_price: string;
   delivery_fee: string;
+  /** Whether the delivery fee has been settled. Only meaningful when delivery_fee > 0. */
+  delivery_fee_paid: boolean;
+  /** Start of the promised delivery window (ISO), or null until an admin schedules it. */
+  expected_delivery_earliest: string | null;
+  /** End of the promised delivery window (ISO), or null until an admin schedules it. */
+  expected_delivery_latest: string | null;
   discount: string;
   total_with_delivery: string;
   is_delivered: boolean;
@@ -129,11 +135,24 @@ export interface InstallmentPlan {
   number_of_installments: number;
   paid_installments_count: number;
   pending_installments_count: number;
-  status: "ACTIVE" | "COMPLETED" | "DEFAULTED";
+  status: "ACTIVE" | "COMPLETED" | "CANCELLED" | "DEFAULTED";
   is_fully_paid: boolean;
   start_date: string;
   created_at: string;
   updated_at: string;
+  // Running-balance ("CDcare") model. The plan is paid down flexibly rather than
+  // on a fixed per-row schedule, so these drive the pay panel.
+  /** How much of the plan has been settled so far. */
+  amount_paid: number;
+  /** What is still owed on the plan. Card/wallet payments are capped to this. */
+  balance_remaining: number;
+  /** Progress as a fraction 0..1 (amount_paid / total_amount). */
+  paid_fraction: number;
+  /** Smallest payment accepted right now; 0 when nothing is due yet. */
+  minimum_due_now: number;
+  /** When the next payment is expected, or null when the plan is settled. */
+  next_due_date: string | null;
+  /** Advisory schedule rows: kept for reference, no longer paid individually. */
   installments?: InstallmentPayment[];
 }
 
@@ -414,6 +433,55 @@ export const publicApi = baseApi.injectEndpoints({
       invalidatesTags: ["Cart", "Order"],
     }),
 
+    // Delivery-fee payment. Billed after an admin schedules the delivery window; the
+    // wallet can cover part or all of it, mirroring order checkout.
+    initDeliveryPayment: builder.mutation<
+      {
+        success: boolean;
+        data: {
+          /** False when the wallet covered the whole fee — the order is already paid. */
+          requires_payment: boolean;
+          /** Present only when a card leg is needed. */
+          authorization_url?: string;
+          reference: string;
+          wallet_amount: number;
+          card_amount: number;
+          order_id: string;
+        };
+        message?: string;
+      },
+      { order_id: string; use_wallet: boolean; wallet_amount?: number }
+    >({
+      query: ({ order_id, ...body }) => ({
+        url: `/transactions/orders/${order_id}/delivery-payment/`,
+        method: "POST",
+        body,
+      }),
+      // The wallet is debited when the payment starts, so its balance has changed by
+      // the time this returns.
+      invalidatesTags: ["Order", "CustomerWallet"],
+    }),
+
+    verifyDeliveryPayment: builder.query<
+      {
+        success: boolean;
+        message?: string;
+        data: {
+          reference: string;
+          status: string;
+          order_id: string;
+          delivery_fee_paid: boolean;
+        };
+      },
+      { reference: string }
+    >({
+      query: ({ reference }) => ({
+        url: `/transactions/verify-delivery-payment/?reference=${encodeURIComponent(reference)}`,
+        method: "GET",
+      }),
+      providesTags: ["Order"],
+    }),
+
     verifyPayment: builder.query<
       {
         status: string;
@@ -449,25 +517,42 @@ export const publicApi = baseApi.injectEndpoints({
       providesTags: ["Order"],
     }),
 
-    initializeNextInstallment: builder.mutation<
+    // Pay down an installment plan's running balance. Send an explicit `amount`,
+    // or omit it and set `clear_balance` to settle the whole balance in one go.
+    // `use_wallet` lets the spendable wallet cover part or all of the payment,
+    // mirroring order checkout. requires_payment=false means the wallet settled
+    // it and no card leg is needed; otherwise open authorization_url in the
+    // checkout WebView (the INS- reference routes to installment verify).
+    payInstallment: builder.mutation<
       {
         success: boolean;
         data: {
-          authorization_url: string;
+          /** False when the wallet covered the payment — nothing left to charge. */
+          requires_payment: boolean;
+          /** Present only when a card leg is needed. */
+          authorization_url?: string;
           reference: string;
+          method: "WALLET" | "CARD";
           amount: number;
-          payment_number: number;
-          installment_plan_id: number;
+          plan_id: number;
+          order_id: string;
         };
-        message: string;
+        message?: string;
       },
-      { plan_id: number; payment_number: number }
+      {
+        plan_id: number;
+        amount?: number;
+        clear_balance?: boolean;
+        use_wallet?: boolean;
+      }
     >({
       query: (body) => ({
         url: "/transactions/installment-plans/init-payment/",
         method: "POST",
         body,
       }),
+      // The wallet may be debited immediately, so its balance can change here.
+      invalidatesTags: ["Order", "CustomerWallet"],
     }),
 
     getInstallmentPlans: builder.query<
@@ -518,11 +603,14 @@ export const {
   useGetProductReviewsQuery,
   useInitializeCheckoutMutation,
   useInitializeInstallmentCheckoutMutation,
+  useInitDeliveryPaymentMutation,
+  useVerifyDeliveryPaymentQuery,
+  useLazyVerifyDeliveryPaymentQuery,
   useVerifyPaymentQuery,
   useLazyVerifyPaymentQuery,
   useVerifyInstallmentPaymentQuery,
   useLazyVerifyInstallmentPaymentQuery,
-  useInitializeNextInstallmentMutation,
+  usePayInstallmentMutation,
   useGetInstallmentPlansQuery,
   useGetInstallmentPlanDetailsQuery,
   useGetInstallmentPaymentsQuery,

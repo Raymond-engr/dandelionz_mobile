@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -14,12 +14,15 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { apiError } from "@/lib/utils";
 import {
   useGetAdminOrderDetailsQuery,
-  useCancelOrderWithReasonMutation, 
+  useCancelOrderWithReasonMutation,
   useUpdateOrderStatusMutation,
-  useGetAdminRefundsQuery
+  useGetAdminRefundsQuery,
+  useSetOrderDeliveryMutation,
+  useGetAdminInstallmentPlanQuery,
 } from "@/lib/api/adminApi";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { formatCurrency } from "@/lib/utils";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 import Toast from "react-native-toast-message";
 
@@ -44,8 +47,104 @@ export default function OrderDetails() {
     }
   }
 
+  // Read-only installment plan summary. Admins can't act on it here — the
+  // customer pays it down from their order-tracking screen.
+  const installmentPlanId = order?.installment_plan?.id;
+  const { data: installmentPlanResp } = useGetAdminInstallmentPlanQuery(
+    installmentPlanId ?? 0,
+    { skip: !installmentPlanId },
+  );
+  const installmentPlan = installmentPlanResp?.data;
+
   const [cancelOrder, { isLoading: isCancelling }] = useCancelOrderWithReasonMutation();
   const [updateOrderStatus, { isLoading: isUpdating }] = useUpdateOrderStatusMutation();
+  const [setOrderDelivery, { isLoading: isSavingDelivery }] = useSetOrderDeliveryMutation();
+
+  // Delivery scheduling form. Held as Date objects for the pickers; the fee is a plain
+  // string so the field can be cleared while typing.
+  const [useDefaultWindow, setUseDefaultWindow] = useState(false);
+  const [earliest, setEarliest] = useState<Date | null>(null);
+  const [latest, setLatest] = useState<Date | null>(null);
+  const [showEarliestPicker, setShowEarliestPicker] = useState(false);
+  const [showLatestPicker, setShowLatestPicker] = useState(false);
+  const [feeInput, setFeeInput] = useState("");
+
+  useEffect(() => {
+    if (!order) return;
+    setEarliest(
+      order.expected_delivery_earliest
+        ? new Date(order.expected_delivery_earliest)
+        : null,
+    );
+    setLatest(
+      order.expected_delivery_latest
+        ? new Date(order.expected_delivery_latest)
+        : null,
+    );
+    const fee = parseFloat(order.delivery_fee || "0");
+    setFeeInput(fee > 0 ? String(fee) : "");
+  }, [order?.order_id, order?.expected_delivery_earliest, order?.expected_delivery_latest, order?.delivery_fee]);
+
+  const handleSaveDelivery = async () => {
+    if (!order) return;
+
+    const feeValue = parseFloat(feeInput);
+    if (isNaN(feeValue) || feeValue < 0) {
+      Toast.show({ type: "error", text1: "Error", text2: "Enter a valid delivery fee." });
+      return;
+    }
+
+    if (!useDefaultWindow) {
+      if (!earliest || !latest) {
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: "Set both delivery dates, or use the default window.",
+        });
+        return;
+      }
+      if (earliest.getTime() > latest.getTime()) {
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: "Earliest date must be on or before the latest date.",
+        });
+        return;
+      }
+    }
+
+    try {
+      await setOrderDelivery({
+        order_id: order.order_id,
+        delivery_fee: feeValue,
+        ...(useDefaultWindow
+          ? { use_default: true }
+          : {
+              expected_delivery_earliest: earliest!.toISOString(),
+              expected_delivery_latest: latest!.toISOString(),
+            }),
+      }).unwrap();
+      Toast.show({ type: "success", text1: "Delivery details updated." });
+      refetch();
+    } catch (err: any) {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: apiError(err, "Failed to update delivery details."),
+      });
+    }
+  };
+
+  const fmtWindow = (iso?: string | null) =>
+    iso
+      ? new Date(iso).toLocaleString("en-NG", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          hour: "numeric",
+          minute: "2-digit",
+        })
+      : "Not set";
 
   const handleAction = async () => {
     if (!order) return;
@@ -168,6 +267,274 @@ export default function OrderDetails() {
             </View>
           </View>
         </View>
+
+        <Text style={styles.sectionTitle}>Delivery</Text>
+        <View className="bg-[#f9fafb] rounded-xl p-4 mb-5">
+          {/* Current state */}
+          <View className="flex-row justify-between mb-2">
+            <Text className="text-[13px] text-[#6b7280]">Window</Text>
+            <Text className="text-[13px] font-medium text-[#111827] text-right flex-1 ml-4">
+              {order.expected_delivery_latest
+                ? `${fmtWindow(order.expected_delivery_earliest)} → ${fmtWindow(order.expected_delivery_latest)}`
+                : "Not scheduled"}
+            </Text>
+          </View>
+          <View className="flex-row justify-between mb-2">
+            <Text className="text-[13px] text-[#6b7280]">Current fee</Text>
+            <Text className="text-[13px] font-medium text-[#111827]">
+              {formatCurrency(order.delivery_fee)}
+            </Text>
+          </View>
+          <View className="flex-row justify-between mb-4">
+            <Text className="text-[13px] text-[#6b7280]">Fee status</Text>
+            <View
+              className={`px-2 py-0.5 rounded-full ${order.delivery_fee_paid ? "bg-[#D1FAE5]" : "bg-[#FEF3C7]"}`}
+            >
+              <Text
+                className={`text-[11px] font-bold ${order.delivery_fee_paid ? "text-[#059669]" : "text-[#D97706]"}`}
+              >
+                {parseFloat(order.delivery_fee || "0") <= 0
+                  ? "No fee"
+                  : order.delivery_fee_paid
+                    ? "Paid"
+                    : "Unpaid"}
+              </Text>
+            </View>
+          </View>
+
+          <View className="h-[1px] bg-[#e5e7eb] mb-4" />
+
+          {/* Use default window toggle */}
+          <TouchableOpacity
+            onPress={() => setUseDefaultWindow((v) => !v)}
+            className="flex-row items-center justify-between mb-4"
+          >
+            <Text className="text-[14px] font-medium text-[#111827] flex-1 pr-3">
+              Use default delivery window
+            </Text>
+            <View
+              className={`w-6 h-6 rounded border-2 items-center justify-center ${
+                useDefaultWindow
+                  ? "border-system-blue-light bg-system-blue-light"
+                  : "border-gray-300"
+              }`}
+            >
+              {useDefaultWindow && (
+                <Ionicons name="checkmark" size={16} color="white" />
+              )}
+            </View>
+          </TouchableOpacity>
+
+          {!useDefaultWindow && (
+            <>
+              <Text className="text-[12px] text-[#6b7280] mb-1">Earliest</Text>
+              <TouchableOpacity
+                onPress={() => setShowEarliestPicker(true)}
+                className="border border-gray-300 rounded-[12px] px-4 h-[48px] justify-center mb-3"
+              >
+                <Text className="text-[15px] text-[#111827]">
+                  {earliest ? fmtWindow(earliest.toISOString()) : "Select date & time"}
+                </Text>
+              </TouchableOpacity>
+
+              <Text className="text-[12px] text-[#6b7280] mb-1">Latest</Text>
+              <TouchableOpacity
+                onPress={() => setShowLatestPicker(true)}
+                className="border border-gray-300 rounded-[12px] px-4 h-[48px] justify-center mb-3"
+              >
+                <Text className="text-[15px] text-[#111827]">
+                  {latest ? fmtWindow(latest.toISOString()) : "Select date & time"}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          <Text className="text-[12px] text-[#6b7280] mb-1">Delivery fee (₦)</Text>
+          <TextInput
+            value={feeInput}
+            onChangeText={setFeeInput}
+            keyboardType="decimal-pad"
+            placeholder="0.00"
+            placeholderTextColor="#9CA3AF"
+            editable={!isSavingDelivery}
+            className="border border-gray-300 rounded-[12px] px-4 h-[48px] text-[15px] text-[#111827] mb-4"
+          />
+
+          <TouchableOpacity
+            onPress={handleSaveDelivery}
+            disabled={isSavingDelivery}
+            className={`h-[48px] rounded-[12px] items-center justify-center ${isSavingDelivery ? "bg-gray-300" : "bg-system-blue-light"}`}
+          >
+            {isSavingDelivery ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-white text-[15px] font-bold">Save Delivery</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {showEarliestPicker && (
+          <DateTimePicker
+            value={earliest || new Date()}
+            mode="date"
+            display="default"
+            onChange={(_e: any, d?: Date) => {
+              setShowEarliestPicker(false);
+              if (d) setEarliest(d);
+            }}
+          />
+        )}
+        {showLatestPicker && (
+          <DateTimePicker
+            value={latest || earliest || new Date()}
+            mode="date"
+            display="default"
+            onChange={(_e: any, d?: Date) => {
+              setShowLatestPicker(false);
+              if (d) setLatest(d);
+            }}
+          />
+        )}
+
+        {installmentPlan && (
+          <>
+            <Text style={styles.sectionTitle}>Installment Plan</Text>
+            <View className="bg-[#f9fafb] rounded-xl p-4 mb-5">
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-[13px] text-[#6b7280]">Status</Text>
+                <View
+                  className={`px-2 py-0.5 rounded-full ${
+                    installmentPlan.status === "COMPLETED"
+                      ? "bg-[#D1FAE5]"
+                      : installmentPlan.status === "ACTIVE"
+                        ? "bg-[#DBEAFE]"
+                        : "bg-[#FEE2E2]"
+                  }`}
+                >
+                  <Text
+                    className={`text-[11px] font-bold ${
+                      installmentPlan.status === "COMPLETED"
+                        ? "text-[#059669]"
+                        : installmentPlan.status === "ACTIVE"
+                          ? "text-[#2563EB]"
+                          : "text-[#DC2626]"
+                    }`}
+                  >
+                    {installmentPlan.status}
+                  </Text>
+                </View>
+              </View>
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-[13px] text-[#6b7280]">Total</Text>
+                <Text className="text-[13px] font-medium text-[#111827]">
+                  {formatCurrency(installmentPlan.total_amount)}
+                </Text>
+              </View>
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-[13px] text-[#6b7280]">Amount paid</Text>
+                <Text className="text-[13px] font-medium text-[#059669]">
+                  {formatCurrency(installmentPlan.amount_paid)}
+                </Text>
+              </View>
+              <View className="flex-row justify-between mb-3">
+                <Text className="text-[13px] text-[#6b7280]">
+                  Balance remaining
+                </Text>
+                <Text className="text-[13px] font-bold text-[#030482]">
+                  {formatCurrency(installmentPlan.balance_remaining)}
+                </Text>
+              </View>
+
+              {/* Progress bar with a 50% ships marker */}
+              <View className="flex-row justify-between mb-1">
+                <Text className="text-[12px] text-[#6b7280]">
+                  {Math.round((installmentPlan.paid_fraction ?? 0) * 100)}% paid
+                </Text>
+                <Text className="text-[12px] text-[#9CA3AF]">
+                  {installmentPlan.paid_installments_count} of{" "}
+                  {installmentPlan.number_of_installments} scheduled
+                </Text>
+              </View>
+              <View className="relative h-2 bg-[#e5e7eb] rounded-full mb-3">
+                <View
+                  className="h-full bg-system-blue-light rounded-full"
+                  style={{
+                    width: `${Math.min(Math.max((installmentPlan.paid_fraction ?? 0) * 100, 0), 100)}%`,
+                  }}
+                />
+                <View
+                  className="absolute top-[-2px] h-3 w-[2px] bg-amber-500"
+                  style={{ left: "50%" }}
+                />
+              </View>
+
+              <View className="flex-row justify-between">
+                <Text className="text-[13px] text-[#6b7280]">Next due</Text>
+                <Text className="text-[13px] font-medium text-[#111827]">
+                  {installmentPlan.next_due_date
+                    ? fmtWindow(installmentPlan.next_due_date)
+                    : "—"}
+                </Text>
+              </View>
+            </View>
+
+            {!!installmentPlan.installments?.length && (
+              <View className="mb-5">
+                {installmentPlan.installments.map((inst: any) => {
+                  const isPaid = inst.status === "PAID";
+                  const isOverdue =
+                    !isPaid && new Date(inst.due_date) < new Date();
+                  return (
+                    <View
+                      key={inst.payment_number}
+                      className="flex-row items-center justify-between px-4 py-3 mb-2 rounded-xl border border-gray-100 bg-[#f9fafb]"
+                    >
+                      <View>
+                        <Text className="text-[13px] font-bold text-[#111827]">
+                          Installment #{inst.payment_number}
+                        </Text>
+                        <Text className="text-[12px] text-[#9CA3AF] mt-0.5">
+                          Due{" "}
+                          {new Date(inst.due_date).toLocaleDateString("en-NG", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </Text>
+                      </View>
+                      <View className="items-end">
+                        <Text className="text-[13px] font-bold text-[#111827] mb-1">
+                          {formatCurrency(inst.amount)}
+                        </Text>
+                        <View
+                          className={`px-2 py-0.5 rounded-full ${
+                            isPaid
+                              ? "bg-[#D1FAE5]"
+                              : isOverdue
+                                ? "bg-[#FEE2E2]"
+                                : "bg-[#F3F4F6]"
+                          }`}
+                        >
+                          <Text
+                            className={`text-[11px] font-bold ${
+                              isPaid
+                                ? "text-[#059669]"
+                                : isOverdue
+                                  ? "text-[#DC2626]"
+                                  : "text-[#6B7280]"
+                            }`}
+                          >
+                            {isPaid ? "PAID" : isOverdue ? "OVERDUE" : "PENDING"}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </>
+        )}
 
         <Text style={styles.sectionTitle}>Order Tracking Status</Text>
         <View style={styles.trackingContainer}>

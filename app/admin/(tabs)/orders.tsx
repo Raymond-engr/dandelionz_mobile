@@ -1,6 +1,9 @@
 import { OrderListItemSkeleton } from "@/components/OrderListItemSkeleton";
 import { Divider } from "@/components/ui/divider";
-import { useGetAllOrdersQuery } from "@/lib/api/adminApi";
+import {
+  useGetAllOrdersQuery,
+  useGetDeliveryAttentionQuery,
+} from "@/lib/api/adminApi";
 import { formatCurrency } from "@/lib/utils";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -36,9 +39,16 @@ export default function AdminOrders() {
     refetch,
   } = useGetAllOrdersQuery({ status });
 
+  const { data: attentionData, refetch: refetchAttention } =
+    useGetDeliveryAttentionQuery();
+  const counts = attentionData?.data?.counts;
+  const attentionTotal = counts
+    ? counts.unscheduled + counts.awaiting_fee + counts.ready_to_ship
+    : 0;
+
   async function onRefresh() {
     setRefreshing(true);
-    await refetch();
+    await Promise.all([refetch(), refetchAttention()]);
     setRefreshing(false);
   }
 
@@ -64,6 +74,36 @@ export default function AdminOrders() {
       </View>
 
       <Divider />
+
+      {/* Delivery attention banner */}
+      {attentionTotal > 0 && counts && (
+        <View className="mx-[21px] mt-4 p-4 rounded-xl bg-[#FEF3C7] border border-[#FDE68A]">
+          <View className="flex-row items-center mb-2">
+            <Ionicons name="alert-circle" size={18} color="#D97706" />
+            <Text className="text-[13px] font-bold text-[#D97706] ml-2">
+              {attentionTotal} order{attentionTotal === 1 ? "" : "s"} need
+              delivery attention
+            </Text>
+          </View>
+          <View className="flex-row flex-wrap gap-2">
+            <View className="px-2.5 py-1 rounded-full bg-white">
+              <Text className="text-[11px] font-bold text-[#92400E]">
+                {counts.unscheduled} unscheduled
+              </Text>
+            </View>
+            <View className="px-2.5 py-1 rounded-full bg-white">
+              <Text className="text-[11px] font-bold text-[#92400E]">
+                {counts.awaiting_fee} awaiting fee
+              </Text>
+            </View>
+            <View className="px-2.5 py-1 rounded-full bg-white">
+              <Text className="text-[11px] font-bold text-[#92400E]">
+                {counts.ready_to_ship} ready to ship
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* Filter Chips */}
       <View className="py-4">

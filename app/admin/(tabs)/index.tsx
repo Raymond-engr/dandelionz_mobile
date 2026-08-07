@@ -59,7 +59,6 @@ function StatCard({
 }
 
 export default function AdminDashboard() {
-  "use no memo";
   const user = useAppSelector((state) => state.auth.user);
   const unreadCount = useAppSelector((state) => state.notification.unreadCount);
 

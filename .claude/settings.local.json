@@ -5,7 +5,10 @@
       "Read(//c/Users/PC/Documents/Dandelionz/**)",
       "Bash(python manage.py test store.test_search --settings=e_commerce_api.test_settings)",
       "Bash(python -u manage.py test --settings=e_commerce_api.test_settings)",
-      "Bash(python manage.py test --settings=e_commerce_api.test_settings)"
+      "Bash(python manage.py test --settings=e_commerce_api.test_settings)",
+      "Bash(python manage.py test transactions.test_stranded_refund transactions.test_wallet_checkout --settings=e_commerce_api.test_settings)",
+      "Bash(python manage.py test transactions.test_stranded_refund --settings=e_commerce_api.test_settings)",
+      "Bash(npx tsc *)"
     ]
   }
 }

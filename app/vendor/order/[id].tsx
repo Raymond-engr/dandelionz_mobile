@@ -179,6 +179,47 @@ export default function VendorOrderDetailScreen() {
           </View>
         </View>
 
+        {/* Installment plan — read-only. Vendors can't act on it; this just explains why an
+            order may be at PAID/SHIPPED already while collection is still running, and that
+            payout for it lands once the plan hits 100%, not before. */}
+        {order.installment_plan && (
+          <View className="p-[21px] pt-0">
+            <Text className="text-[14px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+              Installment Plan
+            </Text>
+            <View className="bg-white border border-gray-100 rounded-[16px] p-4 shadow-sm">
+              {order.installment_plan.status === "COMPLETED" ? (
+                <Text className="text-[14px] font-bold text-green-700">
+                  Fully paid — payout released
+                </Text>
+              ) : (
+                <>
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text className="text-[12px] text-gray-500">
+                      {Math.round((order.installment_plan.paid_fraction ?? 0) * 100)}% paid
+                    </Text>
+                    <Text className="text-[12px] text-gray-400">
+                      {formatCurrency(order.installment_plan.amount_paid)} of{" "}
+                      {formatCurrency(order.installment_plan.total_amount)}
+                    </Text>
+                  </View>
+                  <View className="h-2 bg-gray-100 rounded-full mb-2">
+                    <View
+                      className="h-full bg-system-blue-light rounded-full"
+                      style={{
+                        width: `${Math.min(Math.max((order.installment_plan.paid_fraction ?? 0) * 100, 0), 100)}%`,
+                      }}
+                    />
+                  </View>
+                  <Text className="text-[12px] text-amber-700">
+                    Customer is still paying this off. Your payout is released once it&apos;s fully paid.
+                  </Text>
+                </>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Timeline */}
         {trackingSteps.length > 0 && (
           <View className="p-[21px] pt-0">

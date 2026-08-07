@@ -36,7 +36,6 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 export default function OrdersScreen() {
-  "use no memo";
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const [activeTab, setActiveTab] = useState("All");

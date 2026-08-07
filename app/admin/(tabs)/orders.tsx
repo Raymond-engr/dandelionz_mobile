@@ -184,6 +184,13 @@ export default function AdminOrders() {
                           {item.status}
                         </Text>
                       </View>
+                      {item.installment_plan && (
+                        <View className="px-2 py-0.5 rounded-full bg-system-blue-light/10">
+                          <Text className="text-[10px] font-bold uppercase text-system-blue-light">
+                            Installment
+                          </Text>
+                        </View>
+                      )}
                     </View>
                     <Text
                       className="text-[14px] text-[#6B7280]"

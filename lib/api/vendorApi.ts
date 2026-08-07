@@ -91,6 +91,13 @@ interface Order {
     completed: boolean;
   }[];
   order_items?: any[]; // Fallback for differing structures
+  installment_plan?: {
+    status: string;
+    total_amount: number;
+    amount_paid: number;
+    balance_remaining: number;
+    paid_fraction: number;
+  } | null;
 }
 
 interface VendorAnalytics {

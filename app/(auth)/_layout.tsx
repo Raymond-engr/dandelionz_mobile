@@ -5,7 +5,6 @@ import React from "react";
 // Each is a self-contained screen with a fixed component tree, so no
 // role-switching UI exists anywhere in this stack.
 export default function AuthLayout() {
-  "use no memo";
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" />

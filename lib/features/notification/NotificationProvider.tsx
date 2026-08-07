@@ -1,5 +1,5 @@
 import { customerApi } from "@/lib/api/customerApi";
-import { useRegisterPushTokenMutation, useUnregisterPushTokenMutation } from "@/lib/api/notificationApi";
+import { useRegisterPushTokenMutation } from "@/lib/api/notificationApi";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import React, { createContext, useContext, useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
@@ -9,6 +9,7 @@ import { router } from "expo-router";
 import {
   addNotification,
   setConnected,
+  setPushToken,
   setUnreadCount,
 } from "./notificationSlice";
 
@@ -51,10 +52,15 @@ export function NotificationProvider({
 
   const [triggerGetStats] = customerApi.useLazyCustomerGetNotificationStatsQuery();
   const [registerPushToken] = useRegisterPushTokenMutation();
-  const [unregisterPushToken] = useUnregisterPushTokenMutation();
 
-  // Track last registered token so we can unregister on logout
-  const lastRegisteredTokenRef = useRef<string | null>(null);
+  // Mirrors isAuthenticated for use inside listener closures that were attached
+  // while logged in and can still fire after logout (e.g. a push notification
+  // arriving right as the session ends) - reading state directly there would
+  // use the stale value captured when the effect ran.
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  useEffect(() => {
+    isAuthenticatedRef.current = isAuthenticated;
+  }, [isAuthenticated]);
 
   // ── Configure the notification handler inside an effect, never at module level
   useEffect(() => {
@@ -89,6 +95,7 @@ export function NotificationProvider({
 
       socket.onopen = () => {
         dispatch(setConnected(true));
+        if (!isAuthenticatedRef.current) return;
         triggerGetStats()
           .unwrap()
           .then((response) => {
@@ -156,7 +163,7 @@ export function NotificationProvider({
       ]) as Awaited<ReturnType<typeof Notifications.getExpoPushTokenAsync>>;
 
       if (tokenResponse?.data) {
-        lastRegisteredTokenRef.current = tokenResponse.data;
+        dispatch(setPushToken(tokenResponse.data));
         await registerPushToken({
           token: tokenResponse.data,
           platform: Platform.OS,
@@ -174,11 +181,9 @@ export function NotificationProvider({
       connectWebSocket();
       registerForPushNotificationsAsync();
     } else {
-      // Unregister push token on logout so stale sessions don't receive pushes
-      if (lastRegisteredTokenRef.current) {
-        unregisterPushToken({ token: lastRegisteredTokenRef.current }).catch(() => {});
-        lastRegisteredTokenRef.current = null;
-      }
+      // Push token unregistration happens in useLogout(), while the access token
+      // still exists - by the time this branch runs, accessToken is already
+      // cleared, so any request made here would 401 (this used to happen).
       if (socketRef.current) {
         try { socketRef.current.close(); } catch (_) {}
       }
@@ -206,7 +211,10 @@ export function NotificationProvider({
             action_url: (data?.url as string) ?? null,
             metadata: data ?? {},
           } as any));
-          // Also refresh the unread count from the server
+          // Also refresh the unread count from the server - but only if still
+          // logged in. This listener is attached once and keeps firing for any
+          // notification the OS delivers, including ones that land after logout.
+          if (!isAuthenticatedRef.current) return;
           triggerGetStats()
             .unwrap()
             .then((response) => {

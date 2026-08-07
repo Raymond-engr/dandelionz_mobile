@@ -56,11 +56,7 @@ export function CategorySlider() {
           return (
             <Pressable
               key={cat.id}
-              onPress={() =>
-                router.push(
-                  `/category/${cat.name.toLowerCase().replace(/\s+/g, "-")}`,
-                )
-              }
+              onPress={() => router.push(`/category/${cat.slug}`)}
             >
               <View className="w-28 h-32 rounded-[12px] overflow-hidden border border-gray-100 bg-white shadow-sm">
                 {/* Image area — top 70% */}

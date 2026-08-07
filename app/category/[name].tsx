@@ -2,7 +2,7 @@ import { ProductGrid } from "@/components/product-grid";
 import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
 import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
-import { useGetProductsQuery } from "@/lib/api/publicApi";
+import { useGetCategoriesQuery, useGetProductsQuery } from "@/lib/api/publicApi";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
@@ -12,14 +12,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function CategoryDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { name } = useLocalSearchParams<{ name: string }>();
+  const { name: slug } = useLocalSearchParams<{ name: string }>();
 
-  const displayName = name
-    ? name.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-    : "Category";
+  // Look up the real category name by slug instead of reformatting the slug
+  // itself - a naive replace loses characters like "&" that don't survive
+  // slugification, showing the raw encoded slug on screen instead.
+  const { data: categories = [] } = useGetCategoriesQuery();
+  const matchedCategory = (categories as any[]).find((c) => c.slug === slug);
+  const displayName =
+    matchedCategory?.name ??
+    (slug ? slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Category");
 
   const { data, isLoading } = useGetProductsQuery({
-    category: name ?? "",
+    category: slug ?? "",
   });
 
   const products = data?.data ?? [];

@@ -32,12 +32,16 @@ interface NotificationState {
   unreadCount: number;
   notifications: Notification[];
   isConnected: boolean;
+  // The Expo push token currently registered with the backend. Read by useLogout()
+  // to unregister it while the access token is still valid, before auth clears.
+  pushToken: string | null;
 }
 
 const initialState: NotificationState = {
   unreadCount: 0,
   notifications: [],
   isConnected: false,
+  pushToken: null,
 };
 
 const notificationSlice = createSlice({
@@ -72,6 +76,9 @@ const notificationSlice = createSlice({
     setConnected: (state, action: PayloadAction<boolean>) => {
       state.isConnected = action.payload;
     },
+    setPushToken: (state, action: PayloadAction<string | null>) => {
+      state.pushToken = action.payload;
+    },
   },
 });
 
@@ -83,6 +90,7 @@ export const {
   addNotification,
   markAsRead,
   setConnected,
+  setPushToken,
 } = notificationSlice.actions;
 
 export default notificationSlice.reducer;

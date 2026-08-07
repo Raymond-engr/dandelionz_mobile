@@ -587,7 +587,7 @@ export default function OrderTrackingScreen() {
                   </View>
                 </View>
 
-                {/* Progress bar with a "ships at 50%" marker */}
+                {/* Progress bar */}
                 <View className="flex-row items-center justify-between mb-2">
                   <Text className="text-[12px] text-gray-500">
                     {Math.round((plan.paid_fraction ?? 0) * 100)}% paid
@@ -604,14 +604,9 @@ export default function OrderTrackingScreen() {
                       width: `${Math.min(Math.max((plan.paid_fraction ?? 0) * 100, 0), 100)}%`,
                     }}
                   />
-                  {/* 50% ships marker */}
-                  <View
-                    className="absolute top-[-2px] h-3 w-[2px] bg-amber-500"
-                    style={{ left: "50%" }}
-                  />
                 </View>
                 <Text className="text-[11px] text-amber-700 mb-4">
-                  Ships once you reach 50% paid
+                  Ships once fully paid
                 </Text>
 
                 {/* Next due + minimum due */}
@@ -671,7 +666,7 @@ export default function OrderTrackingScreen() {
                         <Text className="text-[12px] text-[#6B7280] mt-0.5">
                           {formatCurrency(walletBalance)} available
                           {useWalletForInstallment
-                            ? " — anything left over goes on your card"
+                            ? " — your wallet must cover the full amount above"
                             : ""}
                         </Text>
                       </View>

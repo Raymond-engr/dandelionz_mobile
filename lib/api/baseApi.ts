@@ -32,6 +32,31 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
+/**
+ * Best-effort push-token unregistration for logout paths that happen outside React
+ * (session-expiry/refresh-failure, handled here in the 401 interceptor) - useLogout()
+ * only covers the explicit "Log out" button tap. Must run before the auth/logout
+ * dispatch below clears the access token, or this request would itself 401.
+ */
+async function unregisterPushTokenBestEffort(api: any, extraOptions: any) {
+  const state = api.getState() as RootState;
+  const pushToken = (state as any).notification?.pushToken;
+  if (!pushToken) return;
+  try {
+    await baseQuery(
+      {
+        url: "/user/notifications/unregister-token/",
+        method: "POST",
+        body: { token: pushToken },
+      },
+      api,
+      extraOptions,
+    );
+  } catch (_) {
+    // Best-effort: logout must proceed either way.
+  }
+}
+
 export const mutex = {
   isLocked: false,
   /**
@@ -108,12 +133,16 @@ const baseQueryWithReauth: BaseQueryFn<
             // Refresh endpoint returned an error — the session is truly expired.
             // Only dispatch logout if the user was authenticated to begin with.
             if (state.auth.isAuthenticated) {
+              await unregisterPushTokenBestEffort(api, extraOptions);
               api.dispatch({ type: "auth/logout" });
+              api.dispatch({ type: "notification/setPushToken", payload: null });
             }
           }
         } catch (e) {
           if (state.auth.isAuthenticated) {
+            await unregisterPushTokenBestEffort(api, extraOptions);
             api.dispatch({ type: "auth/logout" });
+            api.dispatch({ type: "notification/setPushToken", payload: null });
           }
         } finally {
           mutex.unlock();
@@ -132,7 +161,9 @@ const baseQueryWithReauth: BaseQueryFn<
         // redirecting the user to login even when they're just browsing
         // unauthenticated (e.g. viewing a product page).
         if (state.auth.isAuthenticated) {
+          await unregisterPushTokenBestEffort(api, extraOptions);
           api.dispatch({ type: "auth/logout" });
+          api.dispatch({ type: "notification/setPushToken", payload: null });
         }
         // If not authenticated, simply let the 401 error propagate to the
         // calling query. The screen can handle it (show "not found", etc.)

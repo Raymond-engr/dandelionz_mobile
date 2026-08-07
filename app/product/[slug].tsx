@@ -43,10 +43,6 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
  *  ✓ Discount price display matches web
  */
 export default function ProductDetailScreen() {
-  // React Compiler incorrectly memoizes this component due to the
-  // many hooks and conditional early returns, causing a blank render.
-  // "use no memo" opts it out entirely.
-  "use no memo";
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { slug } = useLocalSearchParams<{ slug: string }>();

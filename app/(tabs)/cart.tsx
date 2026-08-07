@@ -24,7 +24,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function CartScreen() {
-  "use no memo";
   const insets = useSafeAreaInsets();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const [refreshing, setRefreshing] = useState(false);

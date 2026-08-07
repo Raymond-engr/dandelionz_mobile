@@ -22,7 +22,6 @@ interface Filters {
 }
 
 export default function ShopScreen() {
-  "use no memo";
   console.log("[Shop] Rendering ShopScreen");
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -45,9 +44,22 @@ export default function ShopScreen() {
 
   return (
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+      {/* Sticky: stays pinned to the top while the rest of the homepage scrolls underneath. */}
+      <View className="px-4 pt-4 pb-3 bg-white border-b border-gray-100">
+        {/* Tapping opens the dedicated search screen; this bar never filters
+            the shop grid in place. */}
+        <SearchBar
+          value=""
+          onChange={() => {}}
+          onPress={() => router.push("/search")}
+          showFilter
+          onFilterPress={() => setFilterOpen(true)}
+        />
+      </View>
+
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingTop: 16, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -57,18 +69,6 @@ export default function ShopScreen() {
           />
         }
       >
-        <View className="px-4 mb-6 pt-4">
-          {/* Tapping opens the dedicated search screen; this bar never filters
-              the shop grid in place. */}
-          <SearchBar
-            value=""
-            onChange={() => {}}
-            onPress={() => router.push("/search")}
-            showFilter
-            onFilterPress={() => setFilterOpen(true)}
-          />
-        </View>
-
         <HeroSlider />
         <CategorySlider />
 

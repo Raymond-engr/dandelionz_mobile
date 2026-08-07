@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
   TextInput,
+  Linking,
 } from "react-native";
 import { SafeAreaView , useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -233,7 +234,22 @@ export default function OrderDetails() {
             <Text style={styles.label}>Shipping Address</Text>
             <Text style={styles.value}>
               {order.shipping_address.address}, {order.shipping_address.city}, {order.shipping_address.state}
+              {order.shipping_address.country ? `, ${order.shipping_address.country}` : ""}
+              {order.shipping_address.postal_code ? ` ${order.shipping_address.postal_code}` : ""}
             </Text>
+            {!!order.customer_lat && !!order.customer_lng && (
+              <TouchableOpacity
+                onPress={() =>
+                  Linking.openURL(
+                    `https://www.google.com/maps?q=${order.customer_lat},${order.customer_lng}`,
+                  )
+                }
+              >
+                <Text style={[styles.value, { color: "#030482", marginTop: 4 }]}>
+                  View on map ›
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -445,7 +461,7 @@ export default function OrderDetails() {
                 </Text>
               </View>
 
-              {/* Progress bar with a 50% ships marker */}
+              {/* Progress bar */}
               <View className="flex-row justify-between mb-1">
                 <Text className="text-[12px] text-[#6b7280]">
                   {Math.round((installmentPlan.paid_fraction ?? 0) * 100)}% paid
@@ -455,18 +471,17 @@ export default function OrderDetails() {
                   {installmentPlan.number_of_installments} scheduled
                 </Text>
               </View>
-              <View className="relative h-2 bg-[#e5e7eb] rounded-full mb-3">
+              <View className="relative h-2 bg-[#e5e7eb] rounded-full mb-1">
                 <View
                   className="h-full bg-system-blue-light rounded-full"
                   style={{
                     width: `${Math.min(Math.max((installmentPlan.paid_fraction ?? 0) * 100, 0), 100)}%`,
                   }}
                 />
-                <View
-                  className="absolute top-[-2px] h-3 w-[2px] bg-amber-500"
-                  style={{ left: "50%" }}
-                />
               </View>
+              <Text className="text-[11px] text-amber-700 mb-3">
+                Ships once fully paid
+              </Text>
 
               <View className="flex-row justify-between">
                 <Text className="text-[13px] text-[#6b7280]">Next due</Text>

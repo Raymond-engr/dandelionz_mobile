@@ -496,7 +496,7 @@ export const publicApi = baseApi.injectEndpoints({
         };
         message: string;
       },
-      { duration: string }
+      { duration: string; amount?: number }
     >({
       query: (body) => ({
         url: "/transactions/checkout/installment/",

@@ -124,6 +124,14 @@ export interface Order {
     reason: string;
     changed_at: string;
   }[];
+  installment_plan?: {
+    id: number;
+    status: string;
+    total_amount: number;
+    amount_paid: number;
+    balance_remaining: number;
+    paid_fraction: number;
+  } | null;
   // Optional fields for legacy compatibility
   vendor?: {
     uuid: string;
@@ -131,6 +139,8 @@ export interface Order {
   };
   total_with_delivery?: string;
   shipping_address?: ShippingAddress | null;
+  customer_lat?: number | null;
+  customer_lng?: number | null;
   timeline?: {
     status: string;
     label: string;
@@ -139,7 +149,6 @@ export interface Order {
   }[];
   is_cancelled?: boolean;
   refund_request?: any;
-  installment_plan?: any;
 }
 
 export interface Product {
@@ -316,10 +325,13 @@ interface NotificationStats {
 }
 
 export interface ShippingAddress {
+  full_name?: string;
   address: string;
   city: string;
   state: string;
-  zip_code: string;
+  country?: string;
+  postal_code?: string;
+  phone_number?: string;
 }
 
 export interface OrderItem {

@@ -38,10 +38,8 @@ export const ProductCard = React.memo(function ProductCard({
 }: Props) {
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
 
-  // Use our new optimized hooks
   const { isInCart, cartItem } = useCartStatus(product.slug);
   const { isInWishlist } = useWishlistStatus(product.slug);
-
   const [addToCart, { isLoading: addingCart }] = useAddToCartMutation();
   const [removeFromCart, { isLoading: removingCart }] =
     useRemoveFromCartMutation();
@@ -51,6 +49,7 @@ export const ProductCard = React.memo(function ProductCard({
 
   const hasVariants =
     product.variants && Object.keys(product.variants).length > 0;
+
   const discount = product.discount ?? 0;
   const price = parseFloat(product.price || "0");
   const displayPrice = discount > 0 ? price * (1 - discount / 100) : price;
@@ -89,7 +88,6 @@ export const ProductCard = React.memo(function ProductCard({
 
     try {
       if (isInCart) {
-        // We now use `cartItem` directly from the hook!
         await removeFromCart({
           slug: product.slug,
           selected_variants: cartItem?.selected_variants || {},
@@ -240,7 +238,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   info: { padding: 12 },
-  name: { fontSize: 14, fontWeight: "500", color: "#111827", marginBottom: 4 },
+  name: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#111827",
+    marginBottom: 4,
+  },
   priceRow: {
     flexDirection: "row",
     alignItems: "flex-start",

@@ -8,6 +8,13 @@ interface Props {
   hideAddToCart?: boolean;
 }
 
+// Every call site nests this inside another vertical ScrollView (shop tab,
+// search results, search trending, category page), so this was always
+// rendered with scrollEnabled={false} - the FlatList that used to live here
+// never actually virtualized anything; it eagerly rendered every item while
+// still paying FlatList/VirtualizedList's own bookkeeping on top of the
+// ScrollView it sat inside. A plain wrapping view does the same layout for
+// less overhead.
 export function ProductGrid({ products, hideAddToCart = false }: Props) {
   if (!products || products.length === 0) {
     return (
@@ -31,6 +38,6 @@ export function ProductGrid({ products, hideAddToCart = false }: Props) {
 const styles = StyleSheet.create({
   container: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   item: { width: "48%" },
-  empty: { padding: 24, alignItems: "center" },
-  emptyText: { color: "#9CA3AF" },
+  empty: { paddingVertical: 40, alignItems: "center" },
+  emptyText: { color: "#6B7280", fontSize: 14 },
 });

@@ -55,7 +55,11 @@ export default function TermsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backBtn}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={8}
+          style={styles.backBtn}
+        >
           <Feather name="chevron-left" size={32} color={Colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Terms & Conditions</Text>
@@ -63,7 +67,10 @@ export default function TermsScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 48 }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + 48 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.pageTitle}>Terms & Conditions</Text>
@@ -78,7 +85,9 @@ export default function TermsScreen() {
 
         <Text style={styles.footer}>
           If you have any questions about these Terms, please contact us at{" "}
-          <Text style={styles.footerLink}>support@dandelionz.net</Text>
+          <Text style={styles.footerLink}>
+            dandelionsuperglobal.ltd@gmail.com
+          </Text>
         </Text>
       </ScrollView>
     </View>

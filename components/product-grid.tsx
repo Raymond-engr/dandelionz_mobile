@@ -1,6 +1,6 @@
 import { Product } from "@/lib/api/publicApi";
 import React from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { ProductCard } from "./product-card";
 
 interface Props {
@@ -8,6 +8,13 @@ interface Props {
   hideAddToCart?: boolean;
 }
 
+// Every call site nests this inside another vertical ScrollView (shop tab,
+// search results, search trending, category page), so this was always
+// rendered with scrollEnabled={false} - the FlatList that used to live here
+// never actually virtualized anything; it eagerly rendered every item while
+// still paying FlatList/VirtualizedList's own bookkeeping on top of the
+// ScrollView it sat inside. A plain wrapping view does the same layout for
+// less overhead.
 export function ProductGrid({ products, hideAddToCart = false }: Props) {
   if (!products || products.length === 0) {
     return (
@@ -18,26 +25,19 @@ export function ProductGrid({ products, hideAddToCart = false }: Props) {
   }
 
   return (
-    <FlatList
-      data={products}
-      keyExtractor={(item) => String(item.id)}
-      numColumns={2}
-      columnWrapperStyle={styles.row}
-      contentContainerStyle={styles.container}
-      scrollEnabled={false}
-      renderItem={({ item }) => (
-        <View style={styles.item}>
+    <View style={styles.container}>
+      {products.map((item) => (
+        <View key={item.id} style={styles.item}>
           <ProductCard product={item} hideAddToCart={hideAddToCart} />
         </View>
-      )}
-    />
+      ))}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 12 },
-  row: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
-  item: { flex: 1, maxWidth: "48%" },
+  container: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  item: { width: "48%" },
   empty: { paddingVertical: 40, alignItems: "center" },
   emptyText: { color: "#6B7280", fontSize: 14 },
 });

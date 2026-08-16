@@ -1,15 +1,14 @@
 import { Colors } from "@/constants/theme";
+import { useCartStatus, useWishlistStatus } from "@/hooks/use-product-status";
 import {
   Product,
   useAddToCartMutation,
   useAddToWishlistMutation,
-  useGetCartQuery,
-  useGetWishlistQuery,
   useRemoveFromCartMutation,
   useRemoveFromWishlistMutation,
 } from "@/lib/api/publicApi";
-import { apiError } from "@/lib/utils";
 import { useAppSelector } from "@/lib/hooks";
+import { apiError } from "@/lib/utils";
 import { Image } from "expo-image";
 // ✅ Use imperative router, NOT the useRouter() hook.
 //
@@ -33,31 +32,20 @@ interface Props {
   hideAddToCart?: boolean;
 }
 
-export function ProductCard({ product, hideAddToCart = false }: Props) {
+export const ProductCard = React.memo(function ProductCard({
+  product,
+  hideAddToCart = false,
+}: Props) {
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
 
-  const { data: cartResponse } = useGetCartQuery(undefined, {
-    skip: !isAuthenticated,
-  });
-  const { data: wishlistResponse } = useGetWishlistQuery(undefined, {
-    skip: !isAuthenticated,
-  });
+  const { isInCart, cartItem } = useCartStatus(product.slug);
+  const { isInWishlist } = useWishlistStatus(product.slug);
   const [addToCart, { isLoading: addingCart }] = useAddToCartMutation();
   const [removeFromCart, { isLoading: removingCart }] =
     useRemoveFromCartMutation();
   const [addToWishlist, { isLoading: addingWish }] = useAddToWishlistMutation();
   const [removeFromWishlist, { isLoading: removingWish }] =
     useRemoveFromWishlistMutation();
-
-  const cartItems = cartResponse?.data?.items || [];
-  const wishlistItems = wishlistResponse || [];
-
-  const isInCart = cartItems.some(
-    (i: any) => i.product_details?.slug === product.slug,
-  );
-  const isInWishlist = wishlistItems.some(
-    (i: any) => i.product_details?.slug === product.slug,
-  );
 
   const hasVariants =
     product.variants && Object.keys(product.variants).length > 0;
@@ -100,9 +88,6 @@ export function ProductCard({ product, hideAddToCart = false }: Props) {
 
     try {
       if (isInCart) {
-        const cartItem = cartItems.find(
-          (i: any) => i.product_details?.slug === product.slug,
-        );
         await removeFromCart({
           slug: product.slug,
           selected_variants: cartItem?.selected_variants || {},
@@ -219,7 +204,7 @@ export function ProductCard({ product, hideAddToCart = false }: Props) {
       </View>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

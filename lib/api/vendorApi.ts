@@ -71,12 +71,12 @@ interface Order {
     email: string;
     phone_number: string;
   };
-  items: Array<{
+  items: {
     product_name: string;
     quantity: number;
     price: string;
     item_subtotal?: string;
-  }>;
+  }[];
   total_amount: string;
   total_price?: string; // Add this as it might come from the other endpoint
   status: string;
@@ -345,12 +345,17 @@ export const vendorApi = baseApi.injectEndpoints({
       providesTags: ["Draft"],
     }),
 
-    getDraftDetails: builder.query<{ success: boolean; data: Product }, string>({
-      query: (slug) => `/store/vendor/drafts/${slug}/`,
-      providesTags: ["Draft"],
-    }),
+    getDraftDetails: builder.query<{ success: boolean; data: Product }, string>(
+      {
+        query: (slug) => `/store/vendor/drafts/${slug}/`,
+        providesTags: ["Draft"],
+      },
+    ),
 
-    createDraft: builder.mutation<{ success: boolean; data: Product }, FormData>({
+    createDraft: builder.mutation<
+      { success: boolean; data: Product },
+      FormData
+    >({
       query: (body) => ({
         url: "/store/products/create/",
         method: "POST",
@@ -417,14 +422,49 @@ export const vendorApi = baseApi.injectEndpoints({
     }),
 
     getVendorOrdersList: builder.query<
-      { success: boolean; data: Order[] },
-      { limit?: number; offset?: number; status?: string } // Example params
+      {
+        success: boolean;
+        data: {
+          count: number;
+          next: string | null;
+          previous: string | null;
+          results: Order[];
+        };
+      },
+      {
+        limit?: number;
+        offset?: number;
+        status?: string;
+        page?: number;
+        page_size?: number;
+      }
     >({
       query: (params) => ({
         url: "/user/vendor/orders/list/",
         params,
       }),
       providesTags: ["Order"],
+      serializeQueryArgs: ({ queryArgs }) => {
+        const { page: _page, ...filterArgs } = queryArgs;
+        return filterArgs;
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        // An explicit refetch (pull-to-refresh) re-requests page 1 even
+        // when several pages are already accumulated in cache. Without this
+        // check that would append page 1 on top of everything already
+        // loaded instead of replacing it. arg.page is undefined (not 1) for
+        // any caller that omits the page param entirely (e.g. the vendor
+        // dashboard's 5-item preview) and relies on the server's default -
+        // that's still effectively page 1.
+        if (!arg.page || arg.page === 1 || !currentCache?.data?.results) {
+          return newItems;
+        }
+        currentCache.data.results.push(...newItems.data.results);
+        currentCache.data.next = newItems.data.next;
+        currentCache.data.count = newItems.data.count;
+      },
+      forceRefetch: ({ currentArg, previousArg }) =>
+        currentArg?.page !== previousArg?.page,
     }),
 
     getVendorOrderDetails: builder.query<
@@ -546,7 +586,10 @@ export const vendorApi = baseApi.injectEndpoints({
       query: () => "/user/utility/banks/",
     }),
 
-    verifyBankAccount: builder.mutation<BankVerificationResponse, { account_number: string; bank_code: string }>({
+    verifyBankAccount: builder.mutation<
+      BankVerificationResponse,
+      { account_number: string; bank_code: string }
+    >({
       query: (body) => ({
         url: "/user/utility/verify-account/",
         method: "POST",

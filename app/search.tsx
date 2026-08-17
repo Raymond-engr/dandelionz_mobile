@@ -1,19 +1,32 @@
 import { FilterModal } from "@/components/filter-modal";
+import { ProductCard } from "@/components/product-card";
 import { ProductGrid } from "@/components/product-grid";
 import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
 import { SearchBar } from "@/components/search-bar";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { useRecentSearches } from "@/hooks/use-recent-searches";
-import { RECOMMENDATION_LIMIT } from "@/lib/recommendations";
 import {
+  selectStandardEnvelope,
+  useInfiniteList,
+} from "@/hooks/use-infinite-list";
+import { useRecentSearches } from "@/hooks/use-recent-searches";
+import {
+  Product,
   useGetProductsQuery,
   useGetRecommendationsQuery,
   useGetSearchSuggestionsQuery,
 } from "@/lib/api/publicApi";
+import { RECOMMENDATION_LIMIT } from "@/lib/recommendations";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Filters {
@@ -45,27 +58,40 @@ export default function SearchScreen() {
   const debouncedQuery = useDebouncedValue(query, 300);
   const showSuggestions = query !== submitted;
 
-  const { data: suggestionData } = useGetSearchSuggestionsQuery(debouncedQuery, {
-    skip: !showSuggestions || debouncedQuery.trim().length < MIN_SUGGESTION_LENGTH,
-  });
+  const { data: suggestionData } = useGetSearchSuggestionsQuery(
+    debouncedQuery,
+    {
+      skip:
+        !showSuggestions ||
+        debouncedQuery.trim().length < MIN_SUGGESTION_LENGTH,
+    },
+  );
 
   // debouncedQuery lags query by 300ms, so suggestionData can still describe the
   // previous term. Treat it as absent until it catches up, otherwise the panel
   // briefly lists results for what the user typed before.
   const suggestionsReady = debouncedQuery.trim() === query.trim();
 
-  const { data: resultData, isFetching } = useGetProductsQuery(
-    { search: submitted || undefined, ...filters },
+  const {
+    items: products,
+    isInitialLoading: isProductsInitialLoading,
+    isFetchingMore,
+    loadMore,
+  } = useInfiniteList(
+    useGetProductsQuery,
+    { search: submitted, ...filters },
+    selectStandardEnvelope,
     { skip: !submitted },
   );
+  const isFetching = isProductsInitialLoading;
 
-  const products = resultData?.data ?? [];
   const suggestions = suggestionsReady ? suggestionData?.data : undefined;
 
   // A search that found nothing is a dead end, so offer trending products as a
   // way back in. Only asked for once we know the search actually came back
   // empty — not while it's still in flight.
-  const hasNoResults = Boolean(submitted) && !isFetching && products.length === 0;
+  const hasNoResults =
+    Boolean(submitted) && !isFetching && products.length === 0;
 
   const { data: trendingData } = useGetRecommendationsQuery(
     { type: "trending", limit: RECOMMENDATION_LIMIT },
@@ -96,7 +122,9 @@ export default function SearchScreen() {
     }
 
     const hasAny =
-      (suggestions.categories?.length ?? 0) + (suggestions.products?.length ?? 0) > 0;
+      (suggestions.categories?.length ?? 0) +
+        (suggestions.products?.length ?? 0) >
+      0;
 
     if (!hasAny) {
       return (
@@ -109,32 +137,39 @@ export default function SearchScreen() {
     }
 
     return (
-    <ScrollView keyboardShouldPersistTaps="handled">
-      {suggestions?.categories?.map((category) => (
-        <Pressable
-          key={`category-${category.slug}`}
-          className="flex-row items-center px-4 py-3 border-b border-gray-100"
-          onPress={() => router.push(`/category/${category.slug}`)}
-        >
-          <Ionicons name="grid-outline" size={18} color="#6B7280" />
-          <Text className="ml-3 text-[15px] text-gray-900">{category.name}</Text>
-          <Text className="ml-2 text-[13px] text-gray-400">in Categories</Text>
-        </Pressable>
-      ))}
+      <ScrollView keyboardShouldPersistTaps="handled">
+        {suggestions?.categories?.map((category) => (
+          <Pressable
+            key={`category-${category.slug}`}
+            className="flex-row items-center px-4 py-3 border-b border-gray-100"
+            onPress={() => router.push(`/category/${category.slug}`)}
+          >
+            <Ionicons name="grid-outline" size={18} color="#6B7280" />
+            <Text className="ml-3 text-[15px] text-gray-900">
+              {category.name}
+            </Text>
+            <Text className="ml-2 text-[13px] text-gray-400">
+              in Categories
+            </Text>
+          </Pressable>
+        ))}
 
-      {suggestions?.products?.map((product) => (
-        <Pressable
-          key={`product-${product.slug}`}
-          className="flex-row items-center px-4 py-3 border-b border-gray-100"
-          onPress={() => router.push(`/product/${product.slug}`)}
-        >
-          <Ionicons name="search-outline" size={18} color="#6B7280" />
-          <Text className="ml-3 flex-1 text-[15px] text-gray-900" numberOfLines={1}>
-            {product.name}
-          </Text>
-        </Pressable>
-      ))}
-    </ScrollView>
+        {suggestions?.products?.map((product) => (
+          <Pressable
+            key={`product-${product.slug}`}
+            className="flex-row items-center px-4 py-3 border-b border-gray-100"
+            onPress={() => router.push(`/product/${product.slug}`)}
+          >
+            <Ionicons name="search-outline" size={18} color="#6B7280" />
+            <Text
+              className="ml-3 flex-1 text-[15px] text-gray-900"
+              numberOfLines={1}
+            >
+              {product.name}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
     );
   };
 
@@ -201,13 +236,35 @@ export default function SearchScreen() {
     }
 
     return (
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-        <Text className="px-4 py-3 text-[13px] text-gray-500">
-          {products.length} {products.length === 1 ? "result" : "results"} for “
-          {submitted}”
-        </Text>
-        <ProductGrid products={products} />
-      </ScrollView>
+      <FlatList
+        data={products}
+        keyExtractor={(item: Product) => String(item.id)}
+        numColumns={2}
+        columnWrapperStyle={{
+          justifyContent: "space-between",
+          paddingHorizontal: 16,
+          gap: 12,
+        }}
+        contentContainerStyle={{ paddingBottom: 100, gap: 12 }}
+        ListHeaderComponent={
+          <Text className="px-4 py-3 text-[13px] text-gray-500">
+            {products.length} {products.length === 1 ? "result" : "results"} for
+            “{submitted}”
+          </Text>
+        }
+        renderItem={({ item }) => (
+          <View style={{ width: "48%" }}>
+            <ProductCard product={item} />
+          </View>
+        )}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          isFetchingMore ? (
+            <ActivityIndicator style={{ marginVertical: 16 }} color="#030482" />
+          ) : null
+        }
+      />
     );
   };
 

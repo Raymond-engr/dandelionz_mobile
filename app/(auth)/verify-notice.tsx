@@ -3,8 +3,8 @@ import { Divider } from "@/components/ui/divider";
 import { useSendVerificationEmailMutation } from "@/lib/api/authApi";
 import { apiError } from "@/lib/utils";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
-import { Text, View, ActivityIndicator, TouchableOpacity } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import Toast from "react-native-toast-message";
@@ -15,10 +15,22 @@ export default function VerifyNoticeScreen() {
   const { email: emailParam } = useLocalSearchParams<{ email: string }>();
   const [sendVerification, { isLoading }] = useSendVerificationEmailMutation();
   const [cooldown, setCooldown] = useState(0);
+  // This interval was previously created inside handleResend with no way to
+  // clear it on unmount, since it's not started inside a useEffect. If the
+  // user navigated away mid-countdown, it kept ticking and calling
+  // setCooldown on an unmounted screen for up to 60 seconds. Tracking it in
+  // a ref lets the cleanup effect below clear it on unmount.
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   const handleResend = async () => {
     if (cooldown > 0) return;
-    
+
     if (!emailParam) {
       Toast.show({
         type: "error",
@@ -37,10 +49,11 @@ export default function VerifyNoticeScreen() {
           text2: "A new verification link has been sent to your inbox.",
         });
         setCooldown(60); // 60 seconds cooldown
-        const timer = setInterval(() => {
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
           setCooldown((prev) => {
             if (prev <= 1) {
-              clearInterval(timer);
+              if (timerRef.current) clearInterval(timerRef.current);
               return 0;
             }
             return prev - 1;
@@ -57,7 +70,10 @@ export default function VerifyNoticeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white items-center justify-between" style={{ paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }}>
+    <View
+      className="flex-1 bg-white items-center justify-between"
+      style={{ paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 }}
+    >
       <View className="w-full items-center px-6">
         <Text className="text-[24px] font-semibold text-system-blue-dark text-center mb-12">
           Verify Email
@@ -78,18 +94,26 @@ export default function VerifyNoticeScreen() {
         <Text className="text-[20px] font-semibold text-system-blue-dark text-center px-4">
           Check your inbox
         </Text>
-        
+
         <Text className="text-[16px] text-[#6B7280] text-center mt-4 px-6 leading-6">
-          We&apos;ve sent a verification link to your email address{emailParam ? ` (${emailParam})` : ""}. Please click the link to verify your account.
+          We&apos;ve sent a verification link to your email address
+          {emailParam ? ` (${emailParam})` : ""}. Please click the link to
+          verify your account.
         </Text>
-        
-        <TouchableOpacity 
-          onPress={handleResend} 
+
+        <TouchableOpacity
+          onPress={handleResend}
           disabled={isLoading || cooldown > 0}
           className="mt-8"
         >
-          <Text className={`text-[15px] font-semibold ${isLoading || cooldown > 0 ? "text-gray-400" : "text-system-blue-light"}`}>
-            {isLoading ? "Sending..." : cooldown > 0 ? `Resend in ${cooldown}s` : "Didn't receive email? Resend"}
+          <Text
+            className={`text-[15px] font-semibold ${isLoading || cooldown > 0 ? "text-gray-400" : "text-system-blue-light"}`}
+          >
+            {isLoading
+              ? "Sending..."
+              : cooldown > 0
+                ? `Resend in ${cooldown}s`
+                : "Didn't receive email? Resend"}
           </Text>
         </TouchableOpacity>
 

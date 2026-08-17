@@ -174,9 +174,16 @@ export interface Cart {
   updated_at: string;
 }
 
+// /store/products/ now returns DRF's standard paginated envelope
+// (see backend store/views.py ProductListView / StoreListPagination).
 type GetProductsResponse = {
   success: boolean;
-  data: Product[];
+  data: {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: Product[];
+  };
 };
 
 export type SearchSuggestion = {
@@ -241,6 +248,29 @@ export const publicApi = baseApi.injectEndpoints({
         params,
       }),
       providesTags: ["Product"],
+      // Cache one growing list per filter combination, ignoring `page` - so
+      // scrolling further appends to the same cache entry instead of RTK
+      // Query treating each page as an unrelated cached result.
+      serializeQueryArgs: ({ queryArgs }) => {
+        const { page: _page, ...filterArgs } = queryArgs;
+        return filterArgs;
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        // An explicit refetch (pull-to-refresh) re-requests page 1 even
+        // when several pages are already accumulated in cache. Without this
+        // check that would append page 1 on top of everything already
+        // loaded instead of replacing it. arg.page is undefined (not 1) for
+        // any caller that omits the page param entirely and relies on the
+        // server's default - that's still effectively page 1.
+        if (!arg.page || arg.page === 1 || !currentCache?.data?.results) {
+          return newItems;
+        }
+        currentCache.data.results.push(...newItems.data.results);
+        currentCache.data.next = newItems.data.next;
+        currentCache.data.count = newItems.data.count;
+      },
+      forceRefetch: ({ currentArg, previousArg }) =>
+        currentArg?.page !== previousArg?.page,
     }),
 
     getProductBySlug: builder.query<
@@ -416,14 +446,18 @@ export const publicApi = baseApi.injectEndpoints({
     }),
 
     cancelOrder: builder.mutation<
-      { success: boolean; data: { order_id: string; status: string; refund_pending: boolean }; message: string },
+      {
+        success: boolean;
+        data: { order_id: string; status: string; refund_pending: boolean };
+        message: string;
+      },
       string // order_id
     >({
       query: (order_id) => ({
         url: `/transactions/orders/${order_id}/cancel/`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: ['Order'],
+      invalidatesTags: ["Order"],
     }),
 
     // Reviews

@@ -667,7 +667,12 @@ export const adminApi = baseApi.injectEndpoints({
     // export. Downloading a spreadsheet onto a phone is not a workflow anyone wants, and
     // the web page owns that job.
     getLedger: builder.query<
-      { count: number; next: string | null; previous: string | null; results: LedgerEntry[] },
+      {
+        count: number;
+        next: string | null;
+        previous: string | null;
+        results: LedgerEntry[];
+      },
       LedgerFilters | void
     >({
       query: (params) => ({
@@ -755,15 +760,45 @@ export const adminApi = baseApi.injectEndpoints({
     }),
 
     // User Management
+    // AdminUserListView's paginated branch returns DRF's paginated envelope
+    // directly (count/next/previous/results) with no outer {success, data}
+    // wrapper - that wrapper only applies to its unpaginated fallback path,
+    // which this app never hits now that pagination_class is set. See
+    // authentication/views_admin.py AdminUserListView.list().
     getAllUsers: builder.query<
-      { success: boolean; data: User[] },
-      { role?: string; status?: string }
+      {
+        count: number;
+        next: string | null;
+        previous: string | null;
+        results: User[];
+      },
+      {
+        role?: string;
+        status?: string;
+        search?: string;
+        page?: number;
+        page_size?: number;
+      }
     >({
       query: (params) => ({
         url: "/user/admin/users/",
         params,
       }),
       providesTags: ["User"],
+      serializeQueryArgs: ({ queryArgs }) => {
+        const { page: _page, ...filterArgs } = queryArgs;
+        return filterArgs;
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        if (!arg.page || arg.page === 1 || !currentCache?.results) {
+          return newItems;
+        }
+        currentCache.results.push(...newItems.results);
+        currentCache.next = newItems.next;
+        currentCache.count = newItems.count;
+      },
+      forceRefetch: ({ currentArg, previousArg }) =>
+        currentArg?.page !== previousArg?.page,
     }),
 
     getUserDetails: builder.query<{ success: boolean; data: User }, string>({

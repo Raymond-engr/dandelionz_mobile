@@ -1,10 +1,15 @@
 import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
+import {
+  selectStandardEnvelope,
+  useInfiniteList,
+} from "@/hooks/use-infinite-list";
 import { useGetAllVendorsQuery } from "@/lib/api/adminApi";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   RefreshControl,
   Text,
@@ -18,15 +23,31 @@ export default function AdminVendors() {
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: vendorsResponse, isLoading, refetch } = useGetAllVendorsQuery();
-  const vendors = vendorsResponse?.data || [];
+  // Was a single unpaginated useGetAllVendorsQuery() - every vendor on the
+  // platform, in one response, growing with signups.
+  const {
+    items: vendors,
+    isInitialLoading: isLoading,
+    isFetchingMore,
+    loadMore,
+    refresh,
+  } = useInfiniteList(useGetAllVendorsQuery, {}, selectStandardEnvelope);
 
-  const activeVendors = vendors.filter((v) => v.is_active).length;
-  const suspendedVendors = vendors.filter((v) => !v.is_active).length;
+  // Total/Active/Suspended used to be computed from vendors.length/.filter()
+  // over the fully-loaded array - correct only while every vendor was
+  // fetched at once. Now sourced from the backend's count field instead.
+  const { data: totalResp } = useGetAllVendorsQuery({ page_size: 1 });
+  const { data: activeResp } = useGetAllVendorsQuery({
+    is_active: true,
+    page_size: 1,
+  });
+  const totalVendors = totalResp?.data?.count ?? 0;
+  const activeVendors = activeResp?.data?.count ?? 0;
+  const suspendedVendors = Math.max(totalVendors - activeVendors, 0);
 
   async function onRefresh() {
     setRefreshing(true);
-    await refetch();
+    await refresh();
     setRefreshing(false);
   }
 
@@ -55,7 +76,7 @@ export default function AdminVendors() {
               <View className="h-10 w-16 bg-white/20 rounded" />
             ) : (
               <Text className="text-[32px] font-bold text-white">
-                {vendors.length}
+                {totalVendors}
               </Text>
             )}
           </View>
@@ -211,6 +232,16 @@ export default function AdminVendors() {
             </View>
           );
         }}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          isFetchingMore ? (
+            <ActivityIndicator
+              style={{ marginVertical: 16 }}
+              color={Colors.primary}
+            />
+          ) : null
+        }
       />
     </View>
   );

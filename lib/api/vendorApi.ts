@@ -274,14 +274,36 @@ export const vendorApi = baseApi.injectEndpoints({
 
     // --- Store Product Management ---
     getStoreProducts: builder.query<
-      { success: boolean; data: Product[] },
-      { status?: string }
+      {
+        success: boolean;
+        data: {
+          count: number;
+          next: string | null;
+          previous: string | null;
+          results: Product[];
+        };
+      },
+      { status?: string; search?: string; page?: number; page_size?: number }
     >({
       query: (params) => ({
         url: "/user/vendor/products/",
         params,
       }),
       providesTags: ["Product"],
+      serializeQueryArgs: ({ queryArgs }) => {
+        const { page: _page, ...filterArgs } = queryArgs;
+        return filterArgs;
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        if (!arg.page || arg.page === 1 || !currentCache?.data?.results) {
+          return newItems;
+        }
+        currentCache.data.results.push(...newItems.data.results);
+        currentCache.data.next = newItems.data.next;
+        currentCache.data.count = newItems.data.count;
+      },
+      forceRefetch: ({ currentArg, previousArg }) =>
+        currentArg?.page !== previousArg?.page,
     }),
 
     createStoreProduct: builder.mutation<

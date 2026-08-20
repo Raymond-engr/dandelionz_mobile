@@ -694,14 +694,42 @@ export const adminApi = baseApi.injectEndpoints({
     }),
 
     getFailedPayments: builder.query<
-      { count: number; results: FailedPaymentEvent[] },
-      { status?: string; event_type?: string } | void
+      {
+        count: number;
+        next: string | null;
+        previous: string | null;
+        results: FailedPaymentEvent[];
+      },
+      {
+        status?: string;
+        event_type?: string;
+        page?: number;
+        page_size?: number;
+      } | void
     >({
       query: (params) => ({
         url: "/transactions/admin/failed-payments/",
         params: params || undefined,
       }),
       providesTags: ["Ledger"],
+      serializeQueryArgs: ({ queryArgs }) => {
+        const { page: _page, ...filterArgs } = (queryArgs || {}) as Record<
+          string,
+          unknown
+        >;
+        return filterArgs;
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        const page = arg?.page;
+        if (!page || page === 1 || !currentCache?.results) {
+          return newItems;
+        }
+        currentCache.results.push(...newItems.results);
+        currentCache.next = newItems.next;
+        currentCache.count = newItems.count;
+      },
+      forceRefetch: ({ currentArg, previousArg }) =>
+        currentArg?.page !== previousArg?.page,
     }),
 
     getAdminRefunds: builder.query<
@@ -710,14 +738,35 @@ export const adminApi = baseApi.injectEndpoints({
         data: RefundRequest[];
         count: number;
         pending_count: number;
+        next?: string | null;
+        previous?: string | null;
       },
-      { status?: string } | void
+      { status?: string; page?: number; page_size?: number } | void
     >({
       query: (params) => ({
         url: "/user/admin/finance/refunds/",
         params: params || undefined,
       }),
       providesTags: ["Refunds"],
+      serializeQueryArgs: ({ queryArgs }) => {
+        const { page: _page, ...filterArgs } = (queryArgs || {}) as Record<
+          string,
+          unknown
+        >;
+        return filterArgs;
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        const page = arg?.page;
+        if (!page || page === 1 || !currentCache?.data) {
+          return newItems;
+        }
+        currentCache.data.push(...newItems.data);
+        currentCache.next = newItems.next;
+        currentCache.count = newItems.count;
+        currentCache.pending_count = newItems.pending_count;
+      },
+      forceRefetch: ({ currentArg, previousArg }) =>
+        currentArg?.page !== previousArg?.page,
     }),
 
     processAdminRefund: builder.mutation<

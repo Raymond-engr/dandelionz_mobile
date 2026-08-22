@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   Text,
@@ -169,8 +170,18 @@ export default function VendorAccountScreen() {
         <SectionRow
           label="Terms & Conditions"
           route="/vendor/account/vendor-terms"
-          last
         />
+        <View>
+          <Pressable
+            onPress={() => Linking.openURL('https://dandelionz.com.ng/privacy.html')}
+            className="flex-row justify-between items-center py-4 px-[21px] active:bg-gray-50"
+          >
+            <Text className="text-[16px] font-medium text-system-blue-dark">
+              Privacy Policy
+            </Text>
+            <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" />
+          </Pressable>
+        </View>
       </View>
 
       <Divider />

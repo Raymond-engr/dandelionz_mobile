@@ -548,6 +548,24 @@ export const vendorApi = baseApi.injectEndpoints({
         params,
       }),
       providesTags: ["Payment"],
+      // offset-based, not page-based, since the backend uses
+      // LimitOffsetPagination here - the screen never advanced offset past
+      // 0, so this endpoint was already correctly paginated server-side but
+      // silently capped at the first `limit` transactions.
+      serializeQueryArgs: ({ queryArgs }) => {
+        const { offset: _offset, ...filterArgs } = queryArgs;
+        return filterArgs;
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        if (!arg.offset || !currentCache?.results) {
+          return newItems;
+        }
+        currentCache.results.push(...newItems.results);
+        currentCache.next = newItems.next;
+        currentCache.count = newItems.count;
+      },
+      forceRefetch: ({ currentArg, previousArg }) =>
+        currentArg?.offset !== previousArg?.offset,
     }),
 
     // Payment Settings
@@ -621,7 +639,12 @@ export const vendorApi = baseApi.injectEndpoints({
 
     // Notifications
     getVendorNotifications: builder.query<
-      { success: boolean; data: Notification[] },
+      {
+        count: number;
+        next: string | null;
+        previous: string | null;
+        results: Notification[];
+      },
       { page?: number; page_size?: number; is_read?: boolean } | void
     >({
       query: (params) => ({
@@ -629,6 +652,24 @@ export const vendorApi = baseApi.injectEndpoints({
         params: params || undefined,
       }),
       providesTags: ["Notification"],
+      serializeQueryArgs: ({ queryArgs }) => {
+        const { page: _page, ...filterArgs } = (queryArgs || {}) as Record<
+          string,
+          unknown
+        >;
+        return filterArgs;
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        const page = arg?.page;
+        if (!page || page === 1 || !currentCache?.results) {
+          return newItems;
+        }
+        currentCache.results.push(...newItems.results);
+        currentCache.next = newItems.next;
+        currentCache.count = newItems.count;
+      },
+      forceRefetch: ({ currentArg, previousArg }) =>
+        currentArg?.page !== previousArg?.page,
     }),
 
     vendorMarkNotificationAsRead: builder.mutation<

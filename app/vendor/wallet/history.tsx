@@ -1,37 +1,51 @@
-import { Divider } from "@/components/ui/divider";
 import { LoadingSpinner } from "@/components/loading-spinner";
+import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
 import { useGetTransactionHistoryQuery } from "@/lib/api/vendorApi";
-import { MaterialIcons, Feather } from "@expo/vector-icons";
+import { Feather, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
+  Pressable,
   RefreshControl,
   Text,
   View,
-  Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const LIMIT = 20;
 
 export default function VendorTransactionHistory() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [page, setPage] = useState(1);
-  const limit = 20;
+  const [offset, setOffset] = useState(0);
 
-  const { data, isLoading, isError, refetch } = useGetTransactionHistoryQuery({
-    limit,
-    offset: (page - 1) * limit,
-  });
+  // Was stuck on offset=0 forever - `page` state existed but nothing ever
+  // advanced it, so this screen silently capped at the first 20
+  // transactions no matter how many the vendor actually had.
+  const { data, isLoading, isFetching, refetch } =
+    useGetTransactionHistoryQuery({
+      limit: LIMIT,
+      offset,
+    });
 
   const transactions = data?.results || [];
+  const hasMore = !!data?.next;
+  const isFetchingMore = isFetching && offset > 0;
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !isFetching) {
+      setOffset((o) => o + LIMIT);
+    }
+  }, [hasMore, isFetching]);
 
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    setPage(1);
+    setOffset(0);
     await refetch();
     setRefreshing(false);
   };
@@ -51,7 +65,9 @@ export default function VendorTransactionHistory() {
   const renderEmpty = () => (
     <View className="flex-1 items-center justify-center pt-20 px-[21px]">
       <MaterialIcons name="history" size={64} color="#D1D5DB" />
-      <Text className="text-[20px] font-bold text-system-blue-dark mt-4">No transactions</Text>
+      <Text className="text-[20px] font-bold text-system-blue-dark mt-4">
+        No transactions
+      </Text>
       <Text className="text-[14px] text-[#6B7280] text-center mt-2 px-6">
         Your transaction history will appear here once you start earning.
       </Text>
@@ -69,14 +85,23 @@ export default function VendorTransactionHistory() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         ListEmptyComponent={renderEmpty}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.primary}
+          />
         }
         renderItem={({ item }) => {
           const isCredit = item.type === "CREDIT";
           return (
             <View>
-              <Pressable 
-                onPress={() => router.push({ pathname: "/vendor/wallet/receipt", params: { id: item.id } })}
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: "/vendor/wallet/receipt",
+                    params: { id: item.id },
+                  })
+                }
                 className="p-[21px] flex-row items-center justify-between"
               >
                 <View className="flex-1">
@@ -87,19 +112,32 @@ export default function VendorTransactionHistory() {
                     {new Date(item.created_at).toLocaleString()}
                   </Text>
                 </View>
-                
+
                 <View className="items-end">
-                  <Text className={`text-[16px] font-bold ${isCredit ? 'text-green-600' : 'text-red-600'}`}>
-                    {isCredit ? '+' : '-'} ₦{parseFloat(item.amount).toLocaleString()}
+                  <Text
+                    className={`text-[16px] font-bold ${isCredit ? "text-green-600" : "text-red-600"}`}
+                  >
+                    {isCredit ? "+" : "-"} ₦
+                    {parseFloat(item.amount).toLocaleString()}
                   </Text>
-                  <View className={`mt-1 px-2 py-0.5 rounded-full ${
-                    item.status === 'successful' ? 'bg-green-100' : 
-                    item.status === 'pending' ? 'bg-yellow-100' : 'bg-red-100'
-                  }`}>
-                    <Text className={`text-[10px] font-bold ${
-                      item.status === 'successful' ? 'text-green-700' : 
-                      item.status === 'pending' ? 'text-yellow-700' : 'text-red-700'
-                    }`}>
+                  <View
+                    className={`mt-1 px-2 py-0.5 rounded-full ${
+                      item.status === "successful"
+                        ? "bg-green-100"
+                        : item.status === "pending"
+                          ? "bg-yellow-100"
+                          : "bg-red-100"
+                    }`}
+                  >
+                    <Text
+                      className={`text-[10px] font-bold ${
+                        item.status === "successful"
+                          ? "text-green-700"
+                          : item.status === "pending"
+                            ? "text-yellow-700"
+                            : "text-red-700"
+                      }`}
+                    >
                       {item.status.toUpperCase()}
                     </Text>
                   </View>
@@ -109,8 +147,18 @@ export default function VendorTransactionHistory() {
             </View>
           );
         }}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          isFetchingMore ? (
+            <ActivityIndicator
+              style={{ marginVertical: 16 }}
+              color={Colors.primary}
+            />
+          ) : null
+        }
       />
-      
+
       {isLoading && !refreshing && (
         <View className="absolute inset-0 bg-white/50 items-center justify-center">
           <LoadingSpinner />

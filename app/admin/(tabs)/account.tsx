@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   Text,
@@ -164,6 +165,10 @@ export default function AdminAccountScreen() {
         <MenuRow
           label="Terms and Conditions"
           onPress={() => router.push("/terms" as any)}
+        />
+        <MenuRow
+          label="Privacy Policy"
+          onPress={() => Linking.openURL('https://dandelionz.com.ng/privacy.html')}
         />
         <MenuRow
           label="Contact Support"

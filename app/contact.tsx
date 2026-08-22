@@ -67,10 +67,10 @@ export default function ContactScreen() {
                 Phone Numbers
               </Text>
               <Text className="text-[15px] text-gray-600 font-medium">
-                08083817902
+                07073209142
               </Text>
               <Text className="text-[15px] text-gray-600 font-medium">
-                08141680059
+                08083817902
               </Text>
             </View>
           </View>
@@ -80,6 +80,28 @@ export default function ContactScreen() {
               Call Us Now
             </Text>
           </Button>
+        </View>
+
+        <Divider height={11} />
+
+        {/* Email Section */}
+        <View className="px-[21px] py-8">
+          <View className="flex-row items-start gap-4">
+            <View className="w-10 h-10 rounded-full bg-blue-50 items-center justify-center">
+              <MaterialIcons name="email" size={20} color={Colors.primary} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-[16px] font-bold text-system-blue-dark mb-1">
+                Email Us
+              </Text>
+              <Text
+                className="text-[15px] text-system-blue-light font-medium"
+                onPress={() => Linking.openURL('mailto:dandelionsuperglobal.ltd@gmail.com')}
+              >
+                dandelionsuperglobal.ltd@gmail.com
+              </Text>
+            </View>
+          </View>
         </View>
 
         <Divider height={11} />

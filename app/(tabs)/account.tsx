@@ -17,6 +17,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   Text,
@@ -191,7 +192,18 @@ export default function AccountScreen() {
       <View>
         <SectionRow label="Contact Us" route="/contact" />
         <SectionRow label="FAQs" route="/faqs" />
-        <SectionRow label="Terms &amp; Conditions" route="/terms" last />
+        <SectionRow label="Terms & Conditions" route="/terms" />
+        <View>
+          <Pressable
+            onPress={() => Linking.openURL('https://dandelionz.com.ng/privacy.html')}
+            className="flex-row justify-between items-center py-4 px-[21px] active:bg-gray-50"
+          >
+            <Text className="text-[16px] font-medium text-system-blue-dark">
+              Privacy Policy
+            </Text>
+            <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" />
+          </Pressable>
+        </View>
       </View>
 
       <Divider />

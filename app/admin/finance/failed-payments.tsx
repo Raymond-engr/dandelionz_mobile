@@ -1,15 +1,16 @@
 import { Colors } from "@/constants/theme";
+import { selectBareEnvelope, useInfiniteList } from "@/hooks/use-infinite-list";
 import { useGetFailedPaymentsQuery } from "@/lib/api/adminApi";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -38,10 +39,20 @@ export default function AdminFailedPaymentsScreen() {
   const insets = useSafeAreaInsets();
   const [status, setStatus] = useState("");
 
-  const { data, isLoading } = useGetFailedPaymentsQuery(
-    status ? { status } : undefined
+  // Backend was already correctly paginated (FinancePagination); this
+  // screen just never read .next or requested another page, so it silently
+  // capped at the first 20 events regardless of how many actually needed
+  // attention.
+  const {
+    items: events,
+    isInitialLoading: isLoading,
+    isFetchingMore,
+    loadMore,
+  } = useInfiniteList(
+    useGetFailedPaymentsQuery,
+    status ? { status } : {},
+    selectBareEnvelope,
   );
-  const events = data?.results ?? [];
 
   return (
     <View className="flex-1 bg-[#F5F7FA]" style={{ paddingTop: insets.top }}>
@@ -58,7 +69,10 @@ export default function AdminFailedPaymentsScreen() {
       <FlatList
         data={events}
         keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }}
+        contentContainerStyle={{
+          padding: 16,
+          paddingBottom: insets.bottom + 40,
+        }}
         ListHeaderComponent={
           <View className="mb-3">
             <View className="bg-blue-50 rounded-xl p-3 flex-row items-start gap-2 mb-3">
@@ -69,9 +83,10 @@ export default function AdminFailedPaymentsScreen() {
                 style={{ marginTop: 1 }}
               />
               <Text className="text-[12px] text-blue-700 flex-1">
-                Paystack notifications that never became a ledger entry — the handler
-                failed, or there was no matching order, deposit or payout. They moved no
-                money, so they stay out of the ledger and its totals.
+                Paystack notifications that never became a ledger entry — the
+                handler failed, or there was no matching order, deposit or
+                payout. They moved no money, so they stay out of the ledger and
+                its totals.
               </Text>
             </View>
 
@@ -150,12 +165,26 @@ export default function AdminFailedPaymentsScreen() {
             </View>
           ) : (
             <View className="py-16 items-center">
-              <MaterialIcons name="check-circle-outline" size={32} color="#10B981" />
+              <MaterialIcons
+                name="check-circle-outline"
+                size={32}
+                color="#10B981"
+              />
               <Text className="text-[14px] text-gray-500 mt-3 text-center">
                 Nothing here. Every Paystack notification has been applied.
               </Text>
             </View>
           )
+        }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          isFetchingMore ? (
+            <ActivityIndicator
+              style={{ marginVertical: 16 }}
+              color={Colors.primary}
+            />
+          ) : null
         }
       />
     </View>

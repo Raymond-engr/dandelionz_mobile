@@ -1066,16 +1066,38 @@ export const adminApi = baseApi.injectEndpoints({
     }),
 
     getAllOrders: builder.query<
-      Order[],
-      { status?: string; vendor_uuid?: string }
+      {
+        count: number;
+        next: string | null;
+        previous: string | null;
+        results: Order[];
+      },
+      {
+        status?: string;
+        vendor_uuid?: string;
+        page?: number;
+        page_size?: number;
+      }
     >({
       query: (params) => ({
         url: "/user/admin/orders/",
         params,
       }),
-      transformResponse: (response: { success: boolean; data: Order[] }) =>
-        response.data,
       providesTags: ["Order"],
+      serializeQueryArgs: ({ queryArgs }) => {
+        const { page: _page, ...filterArgs } = queryArgs;
+        return filterArgs;
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        if (!arg.page || arg.page === 1 || !currentCache?.results) {
+          return newItems;
+        }
+        currentCache.results.push(...newItems.results);
+        currentCache.next = newItems.next;
+        currentCache.count = newItems.count;
+      },
+      forceRefetch: ({ currentArg, previousArg }) =>
+        currentArg?.page !== previousArg?.page,
     }),
 
     getAdminOrderDetails: builder.query<Order, string>({

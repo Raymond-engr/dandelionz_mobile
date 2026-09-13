@@ -1,5 +1,6 @@
 import { OrderListItemSkeleton } from "@/components/OrderListItemSkeleton";
 import { Divider } from "@/components/ui/divider";
+import { selectBareEnvelope, useInfiniteList } from "@/hooks/use-infinite-list";
 import {
   useGetAllOrdersQuery,
   useGetDeliveryAttentionQuery,
@@ -9,6 +10,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   RefreshControl,
   Text,
@@ -33,11 +35,20 @@ export default function AdminOrders() {
   const [refreshing, setRefreshing] = useState(false);
   const [status, setStatus] = useState<string | undefined>(undefined);
 
+  // Was a single unpaginated useGetAllOrdersQuery() - AdminOrderListView had
+  // no pagination_class at all, so this returned every order on the
+  // platform, on every load, regardless of filter.
   const {
-    data: orders = [],
-    isLoading,
-    refetch,
-  } = useGetAllOrdersQuery({ status });
+    items: orders,
+    isInitialLoading: isLoading,
+    isFetchingMore,
+    loadMore,
+    refresh,
+  } = useInfiniteList(
+    useGetAllOrdersQuery,
+    status ? { status } : {},
+    selectBareEnvelope,
+  );
 
   const { data: attentionData, refetch: refetchAttention } =
     useGetDeliveryAttentionQuery();
@@ -48,7 +59,7 @@ export default function AdminOrders() {
 
   async function onRefresh() {
     setRefreshing(true);
-    await Promise.all([refetch(), refetchAttention()]);
+    await Promise.all([refresh(), refetchAttention()]);
     setRefreshing(false);
   }
 
@@ -213,6 +224,16 @@ export default function AdminOrders() {
               </View>
             );
           }}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            isFetchingMore ? (
+              <ActivityIndicator
+                style={{ marginVertical: 16 }}
+                color="#030482"
+              />
+            ) : null
+          }
         />
       )}
     </View>

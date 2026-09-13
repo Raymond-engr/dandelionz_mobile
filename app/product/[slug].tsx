@@ -1,3 +1,6 @@
+import { RecommendationRow } from "@/components/recommendation-row";
+import { selectBareEnvelope, useInfiniteList } from "@/hooks/use-infinite-list";
+import { useTrackProductView } from "@/hooks/use-track-product-view";
 import {
   ProductImage,
   useAddProductReviewMutation,
@@ -10,10 +13,8 @@ import {
   useRemoveFromCartMutation,
   useRemoveFromWishlistMutation,
 } from "@/lib/api/publicApi";
-import { RecommendationRow } from "@/components/recommendation-row";
-import { useTrackProductView } from "@/hooks/use-track-product-view";
-import { apiError } from "@/lib/utils";
 import { useAppSelector } from "@/lib/hooks";
+import { apiError } from "@/lib/utils";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -27,7 +28,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -84,11 +88,24 @@ export default function ProductDetailScreen() {
   }, [product?.variants]);
 
   // ─── Reviews (no auth required to read) ─────────────────────────────────────
+  // Was a single unpaginated fetch - a popular product can accumulate
+  // hundreds of reviews. This section sits inside the page's own ScrollView
+  // (hero, description, variants, reviews all in one), so a FlatList here
+  // would just recreate the same nested-scroll conflict fixed elsewhere -
+  // a manual "load more" button avoids that while still bounding the fetch.
   const {
-    data: reviews,
-    isLoading: isLoadingReviews,
-    refetch: refetchReviews,
-  } = useGetProductReviewsQuery(slug, { skip: !slug });
+    items: reviews,
+    isInitialLoading: isLoadingReviews,
+    isFetchingMore: isFetchingMoreReviews,
+    hasMore: hasMoreReviews,
+    loadMore: loadMoreReviews,
+    refresh: refetchReviews,
+  } = useInfiniteList(
+    useGetProductReviewsQuery,
+    { slug: slug ?? "" },
+    selectBareEnvelope,
+    { skip: !slug },
+  );
   const [addProductReview, { isLoading: isSubmittingReview }] =
     useAddProductReviewMutation();
 
@@ -557,6 +574,21 @@ export default function ProductDetailScreen() {
               <Text className="text-gray-500 italic text-sm">
                 No reviews yet. Be the first to review!
               </Text>
+            )}
+            {hasMoreReviews && (
+              <TouchableOpacity
+                onPress={loadMoreReviews}
+                disabled={isFetchingMoreReviews}
+                className="mt-4 py-3 items-center"
+              >
+                {isFetchingMoreReviews ? (
+                  <ActivityIndicator color="#030482" />
+                ) : (
+                  <Text className="text-[#030482] font-medium text-sm">
+                    Load more reviews
+                  </Text>
+                )}
+              </TouchableOpacity>
             )}
           </View>
         </View>

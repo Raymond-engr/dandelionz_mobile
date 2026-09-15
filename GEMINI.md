@@ -145,3 +145,8 @@ Always generate commit messages at the end of a task and append this instruction
 - Wrapped root elements and utilized behavior="padding" on iOS while leaving Android behavior untouched.
 - Verified that all screen layouts maintain structural integrity (e.g. order-tracking.tsx and payout-details.tsx).
 - Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.
+
+## September 15, 2026 - iOS App Icon Configuration
+- Added a dedicated 2048x2048, flat (no-alpha) apple-icon.png for iOS to comply with Apple's strict transparency rules.
+- Configured app.json under the ios block to use apple-icon.png exclusively for iOS builds, while keeping the original transparent icon.png for Android adaptive icons.
+- Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.

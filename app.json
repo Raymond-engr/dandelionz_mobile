@@ -75,6 +75,7 @@
       }
     },
     "ios": {
+      "icon": "./assets/images/apple-icon.png",
       "supportsTablet": true,
       "bundleIdentifier": "com.dandelionz",
       "associatedDomains": [

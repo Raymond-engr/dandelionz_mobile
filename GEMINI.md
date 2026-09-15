@@ -139,3 +139,9 @@ Always generate commit messages at the end of a task and append this instruction
 - Wrapped the application tree with SafeAreaProvider in app/_layout.tsx to fix useSafeAreaInsets context.
 - Fixed iOS DateTimePicker UX in app/admin/orders/[id].tsx and app/admin/account/notifications/create.tsx by using display="spinner" and a custom "Done" button, leaving Android defaults intact.
 - Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.
+
+## September 15, 2026 - Keyboard UI Parity
+- Added KeyboardAvoidingView to 24 screens across the application to prevent the on-screen keyboard from obscuring inputs on iOS devices.
+- Wrapped root elements and utilized behavior="padding" on iOS while leaving Android behavior untouched.
+- Verified that all screen layouts maintain structural integrity (e.g. order-tracking.tsx and payout-details.tsx).
+- Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.

@@ -79,8 +79,13 @@
       "bundleIdentifier": "com.dandelionz",
       "associatedDomains": [
         "applinks:dandelionz.com.ng",
+        "applinks:app.dandelionz.com.ng",
+        "applinks:dandelionz.com.ng",
         "applinks:app.dandelionz.com.ng"
-      ]
+      ],
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -114,6 +119,11 @@
             "DEFAULT"
           ]
         }
+      ],
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ]
     },
     "web": {
@@ -154,6 +164,19 @@
       ],
       "@react-native-community/datetimepicker",
       "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Dandelionz to access your photos to upload profile and product images.",
+          "cameraPermission": "Allow Dandelionz to access your camera to take profile and product images."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Dandelionz to use Face ID for fast and secure login and checkout."
+        }
+      ],
       [
         "@sentry/react-native/expo",
         {

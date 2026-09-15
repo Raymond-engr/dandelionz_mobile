@@ -1,13 +1,15 @@
 import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
 import { useDeleteAccountMutation } from "@/lib/api/vendorApi";
-import { apiError } from "@/lib/utils";
 import { useLogout } from "@/lib/hooks";
+import { apiError } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   Text,
   TextInput,
@@ -75,53 +77,61 @@ export default function VendorDeleteAccountScreen() {
   );
 
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
-      {renderHeader()}
-      <Divider />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={{ flex: 1 }}
+    >
+      <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+        {renderHeader()}
+        <Divider />
 
-      <View className="flex-1 px-[21px] justify-center" style={{ paddingBottom: insets.bottom + 80 }}>
-        <View className="w-20 h-20 bg-system-red rounded-full items-center justify-center mx-auto mb-8">
-          <MaterialIcons name="close" size={48} color="white" />
-        </View>
+        <View
+          className="flex-1 px-[21px] justify-center"
+          style={{ paddingBottom: insets.bottom + 80 }}
+        >
+          <View className="w-20 h-20 bg-system-red rounded-full items-center justify-center mx-auto mb-8">
+            <MaterialIcons name="close" size={48} color="white" />
+          </View>
 
-        <Text className="text-[22px] font-bold text-system-blue-dark text-center mb-4">
-          Do you wish to{"\n"}permanently close{"\n"}to account?
-        </Text>
-
-        <View className="mb-8">
-          <Text className="text-[12px] font-bold text-gray-400 mb-2 uppercase">
-            Enter Password to Confirm
+          <Text className="text-[22px] font-bold text-system-blue-dark text-center mb-4">
+            Do you wish to{"\n"}permanently close{"\n"}to account?
           </Text>
-          <TextInput
-            className="border border-gray-200 rounded-lg px-4 py-3 text-[16px] text-system-blue-dark"
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Password"
-            secureTextEntry
-          />
-        </View>
 
-        <View className="flex-row gap-4">
-          <TouchableOpacity
-            onPress={handleDelete}
-            disabled={isLoading || !password}
-            className="flex-1 py-4 bg-white border border-gray-300 rounded-xl items-center justify-center"
-            style={{ opacity: isLoading || !password ? 0.5 : 1 }}
-          >
-            <Text className="text-gray-900 font-bold text-[16px]">
-              {isLoading ? "Deleting..." : "Yes Please"}
+          <View className="mb-8">
+            <Text className="text-[12px] font-bold text-gray-400 mb-2 uppercase">
+              Enter Password to Confirm
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            disabled={isLoading}
-            className="flex-1 py-4 bg-system-red rounded-xl items-center justify-center"
-            style={{ opacity: isLoading ? 0.5 : 1 }}
-          >
-            <Text className="text-white font-bold text-[16px]">Cancel</Text>
-          </TouchableOpacity>
+            <TextInput
+              className="border border-gray-200 rounded-lg px-4 py-3 text-[16px] text-system-blue-dark"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Password"
+              secureTextEntry
+            />
+          </View>
+
+          <View className="flex-row gap-4">
+            <TouchableOpacity
+              onPress={handleDelete}
+              disabled={isLoading || !password}
+              className="flex-1 py-4 bg-white border border-gray-300 rounded-xl items-center justify-center"
+              style={{ opacity: isLoading || !password ? 0.5 : 1 }}
+            >
+              <Text className="text-gray-900 font-bold text-[16px]">
+                {isLoading ? "Deleting..." : "Yes Please"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              disabled={isLoading}
+              className="flex-1 py-4 bg-system-red rounded-xl items-center justify-center"
+              style={{ opacity: isLoading ? 0.5 : 1 }}
+            >
+              <Text className="text-white font-bold text-[16px]">Cancel</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

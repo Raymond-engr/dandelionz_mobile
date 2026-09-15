@@ -16,6 +16,8 @@ import {
   Text,
   TextInput,
   View
+  Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -97,6 +99,10 @@ export default function VendorChangePasswordScreen() {
   );
 
   return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={{ flex: 1 }}
+    >
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
       {renderHeader()}
       <Divider />
@@ -204,5 +210,6 @@ export default function VendorChangePasswordScreen() {
         )}
       </ScrollView>
     </View>
+    </KeyboardAvoidingView>
   );
 }

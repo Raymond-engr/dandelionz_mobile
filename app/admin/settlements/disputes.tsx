@@ -1,7 +1,6 @@
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Divider } from "@/components/ui/divider";
 import { Colors } from "@/constants/theme";
-import { selectFlatEnvelope, useInfiniteList } from "@/hooks/use-infinite-list";
 import {
   RefundRequest,
   useGetAdminRefundsQuery,
@@ -12,9 +11,10 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   RefreshControl,
   Text,
   TextInput,
@@ -40,30 +40,16 @@ export default function RefundDisputesScreen() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [activeRejectId, setActiveRejectId] = useState<number | null>(null);
 
-  const queryFilters = filter === "ALL" ? {} : { status: filter };
-  // Was a single unpaginated useGetAdminRefundsQuery() - every matching
-  // refund request in one response, growing over time.
-  const {
-    items: refunds,
-    rawData,
-    isInitialLoading: isLoading,
-    isFetchingMore,
-    loadMore,
-    refresh,
-  } = useInfiniteList(
-    useGetAdminRefundsQuery,
-    queryFilters,
-    selectFlatEnvelope,
-  );
-  // pending_count is a badge count independent of scroll position - read it
-  // straight off the same query's raw data instead of a second subscription.
-  const pendingCount = rawData?.pending_count ?? 0;
+  const queryParam = filter === "ALL" ? undefined : { status: filter as any };
+  const { data, isLoading, refetch } = useGetAdminRefundsQuery(queryParam);
   const [processRefund, { isLoading: isProcessing }] =
     useProcessAdminRefundMutation();
 
+  const refunds = data?.data || [];
+
   const onRefresh = async () => {
     setRefreshing(true);
-    await refresh();
+    await refetch();
     setRefreshing(false);
   };
 
@@ -85,7 +71,7 @@ export default function RefundDisputesScreen() {
                 type: "success",
                 text1: "Refund approved and wallet credited.",
               });
-              refresh();
+              refetch();
             } catch (err: any) {
               Toast.show({
                 type: "error",
@@ -118,7 +104,7 @@ export default function RefundDisputesScreen() {
       });
       setActiveRejectId(null);
       setRejectionReason("");
-      refresh();
+      refetch();
     } catch (err: any) {
       Toast.show({
         type: "error",
@@ -255,92 +241,91 @@ export default function RefundDisputesScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#F5F7FA]" style={{ paddingTop: insets.top }}>
-      <View className="flex-row items-center px-4 py-4 bg-white border-b border-gray-100">
-        <TouchableOpacity onPress={() => router.back()} className="w-10">
-          <MaterialIcons name="chevron-left" size={32} color={Colors.primary} />
-        </TouchableOpacity>
-        <Text className="text-[20px] font-bold text-system-blue-dark flex-1 text-center">
-          Refund Requests
-        </Text>
-        <View className="w-10">
-          {pendingCount ? (
-            <View className="w-6 h-6 rounded-full bg-red-500 items-center justify-center">
-              <Text className="text-white text-[10px] font-bold">
-                {pendingCount}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      </View>
-
-      <View className="flex-row px-[21px] py-3 gap-2">
-        {(["PENDING", "APPROVED", "REJECTED", "ALL"] as const).map((f) => (
-          <TouchableOpacity
-            key={f}
-            onPress={() => setFilter(f)}
-            className={`flex-1 py-2 rounded-full items-center border ${
-              filter === f
-                ? "bg-system-blue-light border-system-blue-light"
-                : "bg-white border-gray-200"
-            }`}
-          >
-            <Text
-              className={`text-[11px] font-bold ${filter === f ? "text-white" : "text-gray-500"}`}
-            >
-              {f === "ALL" ? "All" : f.charAt(0) + f.slice(1).toLowerCase()}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <Divider />
-
-      {isLoading && !refreshing ? (
-        <View className="flex-1 items-center justify-center">
-          <LoadingSpinner />
-        </View>
-      ) : (
-        <FlatList
-          data={refunds}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={renderItem}
-          contentContainerStyle={{
-            paddingTop: 16,
-            paddingBottom: insets.bottom + 40,
-          }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={Colors.primary}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={{ flex: 1 }}
+    >
+      <View className="flex-1 bg-[#F5F7FA]" style={{ paddingTop: insets.top }}>
+        <View className="flex-row items-center px-4 py-4 bg-white border-b border-gray-100">
+          <TouchableOpacity onPress={() => router.back()} className="w-10">
+            <MaterialIcons
+              name="chevron-left"
+              size={32}
+              color={Colors.primary}
             />
-          }
-          ListEmptyComponent={() => (
-            <View className="items-center justify-center pt-20 px-10">
-              <MaterialIcons name="receipt-long" size={64} color="#D1D5DB" />
-              <Text className="text-[18px] font-bold text-system-blue-dark mt-4">
-                No refund requests
+          </TouchableOpacity>
+          <Text className="text-[20px] font-bold text-system-blue-dark flex-1 text-center">
+            Refund Requests
+          </Text>
+          <View className="w-10">
+            {data?.pending_count ? (
+              <View className="w-6 h-6 rounded-full bg-red-500 items-center justify-center">
+                <Text className="text-white text-[10px] font-bold">
+                  {data.pending_count}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        <View className="flex-row px-[21px] py-3 gap-2">
+          {(["PENDING", "APPROVED", "REJECTED", "ALL"] as const).map((f) => (
+            <TouchableOpacity
+              key={f}
+              onPress={() => setFilter(f)}
+              className={`flex-1 py-2 rounded-full items-center border ${
+                filter === f
+                  ? "bg-system-blue-light border-system-blue-light"
+                  : "bg-white border-gray-200"
+              }`}
+            >
+              <Text
+                className={`text-[11px] font-bold ${filter === f ? "text-white" : "text-gray-500"}`}
+              >
+                {f === "ALL" ? "All" : f.charAt(0) + f.slice(1).toLowerCase()}
               </Text>
-              <Text className="text-[14px] text-gray-500 text-center mt-2">
-                {filter === "PENDING"
-                  ? "No pending refunds at the moment."
-                  : `No ${filter.toLowerCase()} refunds found.`}
-              </Text>
-            </View>
-          )}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={
-            isFetchingMore ? (
-              <ActivityIndicator
-                style={{ marginVertical: 16 }}
-                color={Colors.primary}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Divider />
+
+        {isLoading && !refreshing ? (
+          <View className="flex-1 items-center justify-center">
+            <LoadingSpinner />
+          </View>
+        ) : (
+          <FlatList
+            data={refunds}
+            keyExtractor={(item) => String(item.id)}
+            renderItem={renderItem}
+            contentContainerStyle={{
+              paddingTop: 16,
+              paddingBottom: insets.bottom + 40,
+            }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={Colors.primary}
               />
-            ) : null
-          }
-        />
-      )}
-    </View>
+            }
+            ListEmptyComponent={() => (
+              <View className="items-center justify-center pt-20 px-10">
+                <MaterialIcons name="receipt-long" size={64} color="#D1D5DB" />
+                <Text className="text-[18px] font-bold text-system-blue-dark mt-4">
+                  No refund requests
+                </Text>
+                <Text className="text-[14px] text-gray-500 text-center mt-2">
+                  {filter === "PENDING"
+                    ? "No pending refunds at the moment."
+                    : `No ${filter.toLowerCase()} refunds found.`}
+                </Text>
+              </View>
+            )}
+          />
+        )}
+      </View>
+    </KeyboardAvoidingView>
   );
 }

@@ -9,6 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { Provider } from "react-redux";
 import "../global.css";
@@ -359,11 +360,13 @@ function AppWithProviders() {
 export default Sentry.wrap(function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Provider store={store}>
-        <RootErrorBoundary>
-          <AppWithProviders />
-        </RootErrorBoundary>
-      </Provider>
+      <SafeAreaProvider>
+        <Provider store={store}>
+          <RootErrorBoundary>
+            <AppWithProviders />
+          </RootErrorBoundary>
+        </Provider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 });

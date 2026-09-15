@@ -79,12 +79,12 @@
       "bundleIdentifier": "com.dandelionz",
       "associatedDomains": [
         "applinks:dandelionz.com.ng",
-        "applinks:app.dandelionz.com.ng",
-        "applinks:dandelionz.com.ng",
         "applinks:app.dandelionz.com.ng"
       ],
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Dandelionz needs access to your photos so you can upload product images and profile pictures.",
+        "NSFaceIDUsageDescription": "Dandelionz uses Face ID to confirm wallet payments securely."
       }
     },
     "android": {
@@ -114,10 +114,7 @@
               "pathPrefix": "/"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
       "permissions": [
@@ -156,9 +153,7 @@
         "expo-build-properties",
         {
           "android": {
-            "extraMavenRepos": [
-              "https://maven.google.com"
-            ]
+            "extraMavenRepos": ["https://maven.google.com"]
           }
         }
       ],

@@ -12,10 +12,6 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInset, formatCurrency s,
-} from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { apiError } from "@/lib/utils";
 import {

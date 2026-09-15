@@ -93,7 +93,7 @@ export default function ProductDetailScreen() {
     data: reviews,
     isLoading: isLoadingReviews,
     refetch: refetchReviews,
-  } = useGetProductReviewsQuery(slug, { skip: !slug });
+  } = useGetProductReviewsQuery({ slug: slug as string }, { skip: !slug });
   const [addProductReview, { isLoading: isSubmittingReview }] =
     useAddProductReviewMutation();
 
@@ -478,7 +478,7 @@ export default function ProductDetailScreen() {
             {/* ── Reviews ──────────────────────────────────────────────────────── */}
             <View className="border-t border-gray-100 pt-6">
               <Text className="text-xl font-semibold text-gray-900 mb-4">
-                Reviews ({reviews?.length || 0})
+                Reviews ({reviews?.count || reviews?.results?.length || 0})
               </Text>
 
               {/* Write a review — authenticated only (same as web) */}
@@ -539,9 +539,9 @@ export default function ProductDetailScreen() {
               {/* Review list — visible to everyone */}
               {isLoadingReviews ? (
                 <ActivityIndicator color="#030482" />
-              ) : reviews && reviews.length > 0 ? (
+              ) : reviews && reviews.results?.length > 0 ? (
                 <View className="gap-4">
-                  {reviews.map((r: any) => (
+                  {reviews.results.map((r: any) => (
                     <View key={r.id} className="border-b border-gray-100 pb-4">
                       <View className="flex-row justify-between mb-1">
                         <Text className="font-medium text-gray-900">

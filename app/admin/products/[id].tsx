@@ -18,7 +18,7 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View
+    View,
     Platform,
     KeyboardAvoidingView,
 } from "react-native";

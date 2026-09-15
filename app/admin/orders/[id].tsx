@@ -12,6 +12,7 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { apiError } from "@/lib/utils";
 import {
@@ -20,7 +21,7 @@ import {
   useUpdateOrderStatusMutation,
   useGetAdminRefundsQuery,
   useSetOrderDeliveryMutation,
-
+  useGetAdminInstallmentPlanQuery,
 } from "@/lib/api/adminApi";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { formatCurrency } from "@/lib/utils";

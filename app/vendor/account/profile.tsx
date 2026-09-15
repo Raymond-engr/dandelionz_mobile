@@ -15,6 +15,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -107,7 +109,7 @@ export default function VendorProfileScreen() {
     setCoords(
       p.store_latitude != null && p.store_longitude != null
         ? { latitude: p.store_latitude, longitude: p.store_longitude }
-        : null
+        : null,
     );
   }, [profileData]);
 
@@ -126,7 +128,7 @@ export default function VendorProfileScreen() {
         setIsSearching(true);
         const res = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5&countrycodes=ng`,
-          { headers: { "User-Agent": "DandelionzApp/1.0" } }
+          { headers: { "User-Agent": "DandelionzApp/1.0" } },
         );
         const data: NominatimResult[] = await res.json();
         setSuggestions(data);
@@ -178,7 +180,8 @@ export default function VendorProfileScreen() {
     // Send coordinates when we have them. When the address was edited by hand we have
     // none, so clear the stored pair rather than leave it pointing at the old address —
     // the server geocodes the new text when the vendor publishes.
-    const addressChanged = formData.address !== (profileData?.data.address || "");
+    const addressChanged =
+      formData.address !== (profileData?.data.address || "");
     const locationFields = coords
       ? { store_latitude: coords.latitude, store_longitude: coords.longitude }
       : addressChanged
@@ -247,190 +250,206 @@ export default function VendorProfileScreen() {
       .toUpperCase() || "V";
 
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
-      {renderHeader()}
-      <Divider height={11} />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={{ flex: 1 }}
+    >
+      <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+        {renderHeader()}
+        <Divider height={11} />
 
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="p-[21px]">
-          {/* Profile Picture Section */}
-          <View className="flex-row items-center gap-4 mb-8">
-            <TouchableOpacity onPress={handlePickImage} className="relative">
-              <View className="w-[64px] h-[64px] rounded-full bg-system-blue-light items-center justify-center overflow-hidden">
-                {p?.user.profile_picture ? (
-                  <Image
-                    source={{ uri: p.user.profile_picture }}
-                    className="w-full h-full"
-                  />
-                ) : (
-                  <Text className="text-white text-[22px] font-bold">
-                    {initials}
-                  </Text>
-                )}
-              </View>
-              {isEditing && (
-                <View className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-system-blue-light border-2 border-white items-center justify-center">
-                  <MaterialIcons name="camera-alt" size={12} color="white" />
-                </View>
-              )}
-            </TouchableOpacity>
-            <View>
-              <Text className="text-[18px] font-bold text-system-blue-dark">
-                {p?.user.full_name || "Vendor"}
-              </Text>
-              <Text className="text-[14px] text-gray-500">{p?.user.email}</Text>
-            </View>
-          </View>
-
-          <InputField
-            label="Full Name"
-            value={formData.fullName}
-            onChangeText={(t: string) =>
-              setFormData({ ...formData, fullName: t })
-            }
-            isEditing={isEditing}
-          />
-          <InputField label="Email Address" value={p?.user.email} disabled isEditing={isEditing} />
-
-          <InputField
-            label="Store Name"
-            value={formData.storeName}
-            onChangeText={(t: string) =>
-              setFormData({ ...formData, storeName: t })
-            }
-            isEditing={isEditing}
-          />
-
-          <InputField
-            label="Store Description"
-            value={formData.storeDescription}
-            onChangeText={(t: string) =>
-              setFormData({ ...formData, storeDescription: t })
-            }
-            multiline
-            isEditing={isEditing}
-          />
-
-          <InputField
-            label="Phone Number"
-            value={formData.phoneNumber}
-            onChangeText={(t: string) =>
-              setFormData({ ...formData, phoneNumber: t })
-            }
-            keyboardType="phone-pad"
-            isEditing={isEditing}
-          />
-
-          <View className="mb-6">
-            <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-              Address
-            </Text>
-            <TextInput
-              className={`border-b border-gray-200 py-2 text-[16px] text-system-blue-dark ${
-                !isEditing ? "text-gray-400" : ""
-              }`}
-              value={formData.address}
-              onChangeText={(t) => {
-                setFormData({ ...formData, address: t });
-                setCoords(null);
-                if (isEditing) searchAddress(t);
-              }}
-              editable={isEditing}
-              placeholder={isEditing ? "Start typing to search..." : ""}
-            />
-            {isSearching && isEditing && (
-              <ActivityIndicator
-                size="small"
-                color="#030482"
-                style={{ marginTop: 4 }}
-              />
-            )}
-            {suggestions.length > 0 && isEditing && (
-              <View className="border border-gray-200 rounded-xl bg-white mt-1 shadow-sm max-h-40 overflow-hidden">
-                {suggestions.map((item) => (
-                  <TouchableOpacity
-                    key={String(item.place_id)}
-                    onPress={() => {
-                      setFormData({
-                        ...formData,
-                        address: item.display_name,
-                      });
-                      setCoords({
-                        latitude: parseFloat(item.lat),
-                        longitude: parseFloat(item.lon),
-                      });
-                      setSuggestions([]);
-                    }}
-                    className="px-4 py-3 border-b border-gray-100 last:border-b-0"
-                  >
-                    <Text
-                      className="text-[13px] text-system-blue-dark"
-                      numberOfLines={2}
-                    >
-                      {item.display_name}
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View className="p-[21px]">
+            {/* Profile Picture Section */}
+            <View className="flex-row items-center gap-4 mb-8">
+              <TouchableOpacity onPress={handlePickImage} className="relative">
+                <View className="w-[64px] h-[64px] rounded-full bg-system-blue-light items-center justify-center overflow-hidden">
+                  {p?.user.profile_picture ? (
+                    <Image
+                      source={{ uri: p.user.profile_picture }}
+                      className="w-full h-full"
+                    />
+                  ) : (
+                    <Text className="text-white text-[22px] font-bold">
+                      {initials}
                     </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-            {coords && (
-              <View className="flex-row items-center gap-1 mt-2">
-                <MaterialIcons name="check-circle" size={14} color="#16a34a" />
-                <Text className="text-[12px] text-green-600">
-                  Store location coordinates set
+                  )}
+                </View>
+                {isEditing && (
+                  <View className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-system-blue-light border-2 border-white items-center justify-center">
+                    <MaterialIcons name="camera-alt" size={12} color="white" />
+                  </View>
+                )}
+              </TouchableOpacity>
+              <View>
+                <Text className="text-[18px] font-bold text-system-blue-dark">
+                  {p?.user.full_name || "Vendor"}
+                </Text>
+                <Text className="text-[14px] text-gray-500">
+                  {p?.user.email}
                 </Text>
               </View>
-            )}
-          </View>
+            </View>
 
-          <View className="mb-6">
-            <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-              Password
-            </Text>
-            <TextInput
-              value="••••••••"
-              editable={false}
-              secureTextEntry={true}
-              className="border-b border-gray-200 py-2 text-[16px] text-system-blue-dark pr-10"
-            />
-            <TouchableOpacity
-              onPress={() =>
-                router.push("/vendor/account/change-password" as any)
+            <InputField
+              label="Full Name"
+              value={formData.fullName}
+              onChangeText={(t: string) =>
+                setFormData({ ...formData, fullName: t })
               }
-            >
-              <Text className="text-system-blue-light font-bold mt-2">
-                Change Password
-              </Text>
-            </TouchableOpacity>
-          </View>
+              isEditing={isEditing}
+            />
+            <InputField
+              label="Email Address"
+              value={p?.user.email}
+              disabled
+              isEditing={isEditing}
+            />
 
-          <View className="mt-8 gap-4">
-            {!isEditing ? (
-              <Button onPress={() => setIsEditing(true)}>Edit Profile</Button>
-            ) : (
-              <>
-                <Button onPress={handleSave} isLoading={isSaving}>
-                  Save Changes
-                </Button>
-                <Button
-                  variant="outline"
-                  onPress={() => {
-                    hydrateForm();
-                    setSuggestions([]);
-                    setIsEditing(false);
-                  }}
-                >
-                  Cancel
-                </Button>
-              </>
-            )}
+            <InputField
+              label="Store Name"
+              value={formData.storeName}
+              onChangeText={(t: string) =>
+                setFormData({ ...formData, storeName: t })
+              }
+              isEditing={isEditing}
+            />
+
+            <InputField
+              label="Store Description"
+              value={formData.storeDescription}
+              onChangeText={(t: string) =>
+                setFormData({ ...formData, storeDescription: t })
+              }
+              multiline
+              isEditing={isEditing}
+            />
+
+            <InputField
+              label="Phone Number"
+              value={formData.phoneNumber}
+              onChangeText={(t: string) =>
+                setFormData({ ...formData, phoneNumber: t })
+              }
+              keyboardType="phone-pad"
+              isEditing={isEditing}
+            />
+
+            <View className="mb-6">
+              <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                Address
+              </Text>
+              <TextInput
+                className={`border-b border-gray-200 py-2 text-[16px] text-system-blue-dark ${
+                  !isEditing ? "text-gray-400" : ""
+                }`}
+                value={formData.address}
+                onChangeText={(t) => {
+                  setFormData({ ...formData, address: t });
+                  setCoords(null);
+                  if (isEditing) searchAddress(t);
+                }}
+                editable={isEditing}
+                placeholder={isEditing ? "Start typing to search..." : ""}
+              />
+              {isSearching && isEditing && (
+                <ActivityIndicator
+                  size="small"
+                  color="#030482"
+                  style={{ marginTop: 4 }}
+                />
+              )}
+              {suggestions.length > 0 && isEditing && (
+                <View className="border border-gray-200 rounded-xl bg-white mt-1 shadow-sm max-h-40 overflow-hidden">
+                  {suggestions.map((item) => (
+                    <TouchableOpacity
+                      key={String(item.place_id)}
+                      onPress={() => {
+                        setFormData({
+                          ...formData,
+                          address: item.display_name,
+                        });
+                        setCoords({
+                          latitude: parseFloat(item.lat),
+                          longitude: parseFloat(item.lon),
+                        });
+                        setSuggestions([]);
+                      }}
+                      className="px-4 py-3 border-b border-gray-100 last:border-b-0"
+                    >
+                      <Text
+                        className="text-[13px] text-system-blue-dark"
+                        numberOfLines={2}
+                      >
+                        {item.display_name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+              {coords && (
+                <View className="flex-row items-center gap-1 mt-2">
+                  <MaterialIcons
+                    name="check-circle"
+                    size={14}
+                    color="#16a34a"
+                  />
+                  <Text className="text-[12px] text-green-600">
+                    Store location coordinates set
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <View className="mb-6">
+              <Text className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                Password
+              </Text>
+              <TextInput
+                value="••••••••"
+                editable={false}
+                secureTextEntry={true}
+                className="border-b border-gray-200 py-2 text-[16px] text-system-blue-dark pr-10"
+              />
+              <TouchableOpacity
+                onPress={() =>
+                  router.push("/vendor/account/change-password" as any)
+                }
+              >
+                <Text className="text-system-blue-light font-bold mt-2">
+                  Change Password
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View className="mt-8 gap-4">
+              {!isEditing ? (
+                <Button onPress={() => setIsEditing(true)}>Edit Profile</Button>
+              ) : (
+                <>
+                  <Button onPress={handleSave} isLoading={isSaving}>
+                    Save Changes
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onPress={() => {
+                      hydrateForm();
+                      setSuggestions([]);
+                      setIsEditing(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              )}
+            </View>
           </View>
-        </View>
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </View>
+    </KeyboardAvoidingView>
   );
 }

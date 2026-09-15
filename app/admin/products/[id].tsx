@@ -19,6 +19,8 @@ import {
     TextInput,
     TouchableOpacity,
     View
+    Platform,
+    KeyboardAvoidingView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -136,6 +138,10 @@ export default function ProductDetail() {
   const isSubmitting = isApproving || isRejecting;
 
   return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={{ flex: 1 }}
+    >
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <View className="flex-row items-center px-4 py-4 border-b border-gray-100">
@@ -340,5 +346,6 @@ export default function ProductDetail() {
         )}
       </ScrollView>
     </View>
+    </KeyboardAvoidingView>
   );
 }

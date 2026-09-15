@@ -11,7 +11,15 @@ import { apiError, formatCurrency } from "@/lib/utils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
@@ -100,70 +108,75 @@ export default function AdminWithdrawEarnings() {
   }
 
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
-      {renderHeader()}
-      <Divider height={11} />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={{ flex: 1 }}
+    >
+      <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+        {renderHeader()}
+        <Divider height={11} />
 
-      <ScrollView
-        className="flex-1 px-[21px] pt-6"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="bg-system-blue-light rounded-[16px] p-8 mb-8 shadow-lg shadow-blue-900/20">
-          <Text className="text-white/80 text-[14px] font-medium mb-2 uppercase tracking-widest text-center">
-            Available for Withdrawal
-          </Text>
-          <Text className="text-white text-[32px] font-bold text-center">
-            {formatCurrency(walletStats?.withdrawable_balance)}
-          </Text>
-        </View>
-
-        <View className="mb-8">
-          <Text className="text-[14px] font-semibold text-system-blue-dark mb-4 text-center">
-            Amount to Withdraw
-          </Text>
-          <View className="flex-row items-center border-b border-gray-200 px-4 h-[55px]">
-            <Text className="text-[24px] font-bold text-system-blue-dark mr-2">
-              ₦
-            </Text>
-            <TextInput
-              className="flex-1 text-[24px] font-bold text-system-blue-dark"
-              placeholder="0.00"
-              keyboardType="numeric"
-              value={amount}
-              onChangeText={setAmount}
-            />
-          </View>
-          <Text className="text-[12px] text-gray-400 mt-2 text-center">
-            Minimum withdrawal: {formatCurrency(MIN_WITHDRAWAL)}
-          </Text>
-        </View>
-
-        <View className="mb-10 items-center">
-          <Text className="text-[14px] font-semibold text-system-blue-dark mb-4">
-            Payment PIN
-          </Text>
-          <PinInput value={pin} onChange={setPin} />
-          <Text className="text-[12px] text-gray-400 mt-4 text-center">
-            Enter your 4-digit secure payment PIN
-          </Text>
-        </View>
-
-        <Button onPress={handleWithdraw} isLoading={isRequesting}>
-          Confirm Withdrawal
-        </Button>
-
-        <Pressable
-          className="mt-6 py-2"
-          onPress={() =>
-            router.push("/admin/payment-settings/forgot-pin" as any)
-          }
+        <ScrollView
+          className="flex-1 px-[21px] pt-6"
+          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+          showsVerticalScrollIndicator={false}
         >
-          <Text className="text-system-blue-light text-center font-semibold">
-            Forgot PIN?
-          </Text>
-        </Pressable>
-      </ScrollView>
-    </View>
+          <View className="bg-system-blue-light rounded-[16px] p-8 mb-8 shadow-lg shadow-blue-900/20">
+            <Text className="text-white/80 text-[14px] font-medium mb-2 uppercase tracking-widest text-center">
+              Available for Withdrawal
+            </Text>
+            <Text className="text-white text-[32px] font-bold text-center">
+              {formatCurrency(walletStats?.withdrawable_balance)}
+            </Text>
+          </View>
+
+          <View className="mb-8">
+            <Text className="text-[14px] font-semibold text-system-blue-dark mb-4 text-center">
+              Amount to Withdraw
+            </Text>
+            <View className="flex-row items-center border-b border-gray-200 px-4 h-[55px]">
+              <Text className="text-[24px] font-bold text-system-blue-dark mr-2">
+                ₦
+              </Text>
+              <TextInput
+                className="flex-1 text-[24px] font-bold text-system-blue-dark"
+                placeholder="0.00"
+                keyboardType="numeric"
+                value={amount}
+                onChangeText={setAmount}
+              />
+            </View>
+            <Text className="text-[12px] text-gray-400 mt-2 text-center">
+              Minimum withdrawal: {formatCurrency(MIN_WITHDRAWAL)}
+            </Text>
+          </View>
+
+          <View className="mb-10 items-center">
+            <Text className="text-[14px] font-semibold text-system-blue-dark mb-4">
+              Payment PIN
+            </Text>
+            <PinInput value={pin} onChange={setPin} />
+            <Text className="text-[12px] text-gray-400 mt-4 text-center">
+              Enter your 4-digit secure payment PIN
+            </Text>
+          </View>
+
+          <Button onPress={handleWithdraw} isLoading={isRequesting}>
+            Confirm Withdrawal
+          </Button>
+
+          <Pressable
+            className="mt-6 py-2"
+            onPress={() =>
+              router.push("/admin/payment-settings/forgot-pin" as any)
+            }
+          >
+            <Text className="text-system-blue-light text-center font-semibold">
+              Forgot PIN?
+            </Text>
+          </Pressable>
+        </ScrollView>
+      </View>
+    </KeyboardAvoidingView>
   );
 }

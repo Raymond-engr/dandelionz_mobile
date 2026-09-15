@@ -80,7 +80,12 @@
       "associatedDomains": [
         "applinks:dandelionz.com.ng",
         "applinks:app.dandelionz.com.ng"
-      ]
+      ],
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Dandelionz needs access to your photos so you can upload product images and profile pictures.",
+        "NSFaceIDUsageDescription": "Dandelionz uses Face ID to confirm wallet payments securely."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -109,11 +114,13 @@
               "pathPrefix": "/"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
+      ],
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ]
     },
     "web": {
@@ -146,14 +153,25 @@
         "expo-build-properties",
         {
           "android": {
-            "extraMavenRepos": [
-              "https://maven.google.com"
-            ]
+            "extraMavenRepos": ["https://maven.google.com"]
           }
         }
       ],
       "@react-native-community/datetimepicker",
       "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Dandelionz to access your photos to upload profile and product images.",
+          "cameraPermission": "Allow Dandelionz to access your camera to take profile and product images."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Dandelionz to use Face ID for fast and secure login and checkout."
+        }
+      ],
       [
         "@sentry/react-native/expo",
         {

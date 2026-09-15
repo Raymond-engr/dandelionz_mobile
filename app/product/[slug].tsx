@@ -1,5 +1,4 @@
 import { RecommendationRow } from "@/components/recommendation-row";
-import { selectBareEnvelope, useInfiniteList } from "@/hooks/use-infinite-list";
 import { useTrackProductView } from "@/hooks/use-track-product-view";
 import {
   ProductImage,
@@ -22,6 +21,8 @@ import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -88,24 +89,11 @@ export default function ProductDetailScreen() {
   }, [product?.variants]);
 
   // ─── Reviews (no auth required to read) ─────────────────────────────────────
-  // Was a single unpaginated fetch - a popular product can accumulate
-  // hundreds of reviews. This section sits inside the page's own ScrollView
-  // (hero, description, variants, reviews all in one), so a FlatList here
-  // would just recreate the same nested-scroll conflict fixed elsewhere -
-  // a manual "load more" button avoids that while still bounding the fetch.
   const {
-    items: reviews,
-    isInitialLoading: isLoadingReviews,
-    isFetchingMore: isFetchingMoreReviews,
-    hasMore: hasMoreReviews,
-    loadMore: loadMoreReviews,
-    refresh: refetchReviews,
-  } = useInfiniteList(
-    useGetProductReviewsQuery,
-    { slug: slug ?? "" },
-    selectBareEnvelope,
-    { skip: !slug },
-  );
+    data: reviews,
+    isLoading: isLoadingReviews,
+    refetch: refetchReviews,
+  } = useGetProductReviewsQuery(slug, { skip: !slug });
   const [addProductReview, { isLoading: isSubmittingReview }] =
     useAddProductReviewMutation();
 
@@ -294,317 +282,312 @@ export default function ProductDetailScreen() {
   const displayPrice = discount > 0 ? price * (1 - discount / 100) : price;
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color="#000" />
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-gray-900">
-          Product Description
-        </Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ── Images ─────────────────────────────────────────────────────────── */}
-        <View className="p-4">
-          <View className="w-full aspect-square bg-gray-50 rounded-[20px] overflow-hidden mb-4">
-            <Image
-              source={
-                images[selectedImage]
-                  ? { uri: images[selectedImage] }
-                  : undefined
-              }
-              style={{ width: "100%", height: "100%" }}
-              contentFit="contain"
-              placeholder={require("@/assets/images/icon.png")}
-            />
-          </View>
-          {images.length > 1 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8 }}
-            >
-              {images.map((img: string, idx: number) => (
-                <TouchableOpacity
-                  key={idx}
-                  onPress={() => setSelectedImage(idx)}
-                  className={`w-20 h-20 bg-gray-50 rounded-[12px] overflow-hidden border-2 ${
-                    selectedImage === idx
-                      ? "border-system-blue-light"
-                      : "border-transparent"
-                  }`}
-                >
-                  <Image
-                    source={img ? { uri: img } : undefined}
-                    style={{ width: "100%", height: "100%" }}
-                    contentFit="cover"
-                  />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={{ flex: 1 }}
+    >
+      <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+        {/* Header */}
+        <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text className="text-lg font-semibold text-gray-900">
+            Product Description
+          </Text>
+          <View style={{ width: 24 }} />
         </View>
 
-        {/* ── Info ───────────────────────────────────────────────────────────── */}
-        <View className="px-4">
-          <Text className="text-xl font-semibold text-gray-900 mb-2">
-            {product.name}
-          </Text>
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ── Images ─────────────────────────────────────────────────────────── */}
+          <View className="p-4">
+            <View className="w-full aspect-square bg-gray-50 rounded-[20px] overflow-hidden mb-4">
+              <Image
+                source={
+                  images[selectedImage]
+                    ? { uri: images[selectedImage] }
+                    : undefined
+                }
+                style={{ width: "100%", height: "100%" }}
+                contentFit="contain"
+                placeholder={require("@/assets/images/icon.png")}
+              />
+            </View>
+            {images.length > 1 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8 }}
+              >
+                {images.map((img: string, idx: number) => (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={() => setSelectedImage(idx)}
+                    className={`w-20 h-20 bg-gray-50 rounded-[12px] overflow-hidden border-2 ${
+                      selectedImage === idx
+                        ? "border-system-blue-light"
+                        : "border-transparent"
+                    }`}
+                  >
+                    <Image
+                      source={img ? { uri: img } : undefined}
+                      style={{ width: "100%", height: "100%" }}
+                      contentFit="cover"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </View>
 
-          {/* Variants */}
-          {Object.keys(variantOptions).length > 0 && (
-            <View className="mb-6 gap-4">
-              {Object.entries(variantOptions).map(([category, valueSet]) => (
-                <View key={category}>
-                  <Text className="text-base font-semibold text-gray-900 mb-2 capitalize">
-                    Select {category}
-                  </Text>
-                  <View className="flex-row flex-wrap gap-2">
-                    {Array.from(valueSet).map((value) => (
-                      <TouchableOpacity
-                        key={value}
-                        onPress={() => handleVariantSelect(category, value)}
-                        className={`px-4 py-2 border rounded-[8px] ${
-                          selectedVariants[category] === value
-                            ? "border-system-blue-light bg-blue-50"
-                            : "border-gray-200"
-                        }`}
-                      >
-                        <Text
-                          className={`text-sm ${
+          {/* ── Info ───────────────────────────────────────────────────────────── */}
+          <View className="px-4">
+            <Text className="text-xl font-semibold text-gray-900 mb-2">
+              {product.name}
+            </Text>
+
+            {/* Variants */}
+            {Object.keys(variantOptions).length > 0 && (
+              <View className="mb-6 gap-4">
+                {Object.entries(variantOptions).map(([category, valueSet]) => (
+                  <View key={category}>
+                    <Text className="text-base font-semibold text-gray-900 mb-2 capitalize">
+                      Select {category}
+                    </Text>
+                    <View className="flex-row flex-wrap gap-2">
+                      {Array.from(valueSet).map((value) => (
+                        <TouchableOpacity
+                          key={value}
+                          onPress={() => handleVariantSelect(category, value)}
+                          className={`px-4 py-2 border rounded-[8px] ${
                             selectedVariants[category] === value
-                              ? "text-system-blue-light font-semibold"
-                              : "text-gray-600"
+                              ? "border-system-blue-light bg-blue-50"
+                              : "border-gray-200"
                           }`}
                         >
-                          {value}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Description */}
-          <Text className="text-base text-gray-500 leading-6 mb-4">
-            {product.description}
-          </Text>
-          {product.store_name && (
-            <Text className="text-base font-medium text-system-blue-light mb-4">
-              Store: {product.store_name}
-            </Text>
-          )}
-
-          {/* Price + Rating row — matches web layout */}
-          <View className="flex-row justify-between items-center mb-6">
-            <View>
-              <Text className="text-xs text-gray-400 mb-1">Amount</Text>
-              <Text className="text-[28px] font-bold text-system-blue-light">
-                ₦
-                {displayPrice.toLocaleString(undefined, {
-                  maximumFractionDigits: 2,
-                })}
-              </Text>
-              {discount > 0 && (
-                <View className="flex-row items-center gap-2 mt-1">
-                  <Text className="text-sm text-gray-400 line-through">
-                    ₦{price.toLocaleString()}
-                  </Text>
-                  <View className="bg-red-50 px-2 py-0.5 rounded">
-                    <Text className="text-[10px] font-bold text-red-600">
-                      -{discount}%
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
-            <View className="flex-row items-center bg-yellow-50 px-3 py-1 rounded-full">
-              <Ionicons name="star" size={16} color="#fbbf24" />
-              <Text className="text-sm font-semibold text-gray-900 ml-1">
-                {product.rating || "0.0"}
-              </Text>
-            </View>
-          </View>
-
-          {/* Action buttons — wishlist + cart */}
-          <View className="flex-row gap-3 mb-8">
-            <TouchableOpacity
-              onPress={handleToggleWishlist}
-              disabled={isAddingToWishlist || isRemovingFromWishlist}
-              className={`w-12 h-12 border rounded-[12px] items-center justify-center ${
-                isInWishlist ? "border-red-100 bg-red-50" : "border-gray-200"
-              }`}
-            >
-              <Ionicons
-                name={isInWishlist ? "heart" : "heart-outline"}
-                size={24}
-                color={isInWishlist ? "#ef4444" : "#666"}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleToggleCart}
-              disabled={
-                isAddingToCart || isRemovingFromCart || !product.in_stock
-              }
-              className={`flex-1 h-12 rounded-[12px] flex-row items-center justify-center gap-2 ${
-                isInCart ? "bg-red-50" : "bg-system-blue-light"
-              } ${!product.in_stock ? "opacity-50" : ""}`}
-            >
-              <Ionicons
-                name="cart-outline"
-                size={20}
-                color={isInCart ? "#ef4444" : "#fff"}
-              />
-              <Text
-                className={`font-semibold ${
-                  isInCart ? "text-red-500" : "text-white"
-                }`}
-              >
-                {isAddingToCart
-                  ? "Adding..."
-                  : isRemovingFromCart
-                    ? "Removing..."
-                    : isInCart
-                      ? "Remove from Cart"
-                      : product.in_stock
-                        ? "Add to Cart"
-                        : "Out of Stock"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* ── Reviews ──────────────────────────────────────────────────────── */}
-          <View className="border-t border-gray-100 pt-6">
-            <Text className="text-xl font-semibold text-gray-900 mb-4">
-              Reviews ({reviews?.length || 0})
-            </Text>
-
-            {/* Write a review — authenticated only (same as web) */}
-            {isAuthenticated ? (
-              <View className="bg-gray-50 p-4 rounded-[12px] mb-6">
-                <Text className="font-medium mb-3 text-gray-900">
-                  Write a Review
-                </Text>
-                <View className="flex-row gap-2 mb-3">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <TouchableOpacity key={s} onPress={() => setUserRating(s)}>
-                      <Ionicons
-                        name={s <= userRating ? "star" : "star-outline"}
-                        size={24}
-                        color={s <= userRating ? "#fbbf24" : "#d1d5db"}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <TextInput
-                  multiline
-                  numberOfLines={3}
-                  placeholder="Share your thoughts about this product..."
-                  className="bg-white border border-gray-200 rounded-[8px] p-3 mb-3 text-gray-900"
-                  value={userComment}
-                  onChangeText={setUserComment}
-                  textAlignVertical="top"
-                />
-                <TouchableOpacity
-                  onPress={handleSubmitReview}
-                  disabled={isSubmittingReview}
-                  className="bg-system-blue-light py-2 px-4 rounded-[8px] self-start"
-                >
-                  <Text className="text-white font-medium">
-                    {isSubmittingReview ? "Submitting..." : "Submit Review"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              /* Unauthenticated prompt — matches web app */
-              <View className="bg-gray-50 p-4 rounded-[12px] mb-6 items-center">
-                <Text className="text-gray-500 mb-2 text-sm">
-                  Please sign in to write a review.
-                </Text>
-                <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
-                  <Text className="text-system-blue-light font-semibold text-sm">
-                    Sign In
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Review list — visible to everyone */}
-            {isLoadingReviews ? (
-              <ActivityIndicator color="#030482" />
-            ) : reviews && reviews.length > 0 ? (
-              <View className="gap-4">
-                {reviews.map((r: any) => (
-                  <View key={r.id} className="border-b border-gray-100 pb-4">
-                    <View className="flex-row justify-between mb-1">
-                      <Text className="font-medium text-gray-900">
-                        {r.customer_name || "Anonymous"}
-                      </Text>
-                      <Text className="text-[10px] text-gray-400">
-                        {r.created_at
-                          ? new Date(r.created_at).toLocaleDateString()
-                          : ""}
-                      </Text>
-                    </View>
-                    <View className="flex-row mb-2 gap-0.5">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Ionicons
-                          key={s}
-                          name="star"
-                          size={12}
-                          color={s <= r.rating ? "#fbbf24" : "#d1d5db"}
-                        />
+                          <Text
+                            className={`text-sm ${
+                              selectedVariants[category] === value
+                                ? "text-system-blue-light font-semibold"
+                                : "text-gray-600"
+                            }`}
+                          >
+                            {value}
+                          </Text>
+                        </TouchableOpacity>
                       ))}
                     </View>
-                    <Text className="text-gray-600 text-sm">{r.comment}</Text>
                   </View>
                 ))}
               </View>
-            ) : (
-              <Text className="text-gray-500 italic text-sm">
-                No reviews yet. Be the first to review!
+            )}
+
+            {/* Description */}
+            <Text className="text-base text-gray-500 leading-6 mb-4">
+              {product.description}
+            </Text>
+            {product.store_name && (
+              <Text className="text-base font-medium text-system-blue-light mb-4">
+                Store: {product.store_name}
               </Text>
             )}
-            {hasMoreReviews && (
-              <TouchableOpacity
-                onPress={loadMoreReviews}
-                disabled={isFetchingMoreReviews}
-                className="mt-4 py-3 items-center"
-              >
-                {isFetchingMoreReviews ? (
-                  <ActivityIndicator color="#030482" />
-                ) : (
-                  <Text className="text-[#030482] font-medium text-sm">
-                    Load more reviews
-                  </Text>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
 
-        {/* ── You might also like ──────────────────────────────────────────── */}
-        {/* Renders nothing when there are no related products, so the section
+            {/* Price + Rating row — matches web layout */}
+            <View className="flex-row justify-between items-center mb-6">
+              <View>
+                <Text className="text-xs text-gray-400 mb-1">Amount</Text>
+                <Text className="text-[28px] font-bold text-system-blue-light">
+                  ₦
+                  {displayPrice.toLocaleString(undefined, {
+                    maximumFractionDigits: 2,
+                  })}
+                </Text>
+                {discount > 0 && (
+                  <View className="flex-row items-center gap-2 mt-1">
+                    <Text className="text-sm text-gray-400 line-through">
+                      ₦{price.toLocaleString()}
+                    </Text>
+                    <View className="bg-red-50 px-2 py-0.5 rounded">
+                      <Text className="text-[10px] font-bold text-red-600">
+                        -{discount}%
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+              <View className="flex-row items-center bg-yellow-50 px-3 py-1 rounded-full">
+                <Ionicons name="star" size={16} color="#fbbf24" />
+                <Text className="text-sm font-semibold text-gray-900 ml-1">
+                  {product.rating || "0.0"}
+                </Text>
+              </View>
+            </View>
+
+            {/* Action buttons — wishlist + cart */}
+            <View className="flex-row gap-3 mb-8">
+              <TouchableOpacity
+                onPress={handleToggleWishlist}
+                disabled={isAddingToWishlist || isRemovingFromWishlist}
+                className={`w-12 h-12 border rounded-[12px] items-center justify-center ${
+                  isInWishlist ? "border-red-100 bg-red-50" : "border-gray-200"
+                }`}
+              >
+                <Ionicons
+                  name={isInWishlist ? "heart" : "heart-outline"}
+                  size={24}
+                  color={isInWishlist ? "#ef4444" : "#666"}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleToggleCart}
+                disabled={
+                  isAddingToCart || isRemovingFromCart || !product.in_stock
+                }
+                className={`flex-1 h-12 rounded-[12px] flex-row items-center justify-center gap-2 ${
+                  isInCart ? "bg-red-50" : "bg-system-blue-light"
+                } ${!product.in_stock ? "opacity-50" : ""}`}
+              >
+                <Ionicons
+                  name="cart-outline"
+                  size={20}
+                  color={isInCart ? "#ef4444" : "#fff"}
+                />
+                <Text
+                  className={`font-semibold ${
+                    isInCart ? "text-red-500" : "text-white"
+                  }`}
+                >
+                  {isAddingToCart
+                    ? "Adding..."
+                    : isRemovingFromCart
+                      ? "Removing..."
+                      : isInCart
+                        ? "Remove from Cart"
+                        : product.in_stock
+                          ? "Add to Cart"
+                          : "Out of Stock"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* ── Reviews ──────────────────────────────────────────────────────── */}
+            <View className="border-t border-gray-100 pt-6">
+              <Text className="text-xl font-semibold text-gray-900 mb-4">
+                Reviews ({reviews?.length || 0})
+              </Text>
+
+              {/* Write a review — authenticated only (same as web) */}
+              {isAuthenticated ? (
+                <View className="bg-gray-50 p-4 rounded-[12px] mb-6">
+                  <Text className="font-medium mb-3 text-gray-900">
+                    Write a Review
+                  </Text>
+                  <View className="flex-row gap-2 mb-3">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <TouchableOpacity
+                        key={s}
+                        onPress={() => setUserRating(s)}
+                      >
+                        <Ionicons
+                          name={s <= userRating ? "star" : "star-outline"}
+                          size={24}
+                          color={s <= userRating ? "#fbbf24" : "#d1d5db"}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <TextInput
+                    multiline
+                    numberOfLines={3}
+                    placeholder="Share your thoughts about this product..."
+                    className="bg-white border border-gray-200 rounded-[8px] p-3 mb-3 text-gray-900"
+                    value={userComment}
+                    onChangeText={setUserComment}
+                    textAlignVertical="top"
+                  />
+                  <TouchableOpacity
+                    onPress={handleSubmitReview}
+                    disabled={isSubmittingReview}
+                    className="bg-system-blue-light py-2 px-4 rounded-[8px] self-start"
+                  >
+                    <Text className="text-white font-medium">
+                      {isSubmittingReview ? "Submitting..." : "Submit Review"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                /* Unauthenticated prompt — matches web app */
+                <View className="bg-gray-50 p-4 rounded-[12px] mb-6 items-center">
+                  <Text className="text-gray-500 mb-2 text-sm">
+                    Please sign in to write a review.
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => router.push("/(auth)/login")}
+                  >
+                    <Text className="text-system-blue-light font-semibold text-sm">
+                      Sign In
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Review list — visible to everyone */}
+              {isLoadingReviews ? (
+                <ActivityIndicator color="#030482" />
+              ) : reviews && reviews.length > 0 ? (
+                <View className="gap-4">
+                  {reviews.map((r: any) => (
+                    <View key={r.id} className="border-b border-gray-100 pb-4">
+                      <View className="flex-row justify-between mb-1">
+                        <Text className="font-medium text-gray-900">
+                          {r.customer_name || "Anonymous"}
+                        </Text>
+                        <Text className="text-[10px] text-gray-400">
+                          {r.created_at
+                            ? new Date(r.created_at).toLocaleDateString()
+                            : ""}
+                        </Text>
+                      </View>
+                      <View className="flex-row mb-2 gap-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Ionicons
+                            key={s}
+                            name="star"
+                            size={12}
+                            color={s <= r.rating ? "#fbbf24" : "#d1d5db"}
+                          />
+                        ))}
+                      </View>
+                      <Text className="text-gray-600 text-sm">{r.comment}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text className="text-gray-500 italic text-sm">
+                  No reviews yet. Be the first to review!
+                </Text>
+              )}
+            </View>
+          </View>
+
+          {/* ── You might also like ──────────────────────────────────────────── */}
+          {/* Renders nothing when there are no related products, so the section
             never appears as a bare heading. */}
-        {product.slug && (
-          <RecommendationRow
-            title="You might also like"
-            type="related"
-            product={product.slug}
-            className="mt-8 mb-6"
-          />
-        )}
-      </ScrollView>
-    </SafeAreaView>
+          {product.slug && (
+            <RecommendationRow
+              title="You might also like"
+              type="related"
+              product={product.slug}
+              className="mt-8 mb-6"
+            />
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }

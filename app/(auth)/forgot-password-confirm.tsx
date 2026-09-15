@@ -8,6 +8,8 @@ import { apiError } from "@/lib/utils";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -51,75 +53,90 @@ export default function ForgotPasswordConfirmScreen() {
       }).unwrap();
       if (res.success) router.replace("/(auth)/login");
     } catch (err: any) {
-      setError(apiError(err, "Failed to reset password. The link may have expired."));
+      setError(
+        apiError(err, "Failed to reset password. The link may have expired."),
+      );
     }
   };
 
   return (
-    <ScrollView
-      className="flex-1 bg-white"
-      contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}
-      keyboardShouldPersistTaps="handled"
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={{ flex: 1 }}
     >
-      <View className="flex-1 px-[24px] pt-[80px] pb-[40px]">
-        <Text className="text-[24px] font-bold text-system-blue-dark text-center mb-[12px]">
-          Reset Password
-        </Text>
-        <Text className="text-[14px] text-[#6B7280] text-center mb-[32px]">
-          Enter your new password below.
-        </Text>
+      <ScrollView
+        className="flex-1 bg-white"
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="flex-1 px-[24px] pt-[80px] pb-[40px]">
+          <Text className="text-[24px] font-bold text-system-blue-dark text-center mb-[12px]">
+            Reset Password
+          </Text>
+          <Text className="text-[14px] text-[#6B7280] text-center mb-[32px]">
+            Enter your new password below.
+          </Text>
 
-        {error ? (
-          <View className="bg-red-50 p-3 rounded-lg mb-4">
-            <Text className="text-red-600 text-[13px]">{error}</Text>
-          </View>
-        ) : null}
+          {error ? (
+            <View className="bg-red-50 p-3 rounded-lg mb-4">
+              <Text className="text-red-600 text-[13px]">{error}</Text>
+            </View>
+          ) : null}
 
-        <View className="mb-[24px]">
-          <View className="flex-row items-center">
-            <TextInput
-              className="flex-1 text-[16px] text-system-blue-dark py-2"
-              placeholder="New Password"
-              placeholderTextColor="#9CA3AF"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-            />
-            <Pressable
-              onPress={() => setShowPassword(!showPassword)}
-              hitSlop={8}
-            >
-              <Text className="text-[18px] px-1">{showPassword ? "🙈" : "👁"}</Text>
-            </Pressable>
+          <View className="mb-[24px]">
+            <View className="flex-row items-center">
+              <TextInput
+                className="flex-1 text-[16px] text-system-blue-dark py-2"
+                placeholder="New Password"
+                placeholderTextColor="#9CA3AF"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+              <Pressable
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={8}
+              >
+                <Text className="text-[18px] px-1">
+                  {showPassword ? "🙈" : "👁"}
+                </Text>
+              </Pressable>
+            </View>
+            <View className="h-[1px] bg-gray-300 w-full" />
+            {password.length > 0 && <PasswordCriteria password={password} />}
           </View>
-          <View className="h-[1px] bg-gray-300 w-full" />
-          {password.length > 0 && <PasswordCriteria password={password} />}
+
+          <View className="mb-[32px]">
+            <View className="flex-row items-center">
+              <TextInput
+                className="flex-1 text-[16px] text-system-blue-dark py-2"
+                placeholder="Confirm New Password"
+                placeholderTextColor="#9CA3AF"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirm}
+              />
+              <Pressable
+                onPress={() => setShowConfirm(!showConfirm)}
+                hitSlop={8}
+              >
+                <Text className="text-[18px] px-1">
+                  {showConfirm ? "🙈" : "👁"}
+                </Text>
+              </Pressable>
+            </View>
+            <View className="h-[1px] bg-gray-300 w-full" />
+          </View>
+
+          <Button onPress={handleSubmit} isLoading={isLoading}>
+            Reset Password
+          </Button>
         </View>
-
-        <View className="mb-[32px]">
-          <View className="flex-row items-center">
-            <TextInput
-              className="flex-1 text-[16px] text-system-blue-dark py-2"
-              placeholder="Confirm New Password"
-              placeholderTextColor="#9CA3AF"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry={!showConfirm}
-            />
-            <Pressable onPress={() => setShowConfirm(!showConfirm)} hitSlop={8}>
-              <Text className="text-[18px] px-1">{showConfirm ? "🙈" : "👁"}</Text>
-            </Pressable>
-          </View>
-          <View className="h-[1px] bg-gray-300 w-full" />
-        </View>
-
-        <Button
-          onPress={handleSubmit}
-          isLoading={isLoading}
-        >
-          Reset Password
-        </Button>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

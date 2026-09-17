@@ -7,7 +7,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -15,10 +15,10 @@ import { Provider } from "react-redux";
 import "../global.css";
 
 import { Ionicons } from "@expo/vector-icons";
-import * as Sentry from '@sentry/react-native';
+import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
-  dsn: 'https://b18fcb70f70492e30fe557e497ce685e@o4511738351386624.ingest.us.sentry.io/4511738405191680',
+  dsn: "https://b18fcb70f70492e30fe557e497ce685e@o4511738351386624.ingest.us.sentry.io/4511738405191680",
 
   // Adds more context data to events (IP address, cookies, user, etc.)
   // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
@@ -29,7 +29,10 @@ Sentry.init({
 
   // Capture a replay only when an error occurs
   replaysOnErrorSampleRate: 1.0,
-  integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
+  integrations: [
+    Sentry.mobileReplayIntegration(),
+    Sentry.feedbackIntegration(),
+  ],
 
   // uncomment the line below to enable Spotlight (https://spotlightjs.com)
   // spotlight: __DEV__,
@@ -44,7 +47,9 @@ console.log("[Root] Module evaluated");
 
 // ─── Root error boundary ──────────────────────────────────────────────────────
 // Catches synchronous render errors in production and shows a readable message
-// instead of a permanent white screen.
+// instead of a permanent white screen. Reports to Sentry with the component
+// stack so crashes on tester devices are actually debuggable, and offers a
+// reset so a single bad render doesn't permanently brick the app.
 class RootErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { hasError: boolean; message: string }
@@ -60,7 +65,16 @@ class RootErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("[RootErrorBoundary] CAUGHT ERROR:", error, errorInfo);
+    Sentry.captureException(error, {
+      contexts: {
+        react: { componentStack: errorInfo.componentStack },
+      },
+    });
   }
+
+  resetError = () => {
+    this.setState({ hasError: false, message: "" });
+  };
 
   render() {
     if (this.state.hasError) {
@@ -90,10 +104,22 @@ class RootErrorBoundary extends React.Component<
               color: "#6B7280",
               textAlign: "center",
               lineHeight: 20,
+              marginBottom: 16,
             }}
           >
             {this.state.message}
           </Text>
+          <Pressable
+            onPress={this.resetError}
+            style={{
+              paddingVertical: 10,
+              paddingHorizontal: 20,
+              backgroundColor: "#030482",
+              borderRadius: 8,
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "600" }}>Try again</Text>
+          </Pressable>
         </View>
       );
     }

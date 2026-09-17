@@ -58,14 +58,14 @@ export default function AdminProduct() {
     isLoading: loadingProducts,
     refetch: refetchProducts,
   } = useGetAllProductsQuery({});
-  const products = (productsData as any)?.results || (productsData as any)?.data || (Array.isArray(productsData) ? productsData : []);
+  const products = (productsData as any)?.data?.results ?? [];
 
   const {
     data: draftsData,
     isLoading: loadingDrafts,
     refetch: refetchDrafts,
   } = useGetDraftsQuery();
-  const drafts = (draftsData as any)?.results || (draftsData as any)?.data || (Array.isArray(draftsData) ? draftsData : []);
+  const drafts = (draftsData as any)?.data ?? [];
 
   const [deleteCategory] = useDeleteCategoryMutation();
   const [deleteProduct] = useDeleteProductMutation();

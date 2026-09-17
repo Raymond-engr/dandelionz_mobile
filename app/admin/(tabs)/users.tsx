@@ -38,7 +38,7 @@ export default function AdminUsers() {
     setRefreshing(false);
   }
 
-  const users = (usersResponse as any)?.results || (usersResponse as any)?.data || (Array.isArray(usersResponse) ? usersResponse : []);
+  const users = (usersResponse as any)?.results ?? [];
   const totalUsers = users.length;
   const activeUsers = users.filter(
     (user: any) => user.status === "ACTIVE",

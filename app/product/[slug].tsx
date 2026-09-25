@@ -11,6 +11,10 @@ import {
   useGetWishlistQuery,
   useRemoveFromCartMutation,
   useRemoveFromWishlistMutation,
+  useReportProductMutation,
+  useGetBlockedVendorsQuery,
+  useBlockVendorMutation,
+  useUnblockVendorMutation,
 } from "@/lib/api/publicApi";
 import { useAppSelector } from "@/lib/hooks";
 import { apiError } from "@/lib/utils";
@@ -20,9 +24,12 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   Text,
   TextInput,
@@ -60,6 +67,11 @@ export default function ProductDetailScreen() {
   const [selectedVariants, setSelectedVariants] = useState<
     Record<string, string>
   >({});
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState<
+    "fraudulent" | "counterfeit" | "inappropriate" | "other" | ""
+  >("");
+  const [reportDetails, setReportDetails] = useState("");
 
   // ─── Product data (no auth required) ────────────────────────────────────────
   const {
@@ -133,6 +145,21 @@ export default function ProductDetailScreen() {
   const [removeFromWishlist, { isLoading: isRemovingFromWishlist }] =
     useRemoveFromWishlistMutation();
 
+  // ─── Report + block vendor (Apple App Review Guideline 1.2 - UGC) ───────────
+  const [reportProduct, { isLoading: isSubmittingReport }] =
+    useReportProductMutation();
+  const { data: blockedVendorsResponse } = useGetBlockedVendorsQuery(
+    undefined,
+    { skip: !isAuthenticated },
+  );
+  const blockedVendors = blockedVendorsResponse?.data || [];
+  const isVendorBlocked = product?.vendor
+    ? blockedVendors.some((b: any) => b.vendor === product.vendor!.id)
+    : false;
+  const [blockVendor, { isLoading: isBlocking }] = useBlockVendorMutation();
+  const [unblockVendor, { isLoading: isUnblocking }] =
+    useUnblockVendorMutation();
+
   // ─── Handlers ────────────────────────────────────────────────────────────────
   const handleVariantSelect = (category: string, value: string) => {
     setSelectedVariants((prev) => ({ ...prev, [category]: value }));
@@ -200,6 +227,92 @@ export default function ProductDetailScreen() {
     } catch {
       Toast.show({ type: "error", text1: "Failed to update wishlist" });
     }
+  };
+
+  const handleOpenReportModal = () => {
+    if (!isAuthenticated) {
+      router.push("/(auth)/login");
+      return;
+    }
+    setReportReason("");
+    setReportDetails("");
+    setShowReportModal(true);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!product?.slug || !reportReason) {
+      Toast.show({ type: "error", text1: "Please select a reason" });
+      return;
+    }
+    try {
+      const res = await reportProduct({
+        slug: product.slug,
+        reason: reportReason,
+        details: reportDetails.trim() || undefined,
+      }).unwrap();
+      Toast.show({
+        type: "success",
+        text1: res.message || "Report submitted. Thank you.",
+      });
+      setShowReportModal(false);
+    } catch (err: any) {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: apiError(err, "Failed to submit report"),
+      });
+    }
+  };
+
+  const handleToggleBlockVendor = () => {
+    if (!isAuthenticated) {
+      router.push("/(auth)/login");
+      return;
+    }
+    if (!product?.vendor?.id) return;
+
+    if (isVendorBlocked) {
+      unblockVendor(product.vendor.id)
+        .unwrap()
+        .then(() => Toast.show({ type: "success", text1: "Vendor unblocked" }))
+        .catch((err: any) =>
+          Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: apiError(err, "Failed to unblock vendor"),
+          }),
+        );
+      return;
+    }
+
+    Alert.alert(
+      "Block this vendor?",
+      `You won't see listings from ${product.vendor.store_name} anymore. You can unblock them anytime from this page.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Block vendor",
+          style: "destructive",
+          onPress: () => {
+            blockVendor(product.vendor!.id)
+              .unwrap()
+              .then(() =>
+                Toast.show({
+                  type: "success",
+                  text1: `You won't see listings from ${product.vendor!.store_name} anymore`,
+                }),
+              )
+              .catch((err: any) =>
+                Toast.show({
+                  type: "error",
+                  text1: "Error",
+                  text2: apiError(err, "Failed to block vendor"),
+                }),
+              );
+          },
+        },
+      ],
+    );
   };
 
   const handleSubmitReview = async () => {
@@ -391,9 +504,21 @@ export default function ProductDetailScreen() {
               {product.description}
             </Text>
             {product.store_name && (
-              <Text className="text-base font-medium text-system-blue-light mb-4">
-                Store: {product.store_name}
-              </Text>
+              <View className="flex-row items-center justify-between mb-4">
+                <Text className="text-base font-medium text-system-blue-light">
+                  Store: {product.store_name}
+                </Text>
+                {product.vendor?.id && (
+                  <TouchableOpacity
+                    onPress={handleToggleBlockVendor}
+                    disabled={isBlocking || isUnblocking}
+                  >
+                    <Text className="text-xs font-medium text-gray-500 underline">
+                      {isVendorBlocked ? "Unblock vendor" : "Block vendor"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
 
             {/* Price + Rating row — matches web layout */}
@@ -473,7 +598,103 @@ export default function ProductDetailScreen() {
                           : "Out of Stock"}
                 </Text>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleOpenReportModal}
+                className="w-12 h-12 border border-gray-200 rounded-[12px] items-center justify-center"
+              >
+                <Ionicons name="flag-outline" size={22} color="#666" />
+              </TouchableOpacity>
             </View>
+
+            {/* Report Listing Modal */}
+            <Modal
+              visible={showReportModal}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShowReportModal(false)}
+            >
+              <Pressable
+                className="flex-1 bg-black/30 items-center justify-center px-6"
+                onPress={() => setShowReportModal(false)}
+              >
+                <Pressable
+                  className="w-full bg-white rounded-2xl p-5"
+                  onPress={(e) => e.stopPropagation()}
+                >
+                  <Text className="text-lg font-semibold text-gray-900 mb-1">
+                    Report this listing
+                  </Text>
+                  <Text className="text-sm text-gray-600 mb-4">
+                    Tell us what's wrong with this product. Our team reviews
+                    every report.
+                  </Text>
+
+                  <View className="mb-4">
+                    {(
+                      [
+                        ["fraudulent", "Fraudulent"],
+                        ["counterfeit", "Counterfeit"],
+                        ["inappropriate", "Inappropriate"],
+                        ["other", "Other"],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <TouchableOpacity
+                        key={value}
+                        onPress={() => setReportReason(value)}
+                        className="flex-row items-center gap-2 py-1.5"
+                      >
+                        <Ionicons
+                          name={
+                            reportReason === value
+                              ? "radio-button-on"
+                              : "radio-button-off"
+                          }
+                          size={18}
+                          color={reportReason === value ? "#020360" : "#999"}
+                        />
+                        <Text className="text-sm text-gray-800">{label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <TextInput
+                    value={reportDetails}
+                    onChangeText={setReportDetails}
+                    placeholder="Additional details (optional)"
+                    maxLength={1000}
+                    multiline
+                    numberOfLines={3}
+                    className="border border-gray-300 rounded-xl p-3 text-sm text-gray-900 mb-4"
+                    style={{ textAlignVertical: "top", minHeight: 72 }}
+                  />
+
+                  <View className="flex-row gap-3">
+                    <TouchableOpacity
+                      onPress={() => setShowReportModal(false)}
+                      className="flex-1 py-3 bg-white border border-gray-300 rounded-xl items-center"
+                    >
+                      <Text className="text-sm font-medium text-gray-900">
+                        Cancel
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleSubmitReport}
+                      disabled={isSubmittingReport || !reportReason}
+                      className={`flex-1 py-3 rounded-xl items-center bg-red-600 ${
+                        isSubmittingReport || !reportReason
+                          ? "opacity-50"
+                          : ""
+                      }`}
+                    >
+                      <Text className="text-sm font-medium text-white">
+                        {isSubmittingReport ? "Submitting..." : "Submit report"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </Pressable>
+              </Pressable>
+            </Modal>
 
             {/* ── Reviews ──────────────────────────────────────────────────────── */}
             <View className="border-t border-gray-100 pt-6">

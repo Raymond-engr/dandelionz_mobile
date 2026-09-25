@@ -6,6 +6,9 @@ import {
   useDeleteProductMutation,
   useGetAllCategoriesQuery,
   useGetAllProductsQuery,
+  useGetAdminReportsQuery,
+  useDismissReportMutation,
+  useTakedownReportedProductMutation,
 } from "@/lib/api/adminApi";
 import {
   useDeleteDraftMutation,
@@ -36,7 +39,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 
-type TabKey = "products" | "categories" | "drafts";
+type TabKey = "products" | "categories" | "drafts" | "reports";
 
 export default function AdminProduct() {
   const router = useRouter();
@@ -58,14 +61,63 @@ export default function AdminProduct() {
     isLoading: loadingProducts,
     refetch: refetchProducts,
   } = useGetAllProductsQuery({});
-  const products = (productsData as any)?.results || (productsData as any)?.data || (Array.isArray(productsData) ? productsData : []);
+  const products = (productsData as any)?.data?.results ?? [];
 
   const {
     data: draftsData,
     isLoading: loadingDrafts,
     refetch: refetchDrafts,
   } = useGetDraftsQuery();
-  const drafts = (draftsData as any)?.results || (draftsData as any)?.data || (Array.isArray(draftsData) ? draftsData : []);
+  const drafts = (draftsData as any)?.data ?? [];
+
+  // Reports (Apple App Review Guideline 1.2 - UGC moderation)
+  const [reportsFilter, setReportsFilter] = useState<"pending" | "reviewed" | "dismissed">("pending");
+  const {
+    data: reportsResp,
+    isLoading: loadingReports,
+    refetch: refetchReports,
+  } = useGetAdminReportsQuery({ status: reportsFilter });
+  const { data: pendingReportsResp } = useGetAdminReportsQuery({ status: "pending" });
+  const reports = reportsResp?.data || [];
+  const pendingReportsCount = pendingReportsResp?.data?.length ?? 0;
+  const [dismissReport, { isLoading: isDismissingReport }] = useDismissReportMutation();
+  const [takedownReport, { isLoading: isTakingDown }] = useTakedownReportedProductMutation();
+
+  const handleDismissReport = async (reportId: number) => {
+    try {
+      await dismissReport(reportId).unwrap();
+      Toast.show({ type: "success", text1: "Report dismissed" });
+      refetchReports();
+    } catch (err: any) {
+      captureApiError(err, { flow: "admin_product_reports", action: "dismiss" });
+      Toast.show({ type: "error", text1: "Error", text2: apiError(err, "Failed to dismiss report") });
+    }
+  };
+
+  const handleTakedownReport = (reportId: number, productName: string) => {
+    Alert.alert(
+      "Take down listing?",
+      `This removes "${productName}" from the marketplace, same as rejecting it.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Take down",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const result = await takedownReport(reportId).unwrap();
+              Toast.show({ type: "success", text1: result.message || "Listing taken down" });
+              refetchReports();
+              refetchProducts();
+            } catch (err: any) {
+              captureApiError(err, { flow: "admin_product_reports", action: "takedown" });
+              Toast.show({ type: "error", text1: "Error", text2: apiError(err, "Failed to take down listing") });
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const [deleteCategory] = useDeleteCategoryMutation();
   const [deleteProduct] = useDeleteProductMutation();
@@ -299,6 +351,21 @@ export default function AdminProduct() {
             >
               Drafts
             </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setActiveTab("reports")}
+            className={`flex-1 py-3 rounded-full items-center flex-row justify-center gap-1 ${activeTab === "reports" ? "bg-system-blue-light" : "bg-[#F5F7FA]"}`}
+          >
+            <Text
+              className={`text-[14px] font-semibold ${activeTab === "reports" ? "text-white" : "text-[#6B7280]"}`}
+            >
+              Reports
+            </Text>
+            {pendingReportsCount > 0 && (
+              <View className="bg-red-600 rounded-full px-1.5 py-0.5 min-w-[18px] items-center">
+                <Text className="text-white text-[10px] font-bold">{pendingReportsCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -685,6 +752,89 @@ export default function AdminProduct() {
                       ))
                     )}
                   </View>
+                )}
+              </View>
+            )}
+
+            {/* Reports Tab Content */}
+            {activeTab === "reports" && (
+              <View>
+                <View className="flex-row gap-2 mb-4">
+                  {(["pending", "reviewed", "dismissed"] as const).map((s) => (
+                    <TouchableOpacity
+                      key={s}
+                      onPress={() => setReportsFilter(s)}
+                      className={`px-3 py-1.5 rounded-full ${reportsFilter === s ? "bg-system-blue-light" : "bg-[#F5F7FA]"}`}
+                    >
+                      <Text
+                        className={`text-[12px] font-medium capitalize ${reportsFilter === s ? "text-white" : "text-[#6B7280]"}`}
+                      >
+                        {s}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {loadingReports ? (
+                  <ProductGridSkeleton columns={1} count={3} />
+                ) : reports.length === 0 ? (
+                  <Text className="text-center text-gray-500 mt-10">
+                    No {reportsFilter} reports
+                  </Text>
+                ) : (
+                  reports.map((report: any) => (
+                    <View key={report.id} className="bg-gray-50 rounded-xl p-4 mb-3">
+                      <View className="flex-row items-start justify-between mb-1">
+                        <TouchableOpacity
+                          className="flex-1 pr-2"
+                          onPress={() =>
+                            router.push(`/admin/products/${report.product_slug}` as any)
+                          }
+                        >
+                          <Text className="text-[14px] font-semibold text-system-blue-dark" numberOfLines={1}>
+                            {report.product_name}
+                          </Text>
+                          <Text className="text-[12px] text-[#6B7280]">
+                            Vendor: {report.vendor_name || "N/A"}
+                          </Text>
+                          <Text className="text-[12px] text-[#6B7280]">
+                            By: {report.reporter_email}
+                          </Text>
+                        </TouchableOpacity>
+                        <View className="bg-red-100 rounded-full px-2 py-1">
+                          <Text className="text-[11px] font-medium text-red-700 capitalize">
+                            {report.reason}
+                          </Text>
+                        </View>
+                      </View>
+                      {!!report.details && (
+                        <View className="bg-white rounded-lg p-2 mb-2">
+                          <Text className="text-[12px] text-gray-700">{report.details}</Text>
+                        </View>
+                      )}
+                      <Text className="text-[11px] text-gray-400 mb-3">
+                        {new Date(report.created_at).toLocaleString()}
+                      </Text>
+                      {report.status === "pending" && (
+                        <View className="flex-row gap-2">
+                          <TouchableOpacity
+                            onPress={() => handleDismissReport(report.id)}
+                            disabled={isDismissingReport || isTakingDown}
+                            className="flex-1 py-2 bg-white border border-gray-300 rounded-lg items-center"
+                          >
+                            <Text className="text-[12px] font-medium text-gray-700">Dismiss</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => handleTakedownReport(report.id, report.product_name)}
+                            disabled={isDismissingReport || isTakingDown}
+                            className="flex-1 py-2 bg-red-600 rounded-lg items-center"
+                          >
+                            <Text className="text-[12px] font-medium text-white">Take down</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  ))
                 )}
               </View>
             )}

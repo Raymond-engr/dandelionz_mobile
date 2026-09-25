@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useRegisterMutation } from "@/lib/api/authApi";
 import { apiError } from "@/lib/utils";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { Link, router } from "expo-router";
 import React, { useState } from "react";
 import {
     KeyboardAvoidingView,
@@ -34,6 +34,7 @@ export default function RegisterVendorScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState("");
 
   const handleRegister = async () => {
@@ -78,6 +79,11 @@ export default function RegisterVendorScreen() {
       return;
     }
 
+    if (!termsAccepted) {
+      setError("You must accept the Terms of Use to create an account");
+      return;
+    }
+
     try {
       const res = await register({
         full_name: fullName.trim(),
@@ -85,6 +91,7 @@ export default function RegisterVendorScreen() {
         phone_number: phone.trim(),
         password,
         role: "VENDOR",
+        terms_accepted: termsAccepted,
       }).unwrap();
 
       if (res.success) {
@@ -205,9 +212,29 @@ export default function RegisterVendorScreen() {
               </View>
             </View>
 
+            {/* Terms of Use Acceptance */}
+            <TouchableOpacity
+              onPress={() => setTermsAccepted(!termsAccepted)}
+              className="flex-row items-start gap-2 mb-6"
+            >
+              <Ionicons
+                name={termsAccepted ? "checkbox" : "square-outline"}
+                size={20}
+                color={termsAccepted ? "#020360" : "#9CA3AF"}
+                style={{ marginTop: 1 }}
+              />
+              <Text className="text-[13px] text-gray-700 flex-1">
+                I have read and agree to the{" "}
+                <Link href="/vendor/account/vendor-terms" className="text-system-blue-light font-semibold">
+                  Vendor Terms of Use
+                </Link>
+              </Text>
+            </TouchableOpacity>
+
             <Button
               onPress={handleRegister}
               isLoading={isLoading}
+              disabled={!termsAccepted}
               className="mb-6"
             >
               Register as Vendor

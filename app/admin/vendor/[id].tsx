@@ -236,6 +236,13 @@ export default function VendorDetail() {
                     {vendor.is_verified_vendor ? "Verified" : "Unverified"}
                   </Text>
                 </View>
+                {!!vendor.blocked_by_count && (
+                  <View className="px-3 py-1 rounded-full bg-[#F3F4F6]">
+                    <Text className="text-[12px] font-bold text-[#374151]">
+                      Blocked by {vendor.blocked_by_count} {vendor.blocked_by_count === 1 ? "customer" : "customers"}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           </View>

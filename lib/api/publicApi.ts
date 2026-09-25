@@ -405,6 +405,40 @@ export const publicApi = baseApi.injectEndpoints({
       invalidatesTags: ["Wishlist"],
     }),
 
+    // Report a product listing (Apple App Review Guideline 1.2)
+    reportProduct: builder.mutation<
+      { success: boolean; message: string; data: any },
+      { slug: string; reason: "fraudulent" | "counterfeit" | "inappropriate" | "other"; details?: string }
+    >({
+      query: ({ slug, ...body }) => ({
+        url: `/store/products/${slug}/report/`,
+        method: "POST",
+        body,
+      }),
+    }),
+
+    // Blocked vendors (Apple App Review Guideline 1.2)
+    getBlockedVendors: builder.query<{ success: boolean; data: any[] }, void>({
+      query: () => "/users/customer/blocked-vendors/",
+      providesTags: ["BlockedVendors"],
+    }),
+
+    blockVendor: builder.mutation<{ success: boolean; message: string }, number>({
+      query: (vendorId) => ({
+        url: `/users/customer/vendors/${vendorId}/block/`,
+        method: "POST",
+      }),
+      invalidatesTags: ["BlockedVendors", "Product"],
+    }),
+
+    unblockVendor: builder.mutation<{ success: boolean; message: string }, number>({
+      query: (vendorId) => ({
+        url: `/users/customer/vendors/${vendorId}/block/`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["BlockedVendors", "Product"],
+    }),
+
     // Orders
     getCustomerOrders: builder.query<Order[], { status?: string }>({
       query: (params) => ({
@@ -725,6 +759,10 @@ export const {
   useGetWishlistQuery,
   useAddToWishlistMutation,
   useRemoveFromWishlistMutation,
+  useReportProductMutation,
+  useGetBlockedVendorsQuery,
+  useBlockVendorMutation,
+  useUnblockVendorMutation,
   useGetCustomerOrdersQuery,
   useCreateOrderMutation,
   useGetCustomerOrderDetailsQuery,

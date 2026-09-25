@@ -150,3 +150,9 @@ Always generate commit messages at the end of a task and append this instruction
 - Added a dedicated 2048x2048, flat (no-alpha) apple-icon.png for iOS to comply with Apple's strict transparency rules.
 - Configured app.json under the ios block to use apple-icon.png exclusively for iOS builds, while keeping the original transparent icon.png for Android adaptive icons.
 - Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.
+
+## September 17, 2026 - Fix Admin Product List iOS Crash
+- Fixed a TypeError: undefined is not a function crash on the iOS build by refactoring the products extraction logic in pp/admin/(tabs)/product.tsx. The fallback was incorrectly assigning the paginated response wrapper object ({ count, results: [...] }) to the products variable instead of the array.
+- Replaced ?.results || ?.data with ?.data?.results ?? [] for products.
+- Replaced ?.results || ?.data with ?.data ?? [] for drafts in pp/admin/(tabs)/product.tsx.
+- Replaced ?.results || ?.data with ?.results ?? [] for users in pp/admin/(tabs)/users.tsx.

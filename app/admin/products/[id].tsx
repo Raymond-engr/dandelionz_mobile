@@ -5,6 +5,9 @@ import {
     useGetAdminProductDetailsQuery,
     useRejectProductAdminMutation,
     useSetProductCommissionMutation,
+    useGetProductReportsQuery,
+    useDismissReportMutation,
+    useTakedownReportedProductMutation,
 } from "@/lib/api/adminApi";
 import { captureApiError } from "@/lib/observability";
 import { apiError, formatCurrency } from "@/lib/utils";
@@ -13,6 +16,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Image,
     ScrollView,
     Text,
@@ -48,6 +52,46 @@ export default function ProductDetail() {
   const [setProductCommission, { isLoading: isSavingCommission }] =
     useSetProductCommissionMutation();
   const [commissionInput, setCommissionInput] = useState("");
+
+  // Reports filed against this product (Apple App Review Guideline 1.2)
+  const { data: reportsResp, refetch: refetchReports } = useGetProductReportsQuery(id!);
+  const productReports = reportsResp?.data || [];
+  const [dismissReport, { isLoading: isDismissingReport }] = useDismissReportMutation();
+  const [takedownReport, { isLoading: isTakingDown }] = useTakedownReportedProductMutation();
+
+  const handleDismissReport = async (reportId: number) => {
+    try {
+      await dismissReport(reportId).unwrap();
+      Toast.show({ type: "success", text1: "Report dismissed" });
+      refetchReports();
+    } catch (err: any) {
+      Toast.show({ type: "error", text1: "Error", text2: apiError(err, "Failed to dismiss report") });
+    }
+  };
+
+  const handleTakedownReport = (reportId: number) => {
+    Alert.alert(
+      "Take down this listing?",
+      "This removes the product from the marketplace, same as rejecting it.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Take down",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const result = await takedownReport(reportId).unwrap();
+              Toast.show({ type: "success", text1: result.message || "Listing taken down" });
+              refetchReports();
+              refetch();
+            } catch (err: any) {
+              Toast.show({ type: "error", text1: "Error", text2: apiError(err, "Failed to take down listing") });
+            }
+          },
+        },
+      ],
+    );
+  };
 
   useEffect(() => {
     if (product?.commission_rate != null && product.commission_rate !== "") {
@@ -259,6 +303,52 @@ export default function ProductDetail() {
         </View>
 
         <Divider />
+
+        {productReports.length > 0 && (
+          <>
+            <View className="p-[21px]">
+              <Text className="text-[16px] font-bold text-system-blue-dark mb-4">
+                Reports ({productReports.length})
+              </Text>
+              <View className="gap-3">
+                {productReports.map((report: any) => (
+                  <View key={report.id} className="bg-[#F9FAFB] p-3 rounded-xl border border-[#F3F4F6]">
+                    <View className="flex-row items-center justify-between mb-1">
+                      <Text className="text-[12px] font-bold text-red-700 capitalize">{report.reason}</Text>
+                      <Text className="text-[11px] text-gray-400 capitalize">{report.status}</Text>
+                    </View>
+                    <Text className="text-[12px] text-[#6B7280] mb-1">By {report.reporter_email}</Text>
+                    {!!report.details && (
+                      <View className="bg-white rounded-lg p-2 mb-2">
+                        <Text className="text-[12px] text-gray-700">{report.details}</Text>
+                      </View>
+                    )}
+                    {report.status === "pending" && (
+                      <View className="flex-row gap-2 mt-1">
+                        <TouchableOpacity
+                          onPress={() => handleDismissReport(report.id)}
+                          disabled={isDismissingReport || isTakingDown}
+                          className="flex-1 py-1.5 bg-white border border-gray-300 rounded-lg items-center"
+                        >
+                          <Text className="text-[12px] font-medium text-gray-700">Dismiss</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => handleTakedownReport(report.id)}
+                          disabled={isDismissingReport || isTakingDown}
+                          className="flex-1 py-1.5 bg-red-600 rounded-lg items-center"
+                        >
+                          <Text className="text-[12px] font-medium text-white">Take down</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <Divider />
+          </>
+        )}
 
         {/* Commission */}
         <View className="p-[21px]">

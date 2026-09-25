@@ -7,6 +7,7 @@ interface RegisterRequest {
   full_name: string;
   role: "CUSTOMER" | "VENDOR";
   referral_code?: string;
+  terms_accepted: boolean;
 }
 
 interface LoginRequest {

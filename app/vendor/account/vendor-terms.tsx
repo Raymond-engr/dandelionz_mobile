@@ -46,6 +46,10 @@ const SECTIONS = [
     title: "10. Governing Law",
     body: "These terms are governed by the laws of the Federal Republic of Nigeria. Any disputes shall be resolved through negotiation, and if unresolved, through arbitration in Lagos, Nigeria.",
   },
+  {
+    title: "11. Objectionable Content & Zero Tolerance",
+    body: "As a vendor, you are solely responsible for the accuracy, legality, and appropriateness of every product listing, photo, video, and description you upload. Dandelionz has zero tolerance for objectionable content of any kind, including fraudulent, counterfeit, abusive, harassing, hateful, sexually explicit, or otherwise inappropriate listings, images, or videos. Customers may report any listing directly from the app, and may block a vendor at any time, which hides that vendor's listings from that customer going forward. Dandelionz reviews every report and reserves the right, at its sole discretion, to remove any listing and to suspend or permanently ban any vendor account found to violate this policy, without prior notice.",
+  },
 ];
 
 export default function VendorTermsScreen() {

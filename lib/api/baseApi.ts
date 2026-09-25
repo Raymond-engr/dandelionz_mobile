@@ -204,6 +204,8 @@ export const baseApi = createApi({
     "CustomerPaymentSettings",
     "Refunds",
     "Ledger",
+    "BlockedVendors",
+    "Reports",
   ],
   endpoints: () => ({}),
 });

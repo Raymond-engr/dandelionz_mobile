@@ -43,7 +43,11 @@ const SECTIONS = [
     body: "To the fullest extent permitted by law, Dandelionz is not liable for any indirect, incidental, or consequential damages arising from your use of the platform.",
   },
   {
-    title: "10. Changes to Terms",
+    title: "10. User-Generated Content & Reporting",
+    body: "Dandelionz has zero tolerance for objectionable content of any kind, including fraudulent, counterfeit, abusive, harassing, or otherwise inappropriate listings, images, or videos. You can report any listing directly from its product page, and you can block a vendor at any time to hide their listings from your feed - both are available right on the product screen. We review every report and reserve the right to remove any content and to suspend or permanently ban any account, vendor or customer, found to violate these terms, without prior notice. Concerns can also be sent directly to our support team - see the Contact Us page for our current email and phone number.",
+  },
+  {
+    title: "11. Changes to Terms",
     body: "We may update these terms from time to time. Continued use of the platform after changes are posted constitutes your acceptance of the revised terms.",
   },
 ];

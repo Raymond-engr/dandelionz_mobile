@@ -69,6 +69,8 @@ export interface Vendor {
   is_active: boolean;
   is_verified?: boolean;
   created_at?: string;
+  /** Number of customers who have blocked this vendor (Apple App Review Guideline 1.2 signal). */
+  blocked_by_count?: number;
 }
 
 export interface User {
@@ -1326,6 +1328,42 @@ export const adminApi = baseApi.injectEndpoints({
       invalidatesTags: ["Product"],
     }),
 
+    // Reports (Apple App Review Guideline 1.2 - UGC moderation)
+    getAdminReports: builder.query<
+      { success: boolean; message: string; data: any[] },
+      { status?: "pending" | "reviewed" | "dismissed" } | void
+    >({
+      query: (params) => ({
+        url: "/store/admin/reports/",
+        params: params || undefined,
+      }),
+      providesTags: ["Reports"],
+    }),
+
+    getProductReports: builder.query<
+      { success: boolean; message: string; data: any[] },
+      string // product slug
+    >({
+      query: (slug) => `/store/admin/products/${slug}/reports/`,
+      providesTags: ["Reports"],
+    }),
+
+    dismissReport: builder.mutation<{ success: boolean; message: string }, number>({
+      query: (reportId) => ({
+        url: `/store/admin/reports/${reportId}/dismiss/`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Reports"],
+    }),
+
+    takedownReportedProduct: builder.mutation<{ success: boolean; message: string }, number>({
+      query: (reportId) => ({
+        url: `/store/admin/reports/${reportId}/takedown/`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Reports", "Product"],
+    }),
+
     deleteProduct: builder.mutation<
       { success: boolean; message: string },
       string
@@ -1682,6 +1720,10 @@ export const {
   useSetProductCommissionMutation,
   useApproveProductAdminMutation,
   useRejectProductAdminMutation,
+  useGetAdminReportsQuery,
+  useGetProductReportsQuery,
+  useDismissReportMutation,
+  useTakedownReportedProductMutation,
   useDeleteProductMutation,
   useGetAllCategoriesQuery,
   useGetCategoryQuery,

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useRegisterMutation } from "@/lib/api/authApi";
 import { apiError } from "@/lib/utils";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { Link, router } from "expo-router";
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -42,6 +42,7 @@ export default function RegisterScreen() {
   const [referralCode, setReferralCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState("");
 
   const handleRegister = async () => {
@@ -75,6 +76,11 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (!termsAccepted) {
+      setError("You must accept the Terms of Use to create an account");
+      return;
+    }
+
     try {
       const res = await register({
         full_name: fullName.trim(),
@@ -82,6 +88,7 @@ export default function RegisterScreen() {
         phone_number: phone.trim(),
         password,
         role: "CUSTOMER",
+        terms_accepted: termsAccepted,
         ...(referralCode ? { referral_code: referralCode.toUpperCase() } : {}),
       }).unwrap();
 
@@ -213,7 +220,31 @@ export default function RegisterScreen() {
               />
             </View>
 
-            <Button onPress={handleRegister} isLoading={isLoading} className="mb-6">
+            {/* Terms of Use Acceptance */}
+            <TouchableOpacity
+              onPress={() => setTermsAccepted(!termsAccepted)}
+              className="flex-row items-start gap-2 mb-6"
+            >
+              <Ionicons
+                name={termsAccepted ? "checkbox" : "square-outline"}
+                size={20}
+                color={termsAccepted ? "#020360" : "#9CA3AF"}
+                style={{ marginTop: 1 }}
+              />
+              <Text className="text-[13px] text-gray-700 flex-1">
+                I have read and agree to the{" "}
+                <Link href="/terms" className="text-system-blue-light font-semibold">
+                  Terms of Use
+                </Link>
+              </Text>
+            </TouchableOpacity>
+
+            <Button
+              onPress={handleRegister}
+              isLoading={isLoading}
+              disabled={!termsAccepted}
+              className="mb-6"
+            >
               Register
             </Button>
 

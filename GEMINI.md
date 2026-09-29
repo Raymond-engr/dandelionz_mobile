@@ -156,3 +156,24 @@ Always generate commit messages at the end of a task and append this instruction
 - Replaced ?.results || ?.data with ?.data?.results ?? [] for products.
 - Replaced ?.results || ?.data with ?.data ?? [] for drafts in pp/admin/(tabs)/product.tsx.
 - Replaced ?.results || ?.data with ?.results ?? [] for users in pp/admin/(tabs)/users.tsx.
+
+## September 25, 2026 - Apple UGC Compliance (Guideline 1.2) - Mobile App
+- Report button + RN Modal (fraudulent/counterfeit/inappropriate/other) on app/product/[slug].tsx.
+- Block/Unblock vendor touchable next to store name; Alert.alert for confirmation (matches codebase convention).
+- Customer registration (app/(auth)/register.tsx) and vendor registration (register-vendor.tsx): required terms checkbox, terms_accepted sent to backend.
+- app/terms.tsx updated with UGC zero-tolerance and reporting/blocking clause.
+- app/vendor/account/vendor-terms.tsx updated with vendor objectionable-content clause.
+- Admin Reports tab added to app/admin/(tabs)/product.tsx with filter and dismiss/takedown.
+- Per-product reports panel added to app/admin/products/[id].tsx.
+- blocked_by_count badge added to app/admin/vendor/[id].tsx.
+- RTK hooks: reportProduct, getBlockedVendors, blockVendor, unblockVendor (publicApi).
+- RTK hooks: getAdminReports, getProductReports, dismissReport, takedownReportedProduct (adminApi).
+- BlockedVendors and Reports tag types added to baseApi.
+- Fix: captureApiError calls use flow key (not screen) per ApiErrorContext interface.
+- Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.
+
+## September 29, 2026 - Fix Vendor Block 404 Bug
+- Fixed a URL prefix typo in lib/api/publicApi.ts where getBlockedVendors, blockVendor, and unblockVendor used /users/customer/... (plural) instead of /user/customer/... (singular).
+- Root cause: the backend mounts users.urls under 'user/' per e_commerce_api/urls.py. All existing customerApi.ts endpoints already use /user/ — the UGC compliance patch introduced the wrong prefix.
+- Fix applied identically to both Web App and Mobile App.
+- Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.

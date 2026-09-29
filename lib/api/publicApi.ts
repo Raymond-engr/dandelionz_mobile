@@ -419,13 +419,13 @@ export const publicApi = baseApi.injectEndpoints({
 
     // Blocked vendors (Apple App Review Guideline 1.2)
     getBlockedVendors: builder.query<{ success: boolean; data: any[] }, void>({
-      query: () => "/users/customer/blocked-vendors/",
+      query: () => "/user/customer/blocked-vendors/",
       providesTags: ["BlockedVendors"],
     }),
 
     blockVendor: builder.mutation<{ success: boolean; message: string }, number>({
       query: (vendorId) => ({
-        url: `/users/customer/vendors/${vendorId}/block/`,
+        url: `/user/customer/vendors/${vendorId}/block/`,
         method: "POST",
       }),
       invalidatesTags: ["BlockedVendors", "Product"],
@@ -433,7 +433,7 @@ export const publicApi = baseApi.injectEndpoints({
 
     unblockVendor: builder.mutation<{ success: boolean; message: string }, number>({
       query: (vendorId) => ({
-        url: `/users/customer/vendors/${vendorId}/block/`,
+        url: `/user/customer/vendors/${vendorId}/block/`,
         method: "DELETE",
       }),
       invalidatesTags: ["BlockedVendors", "Product"],

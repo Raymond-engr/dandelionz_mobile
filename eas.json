@@ -28,6 +28,12 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "dandelionsuperglobal.ltd@gmail.com",
+        "ascAppId": "6813136283",
+        "appleTeamId": "J7LDGQK4X3"
+      }
+    }
   }
 }

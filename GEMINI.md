@@ -171,3 +171,9 @@ Always generate commit messages at the end of a task and append this instruction
 - BlockedVendors and Reports tag types added to baseApi.
 - Fix: captureApiError calls use flow key (not screen) per ApiErrorContext interface.
 - Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.
+
+## September 29, 2026 - Fix Vendor Block 404 Bug
+- Fixed a URL prefix typo in lib/api/publicApi.ts where getBlockedVendors, blockVendor, and unblockVendor used /users/customer/... (plural) instead of /user/customer/... (singular).
+- Root cause: the backend mounts users.urls under 'user/' per e_commerce_api/urls.py. All existing customerApi.ts endpoints already use /user/ — the UGC compliance patch introduced the wrong prefix.
+- Fix applied identically to both Web App and Mobile App.
+- Always generate commit messages at the end of a task and append this instruction to the project's GEMINI.md file.

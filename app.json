@@ -76,7 +76,7 @@
     },
     "ios": {
       "icon": "./assets/images/apple-icon.png",
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.dandelionz",
       "associatedDomains": [
         "applinks:dandelionz.com.ng",

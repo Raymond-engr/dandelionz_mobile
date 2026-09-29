@@ -503,10 +503,10 @@ export default function ProductDetailScreen() {
             <Text className="text-base text-gray-500 leading-6 mb-4">
               {product.description}
             </Text>
-            {product.store_name && (
+            {product.vendor?.store_name && (
               <View className="flex-row items-center justify-between mb-4">
                 <Text className="text-base font-medium text-system-blue-light">
-                  Store: {product.store_name}
+                  Store: {product.vendor.store_name}
                 </Text>
                 {product.vendor?.id && (
                   <TouchableOpacity
